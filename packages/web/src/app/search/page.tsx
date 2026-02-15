@@ -29,7 +29,8 @@ export default function SearchPage() {
   }, []);
 
   const isSaved = useCallback(
-    (paper: Paper) => makeKeys(paper.doi, paper.title).some((k) => savedKeys.has(k)),
+    (paper: Paper) =>
+      makeKeys(paper.doi, paper.title).some((k) => savedKeys.has(k)),
     [makeKeys, savedKeys],
   );
 
@@ -55,12 +56,13 @@ export default function SearchPage() {
         if (!res.ok || cancelled) return;
         const next = new Set<string>();
         for (const record of data.records ?? []) {
-          if (record.doi) next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
-          if (record.title) next.add(`title:${String(record.title).trim().toLowerCase()}`);
+          if (record.doi)
+            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+          if (record.title)
+            next.add(`title:${String(record.title).trim().toLowerCase()}`);
         }
         setSavedKeys(next);
-      } catch {
-      }
+      } catch {}
     };
     void fetchArchive();
     return () => {
@@ -247,7 +249,7 @@ export default function SearchPage() {
                           <PaperCard
                             key={i}
                             paper={paper}
-                            actions={(
+                            actions={
                               <>
                                 <SaveToNotionButton
                                   doi={paper.doi}
@@ -268,7 +270,7 @@ export default function SearchPage() {
                                   ✨ おすすめ
                                 </a>
                               </>
-                            )}
+                            }
                           />
                         );
                       })}

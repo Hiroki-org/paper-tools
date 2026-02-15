@@ -25,10 +25,10 @@ export default function SaveToNotionButton({
 
   const handleClick = useCallback(async () => {
     if (
-      saved
-      || status === "resolving"
-      || status === "saving"
-      || status === "done"
+      saved ||
+      status === "resolving" ||
+      status === "saving" ||
+      status === "done"
     ) {
       return;
     }
@@ -89,9 +89,10 @@ export default function SaveToNotionButton({
         type="button"
         onClick={handleClick}
         disabled={
-          saved
-          ||
-          status === "resolving" || status === "saving" || status === "done"
+          saved ||
+          status === "resolving" ||
+          status === "saving" ||
+          status === "done"
         }
         className="rounded border border-[var(--color-primary)] px-3 py-1 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
       >

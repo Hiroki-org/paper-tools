@@ -34,7 +34,9 @@ function GraphPageClient() {
   }, []);
 
   const selectedSaved = selectedNode
-    ? makeKeys(selectedNode.doi, selectedNode.title).some((k) => savedKeys.has(k))
+    ? makeKeys(selectedNode.doi, selectedNode.title).some((k) =>
+        savedKeys.has(k),
+      )
     : false;
 
   const markSelectedSaved = useCallback(() => {
@@ -57,12 +59,13 @@ function GraphPageClient() {
         if (!res.ok || cancelled) return;
         const next = new Set<string>();
         for (const record of data.records ?? []) {
-          if (record.doi) next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
-          if (record.title) next.add(`title:${String(record.title).trim().toLowerCase()}`);
+          if (record.doi)
+            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+          if (record.title)
+            next.add(`title:${String(record.title).trim().toLowerCase()}`);
         }
         setSavedKeys(next);
-      } catch {
-      }
+      } catch {}
     };
     void fetchArchive();
     return () => {

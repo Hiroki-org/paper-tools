@@ -98,15 +98,18 @@ function RecommendPageClient() {
         if (!res.ok || cancelled) return;
         const next = new Set<string>();
         for (const record of data.records ?? []) {
-          if (record.doi) next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+          if (record.doi)
+            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
           if (record.semanticScholarId) {
-            next.add(`s2:${String(record.semanticScholarId).trim().toLowerCase()}`);
+            next.add(
+              `s2:${String(record.semanticScholarId).trim().toLowerCase()}`,
+            );
           }
-          if (record.title) next.add(`title:${String(record.title).trim().toLowerCase()}`);
+          if (record.title)
+            next.add(`title:${String(record.title).trim().toLowerCase()}`);
         }
         setSavedKeys(next);
-      } catch {
-      }
+      } catch {}
     };
     void fetchArchive();
     return () => {
