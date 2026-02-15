@@ -1,0 +1,15 @@
+{
+  "/api/graph/multi/route": "/api/graph/multi",
+  "/api/graph/export/route": "/api/graph/export",
+  "/_not-found/page": "/_not-found",
+  "/api/recommend/route": "/api/recommend",
+  "/api/archive/route": "/api/archive",
+  "/api/search/drilldown/route": "/api/search/drilldown",
+  "/api/graph/route": "/api/graph",
+  "/api/search/route": "/api/search",
+  "/archive/page": "/archive",
+  "/graph/page": "/graph",
+  "/page": "/",
+  "/recommend/page": "/recommend",
+  "/search/page": "/search"
+}
