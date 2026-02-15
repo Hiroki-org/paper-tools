@@ -81,16 +81,16 @@ program
     .description("指定DOIの引用グラフを構築・出力する")
     .argument("<doi>", "起点のDOI")
     .option("--depth <n>", "探索の深さ", parsePositiveInt, 1)
-    .option("--direction <dir>", "引用方向 (citing|cited|both)", "both")
-    .option("--format <fmt>", "出力形式 (json|dot|mermaid)", "json")
+    .option("--direction <dir>", "引用方向", "both")
+    .option("--format <fmt>", "出力形式", "json")
     .option("-o, --output <path>", "出力先ファイルパス")
     .action(async (doi: string, opts: { depth: number; direction: string; format: string; output?: string }) => {
         try {
             if (!["citing", "cited", "both"].includes(opts.direction)) {
-                throw new Error(`Invalid direction: ${opts.direction}`);
+                throw new Error(`Invalid direction: ${opts.direction}. Must be one of: citing, cited, both`);
             }
             if (!["json", "dot", "mermaid"].includes(opts.format)) {
-                throw new Error(`Invalid format: ${opts.format}`);
+                throw new Error(`Invalid format: ${opts.format}. Must be one of: json, dot, mermaid`);
             }
             const graph = await buildCitationGraph(doi, opts.depth, opts.direction as Direction);
             const content = formatGraph(graph, opts.format as Format);
@@ -106,16 +106,16 @@ program
     .description("複数DOIの引用グラフをマージして出力する")
     .argument("<dois...>", "DOI のリスト（スペース区切り）")
     .option("--depth <n>", "探索の深さ", parsePositiveInt, 1)
-    .option("--direction <dir>", "引用方向 (citing|cited|both)", "both")
-    .option("--format <fmt>", "出力形式 (json|dot|mermaid)", "json")
+    .option("--direction <dir>", "引用方向", "both")
+    .option("--format <fmt>", "出力形式", "json")
     .option("-o, --output <path>", "出力先ファイルパス")
     .action(async (dois: string[], opts: { depth: number; direction: string; format: string; output?: string }) => {
         try {
             if (!["citing", "cited", "both"].includes(opts.direction)) {
-                throw new Error(`Invalid direction: ${opts.direction}`);
+                throw new Error(`Invalid direction: ${opts.direction}. Must be one of: citing, cited, both`);
             }
             if (!["json", "dot", "mermaid"].includes(opts.format)) {
-                throw new Error(`Invalid format: ${opts.format}`);
+                throw new Error(`Invalid format: ${opts.format}. Must be one of: json, dot, mermaid`);
             }
             const graphs: CitationGraph[] = [];
             for (const doi of dois) {

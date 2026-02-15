@@ -92,7 +92,7 @@ describe("toMermaid", () => {
             edges: [],
         };
         const mermaid = toMermaid(graph);
-        expect(mermaid).toContain("#quot;");
+        expect(mermaid).toContain("&#34;");
         expect(mermaid).not.toContain('"quoted"');
     });
 });

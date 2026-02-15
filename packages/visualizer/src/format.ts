@@ -29,6 +29,7 @@ function doiToId(doi: string): string {
 
 /**
  * グラフを DOT (Graphviz) 形式で出力する。
+ * DOI由来のノード ID は Graphviz パーサーの互換性のため、引用符で囲んで出力する
  */
 export function toDot(graph: CitationGraph): string {
     const lines: string[] = [];
@@ -40,7 +41,7 @@ export function toDot(graph: CitationGraph): string {
     for (const node of graph.nodes) {
         const id = doiToId(node.doi);
         const label = node.title ? escapeLabel(node.title) : escapeLabel(node.doi);
-        lines.push(`    ${id} [label="${label}"];`);
+        lines.push(`    "${id}" [label="${label}"];`);
     }
 
     lines.push("");
@@ -49,9 +50,9 @@ export function toDot(graph: CitationGraph): string {
         const srcId = doiToId(edge.source);
         const tgtId = doiToId(edge.target);
         if (edge.creationDate) {
-            lines.push(`    ${srcId} -> ${tgtId} [label="${escapeLabel(edge.creationDate)}"];`);
+            lines.push(`    "${srcId}" -> "${tgtId}" [label="${escapeLabel(edge.creationDate)}"];`);
         } else {
-            lines.push(`    ${srcId} -> ${tgtId};`);
+            lines.push(`    "${srcId}" -> "${tgtId}";`);
         }
     }
 
@@ -61,14 +62,14 @@ export function toDot(graph: CitationGraph): string {
 
 /**
  * Mermaid ダイアグラム形式用にテキストをエスケープする
- * 引用符を #quot; に、括弧類を HTML エンティティに置換して
+ * すべての特殊文字を HTML 数値エンティティに置換して
  * Mermaid グラフノードのラベルとして正しく表示されるようにする
  * @param text - エスケープ対象のテキスト
  * @returns Mermaid 形式用にエスケープされたテキスト
  */
 function escapeMermaid(text: string): string {
     return text
-        .replace(/"/g, "#quot;")
+        .replace(/"/g, "&#34;")
         .replace(/\(/g, "&#40;")
         .replace(/\)/g, "&#41;")
         .replace(/\[/g, "&#91;")
