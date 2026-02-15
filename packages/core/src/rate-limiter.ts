@@ -1,10 +1,13 @@
 /**
  * シンプルなレート制限ユーティリティ
  * Token bucket アルゴリズムベース
+ * キューイングメカニズムで競合状態を回避
  */
 export class RateLimiter {
     private tokens: number;
     private lastRefill: number;
+    private queue: Array<() => void> = [];
+    private processing = false;
 
     constructor(
         private readonly maxTokens: number,
@@ -25,16 +28,32 @@ export class RateLimiter {
     }
 
     async acquire(): Promise<void> {
-        this.refill();
-        if (this.tokens > 0) {
-            this.tokens--;
+        return new Promise((resolve) => {
+            this.queue.push(resolve);
+            this.processQueue();
+        });
+    }
+
+    private async processQueue(): Promise<void> {
+        if (this.processing || this.queue.length === 0) {
             return;
         }
-        // Wait until next refill
-        const waitTime = this.refillIntervalMs - (Date.now() - this.lastRefill);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-        this.refill();
-        this.tokens--;
+        this.processing = true;
+
+        while (this.queue.length > 0) {
+            this.refill();
+            if (this.tokens > 0) {
+                this.tokens--;
+                const resolve = this.queue.shift()!;
+                resolve();
+            } else {
+                // Wait until next refill
+                const waitTime = this.refillIntervalMs - (Date.now() - this.lastRefill);
+                await new Promise((resolve) => setTimeout(resolve, Math.max(0, waitTime)));
+            }
+        }
+
+        this.processing = false;
     }
 }
 

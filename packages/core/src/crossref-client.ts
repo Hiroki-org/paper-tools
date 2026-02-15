@@ -1,5 +1,9 @@
 import { RateLimiter, fetchWithRetry } from "./rate-limiter.js";
 import type { Paper, Author } from "./types.js";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version: string };
 
 const CROSSREF_API_BASE = "https://api.crossref.org";
 
@@ -16,7 +20,7 @@ function buildHeaders(): Record<string, string> {
     };
     const mailto = getMailto();
     if (mailto) {
-        headers["User-Agent"] = `paper-tools/0.1.0 (mailto:${mailto})`;
+        headers["User-Agent"] = `paper-tools/${packageJson.version} (mailto:${mailto})`;
     }
     return headers;
 }

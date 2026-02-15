@@ -228,9 +228,11 @@ export async function scrapeAcceptedPapers(trackUrl: string): Promise<Paper[]> {
 
             if (title) {
                 const authors = authorText
-                    ? authorText.split(/[,;]/).map((a) => ({
-                        name: a.trim().replace(/\s+and\s+/i, ""),
-                    }))
+                    ? authorText
+                        .replace(/, and /gi, ", ")
+                        .replace(/ and /gi, ", ")
+                        .split(/[,;]/)
+                        .map((a) => ({ name: a.trim() }))
                     : [];
 
                 papers.push({
