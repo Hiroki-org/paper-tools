@@ -7,6 +7,8 @@ interface SaveToNotionButtonProps {
   paper?: S2Paper;
   doi?: string;
   title?: string;
+  saved?: boolean;
+  onSaved?: () => void;
 }
 
 type SaveStatus = "idle" | "resolving" | "saving" | "done" | "error";
@@ -15,12 +17,19 @@ export default function SaveToNotionButton({
   paper,
   doi,
   title,
+  saved = false,
+  onSaved,
 }: SaveToNotionButtonProps) {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
   const handleClick = useCallback(async () => {
-    if (status === "resolving" || status === "saving" || status === "done") {
+    if (
+      saved
+      || status === "resolving"
+      || status === "saving"
+      || status === "done"
+    ) {
       return;
     }
 
@@ -49,7 +58,10 @@ export default function SaveToNotionButton({
         if (!resolveRes.ok) {
           throw new Error(resolveData.error ?? "論文の解決に失敗しました");
         }
-        targetPaper = resolveData.paper as S2Paper;
+        targetPaper = resolveData.paper as S2Paper | undefined;
+        if (!targetPaper) {
+          throw new Error("保存対象の論文を取得できませんでした");
+        }
       }
 
       setStatus("saving");
@@ -64,25 +76,36 @@ export default function SaveToNotionButton({
       }
 
       setStatus("done");
+      onSaved?.();
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Unknown error");
     }
-  }, [status, paper, doi, title]);
+  }, [status, paper, doi, title, saved, onSaved]);
 
   return (
     <div className="space-y-1">
       <button
         type="button"
         onClick={handleClick}
-        disabled={status === "resolving" || status === "saving" || status === "done"}
+        disabled={
+          saved
+          ||
+          status === "resolving" || status === "saving" || status === "done"
+        }
         className="rounded border border-[var(--color-primary)] px-3 py-1 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {status === "idle" && "📚 Notion に保存"}
-        {status === "resolving" && "解決中…"}
-        {status === "saving" && "保存中…"}
-        {status === "done" && "✅ 保存済み"}
-        {status === "error" && "再試行"}
+        {saved
+          ? "✅ Notion 保存済み"
+          : status === "idle"
+            ? "📚 Notion に保存"
+            : status === "resolving"
+              ? "解決中…"
+              : status === "saving"
+                ? "保存中…"
+                : status === "done"
+                  ? "✅ 保存済み"
+                  : "再試行"}
       </button>
       {status === "error" && error && (
         <p className="text-xs text-red-700">{error}</p>

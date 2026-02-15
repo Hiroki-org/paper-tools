@@ -11,6 +11,7 @@ type InputMode = "doi" | "title" | "s2id";
 function GraphPageClient() {
   const searchParams = useSearchParams();
   const initializedByUrl = useRef(false);
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<InputMode>("doi");
   const [identifier, setIdentifier] = useState("");
   const [depth, setDepth] = useState(1);
@@ -20,41 +21,97 @@ function GraphPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [resolvedDoi, setResolvedDoi] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<{ doi: string; title?: string } | null>(null);
+  const [selectedNode, setSelectedNode] = useState<{
+    doi: string;
+    title?: string;
+  } | null>(null);
 
-  const resolveToDoi = useCallback(async (nextMode: InputMode, value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      throw new Error("識別子を入力してください");
-    }
-
-    if (nextMode === "doi") {
-      return trimmed;
-    }
-
-    const body = nextMode === "title" ? { title: trimmed } : { s2Id: trimmed };
-    const resolveRes = await fetch("/api/resolve", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const resolveData = await resolveRes.json();
-    if (!resolveRes.ok) {
-      throw new Error(resolveData.error ?? "論文の解決に失敗しました");
-    }
-
-    const doi = resolveData.paper?.externalIds?.DOI as string | undefined;
-    if (!doi) {
-      throw new Error(
-        "この論文の DOI が見つかりませんでした。OpenCitations は DOI ベースのため，DOI がない論文の引用グラフは構築できません。",
-      );
-    }
-
-    return doi;
+  const makeKeys = useCallback((doi?: string, title?: string) => {
+    const keys: string[] = [];
+    if (doi?.trim()) keys.push(`doi:${doi.trim().toLowerCase()}`);
+    if (title?.trim()) keys.push(`title:${title.trim().toLowerCase()}`);
+    return keys;
   }, []);
 
+  const selectedSaved = selectedNode
+    ? makeKeys(selectedNode.doi, selectedNode.title).some((k) => savedKeys.has(k))
+    : false;
+
+  const markSelectedSaved = useCallback(() => {
+    if (!selectedNode) return;
+    const keys = makeKeys(selectedNode.doi, selectedNode.title);
+    if (keys.length === 0) return;
+    setSavedKeys((prev) => {
+      const next = new Set(prev);
+      keys.forEach((k) => next.add(k));
+      return next;
+    });
+  }, [selectedNode, makeKeys]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchArchive = async () => {
+      try {
+        const res = await fetch("/api/archive");
+        const data = await res.json();
+        if (!res.ok || cancelled) return;
+        const next = new Set<string>();
+        for (const record of data.records ?? []) {
+          if (record.doi) next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+          if (record.title) next.add(`title:${String(record.title).trim().toLowerCase()}`);
+        }
+        setSavedKeys(next);
+      } catch {
+      }
+    };
+    void fetchArchive();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resolveToDoi = useCallback(
+    async (nextMode: InputMode, value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        throw new Error("識別子を入力してください");
+      }
+
+      if (nextMode === "doi") {
+        return trimmed;
+      }
+
+      const body =
+        nextMode === "title" ? { title: trimmed } : { s2Id: trimmed };
+      const resolveRes = await fetch("/api/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const resolveData = await resolveRes.json();
+      if (!resolveRes.ok) {
+        throw new Error(resolveData.error ?? "論文の解決に失敗しました");
+      }
+
+      const doi = resolveData.paper?.externalIds?.DOI as string | undefined;
+      if (!doi) {
+        throw new Error(
+          "この論文の DOI が見つかりませんでした。OpenCitations は DOI ベースのため，DOI がない論文の引用グラフは構築できません。",
+        );
+      }
+
+      return doi;
+    },
+    [],
+  );
+
   const buildGraph = useCallback(
-    async (nextMode: InputMode, value: string, nextDepth: number, nextDirection: Direction) => {
+    async (
+      nextMode: InputMode,
+      value: string,
+      nextDepth: number,
+      nextDirection: Direction,
+    ) => {
       setLoading(true);
       setError(null);
       setSelectedNode(null);
@@ -86,7 +143,7 @@ function GraphPageClient() {
       e.preventDefault();
       await buildGraph(mode, identifier, depth, direction);
     },
-    [mode, identifier, depth, direction, buildGraph]
+    [mode, identifier, depth, direction, buildGraph],
   );
 
   useEffect(() => {
@@ -123,7 +180,8 @@ function GraphPageClient() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const ext = format === "mermaid" ? "md" : format === "dot" ? "gv" : "json";
+        const ext =
+          format === "mermaid" ? "md" : format === "dot" ? "gv" : "json";
         a.download = `graph.${ext}`;
         a.click();
         URL.revokeObjectURL(url);
@@ -133,7 +191,7 @@ function GraphPageClient() {
         setExporting(false);
       }
     },
-    [graph]
+    [graph],
   );
 
   return (
@@ -142,7 +200,10 @@ function GraphPageClient() {
 
       <form onSubmit={handleBuild} className="flex flex-wrap items-end gap-3">
         <div className="w-44">
-          <label htmlFor="graph-mode" className="mb-1 block text-sm font-medium">
+          <label
+            htmlFor="graph-mode"
+            className="mb-1 block text-sm font-medium"
+          >
             入力モード
           </label>
           <select
@@ -159,8 +220,15 @@ function GraphPageClient() {
         </div>
 
         <div className="flex-1">
-          <label htmlFor="graph-input" className="mb-1 block text-sm font-medium">
-            {mode === "doi" ? "DOI" : mode === "title" ? "タイトル" : "Semantic Scholar ID"}
+          <label
+            htmlFor="graph-input"
+            className="mb-1 block text-sm font-medium"
+          >
+            {mode === "doi"
+              ? "DOI"
+              : mode === "title"
+                ? "タイトル"
+                : "Semantic Scholar ID"}
           </label>
           <input
             id="graph-input"
@@ -180,7 +248,10 @@ function GraphPageClient() {
         </div>
 
         <div className="w-24">
-          <label htmlFor="graph-depth" className="mb-1 block text-sm font-medium">
+          <label
+            htmlFor="graph-depth"
+            className="mb-1 block text-sm font-medium"
+          >
             Depth
           </label>
           <input
@@ -255,10 +326,19 @@ function GraphPageClient() {
           {selectedNode && (
             <div className="space-y-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-4">
               <h2 className="text-sm font-semibold">選択ノード</h2>
-              <p className="text-sm text-[var(--color-text)]">{selectedNode.title ?? "Untitled"}</p>
-              <p className="text-xs text-[var(--color-text-muted)] break-all">{selectedNode.doi}</p>
+              <p className="text-sm text-[var(--color-text)]">
+                {selectedNode.title ?? "Untitled"}
+              </p>
+              <p className="text-xs text-[var(--color-text-muted)] break-all">
+                {selectedNode.doi}
+              </p>
               <div className="flex items-center gap-2">
-                <SaveToNotionButton doi={selectedNode.doi} title={selectedNode.title} />
+                <SaveToNotionButton
+                  doi={selectedNode.doi}
+                  title={selectedNode.title}
+                  saved={selectedSaved}
+                  onSaved={markSelectedSaved}
+                />
                 <a
                   href={`https://doi.org/${encodeURIComponent(selectedNode.doi)}`}
                   target="_blank"
@@ -278,7 +358,13 @@ function GraphPageClient() {
 
 export default function GraphPage() {
   return (
-    <Suspense fallback={<div className="text-sm text-[var(--color-text-muted)]">Loading graph page...</div>}>
+    <Suspense
+      fallback={
+        <div className="text-sm text-[var(--color-text-muted)]">
+          Loading graph page...
+        </div>
+      }
+    >
       <GraphPageClient />
     </Suspense>
   );

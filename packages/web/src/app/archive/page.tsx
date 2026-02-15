@@ -9,8 +9,17 @@ interface NotionRecord {
   semanticScholarId?: string;
 }
 
+interface NotionDatabaseMeta {
+  databaseId: string;
+  databaseName: string;
+  workspaceName: string;
+}
+
 export default function ArchivePage() {
   const [records, setRecords] = useState<NotionRecord[]>([]);
+  const [databaseMeta, setDatabaseMeta] = useState<NotionDatabaseMeta | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,6 +31,7 @@ export default function ArchivePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to load archive");
       setRecords(data.records ?? []);
+      setDatabaseMeta((data.database as NotionDatabaseMeta) ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -45,6 +55,22 @@ export default function ArchivePage() {
           {loading ? "Loading…" : "Refresh"}
         </button>
       </div>
+
+      {databaseMeta && (
+        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-sm">
+          <p className="text-[var(--color-text)]">
+            <span className="font-medium">Workspace:</span>{" "}
+            {databaseMeta.workspaceName}
+          </p>
+          <p className="text-[var(--color-text)]">
+            <span className="font-medium">Database:</span>{" "}
+            {databaseMeta.databaseName}
+          </p>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            ID: {databaseMeta.databaseId}
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">

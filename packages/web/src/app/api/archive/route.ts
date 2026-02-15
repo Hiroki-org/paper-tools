@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryPapers, createPaperPage, getDatabase } from "@paper-tools/recommender";
+import { queryPapers, createPaperPage, getDatabase, getDatabaseInfo } from "@paper-tools/recommender";
 import type { S2Paper } from "@paper-tools/core";
 
 function validateNotionEnv(): { valid: boolean; databaseId?: string; error?: string } {
@@ -22,8 +22,9 @@ export async function GET() {
     }
 
     try {
+        const database = await getDatabaseInfo(envCheck.databaseId);
         const records = await queryPapers(envCheck.databaseId);
-        return NextResponse.json({ records, total: records.length });
+        return NextResponse.json({ records, total: records.length, database });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         return NextResponse.json({ error: message }, { status: 500 });

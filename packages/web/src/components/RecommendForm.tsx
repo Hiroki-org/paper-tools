@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Mode = "single" | "multi";
 
@@ -14,11 +14,13 @@ interface RecommendFormProps {
     from?: "recent" | "all-cs";
   }) => void;
   loading?: boolean;
+  initialPaperId?: string;
 }
 
 export default function RecommendForm({
   onRecommend,
   loading = false,
+  initialPaperId = "",
 }: RecommendFormProps) {
   const [mode, setMode] = useState<Mode>("single");
   const [paperId, setPaperId] = useState("");
@@ -26,6 +28,12 @@ export default function RecommendForm({
   const [negativeIds, setNegativeIds] = useState("");
   const [limit, setLimit] = useState(10);
   const [from, setFrom] = useState<"recent" | "all-cs">("recent");
+
+  useEffect(() => {
+    if (!initialPaperId.trim()) return;
+    setMode("single");
+    setPaperId(initialPaperId.trim());
+  }, [initialPaperId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

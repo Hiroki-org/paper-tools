@@ -1,5 +1,6 @@
 export {
     getDatabase,
+    getDatabaseInfo,
     queryPapers,
     createPaperPage,
     findDuplicates,
@@ -15,6 +16,7 @@ export type {
     NotionPaperRecord,
     DuplicateResult,
     DatabaseValidationResult,
+    NotionDatabaseInfo,
 } from "./notion-client.js";
 
 export type { RecommendOptions } from "./recommend.js";

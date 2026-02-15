@@ -52,6 +52,12 @@ export interface DatabaseValidationResult {
     missingOptional: string[];
 }
 
+export interface NotionDatabaseInfo {
+    databaseId: string;
+    databaseName: string;
+    workspaceName: string;
+}
+
 function truncateRichTextContent(text: string, maxLength = 2000): string {
     const chars = Array.from(text);
     if (chars.length <= maxLength) {
@@ -92,6 +98,30 @@ export async function getDatabase(
     return {
         properties,
         missingOptional,
+    };
+}
+
+export async function getDatabaseInfo(
+    databaseId: string,
+    client: Client = createNotionClient(),
+): Promise<NotionDatabaseInfo> {
+    const database = await client.databases.retrieve({ database_id: databaseId }) as any;
+    const databaseName = (database?.title ?? [])
+        .map((t: any) => t?.plain_text ?? "")
+        .join("")
+        .trim() || "(untitled database)";
+
+    let workspaceName = "Notion Workspace";
+    try {
+        const me = await client.users.me({});
+        workspaceName = (me as any)?.name?.trim() || workspaceName;
+    } catch {
+    }
+
+    return {
+        databaseId,
+        databaseName,
+        workspaceName,
     };
 }
 
