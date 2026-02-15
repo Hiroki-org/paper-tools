@@ -2,32 +2,53 @@ import { NextRequest, NextResponse } from "next/server";
 import { queryPapers, createPaperPage, getDatabase } from "@paper-tools/recommender";
 import type { S2Paper } from "@paper-tools/core";
 
-const DATABASE_ID = process.env.NOTION_DATABASE_ID!;
+function validateNotionEnv(): { valid: boolean; databaseId?: string; error?: string } {
+    const notionApiKey = process.env.NOTION_API_KEY;
+    const notionDatabaseId = process.env.NOTION_DATABASE_ID;
+
+    if (!notionApiKey || !notionDatabaseId) {
+        return {
+            valid: false,
+            error: "Notion APIキーまたはデータベースIDが設定されていません。",
+        };
+    }
+    return { valid: true, databaseId: notionDatabaseId };
+}
 
 export async function GET() {
-  try {
-    const records = await queryPapers(DATABASE_ID);
-    return NextResponse.json({ records, total: records.length });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+    const envCheck = validateNotionEnv();
+    if (!envCheck.valid || !envCheck.databaseId) {
+        return NextResponse.json({ error: envCheck.error }, { status: 500 });
+    }
+
+    try {
+        const records = await queryPapers(envCheck.databaseId);
+        return NextResponse.json({ records, total: records.length });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = (await request.json()) as { paper: S2Paper };
-    const { paper } = body;
-
-    if (!paper) {
-      return NextResponse.json({ error: "paper is required" }, { status: 400 });
+    const envCheck = validateNotionEnv();
+    if (!envCheck.valid || !envCheck.databaseId) {
+        return NextResponse.json({ error: envCheck.error }, { status: 500 });
     }
 
-    const validation = await getDatabase(DATABASE_ID);
-    await createPaperPage(DATABASE_ID, paper, undefined, validation);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+    try {
+        const body = (await request.json()) as { paper: S2Paper };
+        const { paper } = body;
+
+        if (!paper) {
+            return NextResponse.json({ error: "paper is required" }, { status: 400 });
+        }
+
+        const validation = await getDatabase(envCheck.databaseId);
+        await createPaperPage(envCheck.databaseId, paper, undefined, validation);
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
 }
