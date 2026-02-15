@@ -222,6 +222,7 @@ export default function SearchPage() {
             </div>
 
             <button
+              type="button"
               onClick={handleDrilldown}
               disabled={drilldownLoading}
               className="rounded-lg border border-[var(--color-primary)] px-4 py-1.5 text-sm font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-50"

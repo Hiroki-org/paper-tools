@@ -10,7 +10,6 @@ type InputMode = "doi" | "title" | "s2id";
 
 function GraphPageClient() {
   const searchParams = useSearchParams();
-  const initializedByUrl = useRef(false);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<InputMode>("doi");
   const [identifier, setIdentifier] = useState("");
@@ -150,8 +149,6 @@ function GraphPageClient() {
   );
 
   useEffect(() => {
-    if (initializedByUrl.current) return;
-
     const doi = searchParams.get("doi")?.trim();
     const title = searchParams.get("title")?.trim();
     const s2id = searchParams.get("s2id")?.trim();
@@ -159,7 +156,6 @@ function GraphPageClient() {
 
     const nextMode: InputMode = doi ? "doi" : title ? "title" : "s2id";
     const nextIdentifier = doi ?? title ?? s2id ?? "";
-    initializedByUrl.current = true;
     setMode(nextMode);
     setIdentifier(nextIdentifier);
     void buildGraph(nextMode, nextIdentifier, depth, direction);

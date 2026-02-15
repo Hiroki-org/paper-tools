@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { S2Paper } from "@paper-tools/core";
 
 interface SaveToNotionButtonProps {

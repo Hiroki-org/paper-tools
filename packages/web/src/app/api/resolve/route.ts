@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
 
         if (doi) {
             const paper = await getPaper(`DOI:${normalizeDoi(doi)}`);
+            if (!paper) {
+                return NextResponse.json(
+                    { error: "DOI から論文を解決できませんでした" },
+                    { status: 404 },
+                );
+            }
             return NextResponse.json({ paper });
         }
 
@@ -43,6 +49,12 @@ export async function POST(request: NextRequest) {
         }
 
         const paper = await getPaper(s2Id!);
+        if (!paper) {
+            return NextResponse.json(
+                { error: "S2 ID から論文を解決できませんでした" },
+                { status: 404 },
+            );
+        }
         return NextResponse.json({ paper });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
