@@ -15,7 +15,7 @@ function escapeLabel(text: string): string {
 }
 
 /**
- * DOI を DOT 用の識別子に変換
+ * DOI を DOT / Mermaid 用の識別子に変換
  */
 function doiToId(doi: string): string {
     return doi.replace(/[^a-zA-Z0-9]/g, "_");
@@ -54,17 +54,18 @@ export function toDot(graph: CitationGraph): string {
 }
 
 /**
- * DOI を Mermaid 用の識別子に変換
- */
-function doiToMermaidId(doi: string): string {
-    return doi.replace(/[^a-zA-Z0-9]/g, "_");
-}
-
-/**
  * Mermaid 用にテキストをエスケープ
+ * 引用符を #quot; に置換し、括弧・括弧類を HTML エンティティに置換
  */
 function escapeMermaid(text: string): string {
-    return text.replace(/"/g, "#quot;").replace(/[[\](){}]/g, "");
+    return text
+        .replace(/"/g, "#quot;")
+        .replace(/\(/g, "&#40;")
+        .replace(/\)/g, "&#41;")
+        .replace(/\[/g, "&#91;")
+        .replace(/\]/g, "&#93;")
+        .replace(/\{/g, "&#123;")
+        .replace(/\}/g, "&#125;");
 }
 
 /**
@@ -75,14 +76,14 @@ export function toMermaid(graph: CitationGraph): string {
     lines.push("graph LR");
 
     for (const node of graph.nodes) {
-        const id = doiToMermaidId(node.doi);
+        const id = doiToId(node.doi);
         const label = node.title ? escapeMermaid(node.title) : escapeMermaid(node.doi);
         lines.push(`    ${id}["${label}"]`);
     }
 
     for (const edge of graph.edges) {
-        const srcId = doiToMermaidId(edge.source);
-        const tgtId = doiToMermaidId(edge.target);
+        const srcId = doiToId(edge.source);
+        const tgtId = doiToId(edge.target);
         if (edge.creationDate) {
             lines.push(`    ${srcId} -->|"${escapeMermaid(edge.creationDate)}"| ${tgtId}`);
         } else {

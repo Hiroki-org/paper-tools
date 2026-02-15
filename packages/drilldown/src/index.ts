@@ -1,4 +1,3 @@
-// @paper-tools/drilldown - placeholder
 export {
     searchByKeyword,
     searchByVenue,

@@ -53,10 +53,15 @@ export async function drilldown(
 ): Promise<DrilldownResult[]> {
     const results: DrilldownResult[] = [{ level: 0, papers: seedPapers }];
     const seenDois = new Set<string>();
+    const seenTitles = new Set<string>();
 
-    // seed の DOI を記録
+    // seed の DOI と title を記録
     for (const p of seedPapers) {
         if (p.doi) seenDois.add(p.doi.toLowerCase());
+        if (p.title) {
+            const normalizedTitle = p.title.toLowerCase().trim().replace(/\s+/g, " ");
+            seenTitles.add(normalizedTitle);
+        }
     }
 
     let currentPapers = seedPapers;
@@ -68,12 +73,17 @@ export async function drilldown(
         const query = keywords.join(" ");
         let found = await searchByKeyword(query, maxPerLevel * 2);
 
-        // 既出 DOI を除外
+        // 既出 DOI / title を除外
         found = found.filter((p) => {
-            if (!p.doi) return true;
-            const lower = p.doi.toLowerCase();
-            if (seenDois.has(lower)) return false;
-            seenDois.add(lower);
+            if (p.doi) {
+                const lower = p.doi.toLowerCase();
+                if (seenDois.has(lower)) return false;
+                seenDois.add(lower);
+            } else if (p.title) {
+                const normalizedTitle = p.title.toLowerCase().trim().replace(/\s+/g, " ");
+                if (seenTitles.has(normalizedTitle)) return false;
+                seenTitles.add(normalizedTitle);
+            }
             return true;
         });
 
@@ -107,12 +117,12 @@ export function extractKeywords(papers: Paper[], topN = 10): string[] {
             freq.set(token, (freq.get(token) ?? 0) + 1);
         }
 
-        // 既存キーワードがあればそのまま採用（重み 2 倍）
+        // 既存キーワード（tokenize適用）
         if (paper.keywords) {
             for (const kw of paper.keywords) {
-                const lower = kw.toLowerCase().trim();
-                if (lower.length > 1) {
-                    freq.set(lower, (freq.get(lower) ?? 0) + 2);
+                const tokens = tokenize(kw);
+                for (const token of tokens) {
+                    freq.set(token, (freq.get(token) ?? 0) + 2);
                 }
             }
         }

@@ -2,9 +2,20 @@
 import "dotenv/config";
 import { Command } from "commander";
 import { writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { buildCitationGraph, mergeGraphs } from "./graph.js";
 import { toJson, toDot, toMermaid } from "./format.js";
 import type { Direction, CitationGraph } from "./graph.js";
+
+// Get version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+    readFileSync(join(__dirname, "../package.json"), "utf-8")
+);
+const version = packageJson.version;
 
 function parsePositiveInt(value: string): number {
     const n = Number.parseInt(value, 10);
@@ -24,6 +35,8 @@ function formatGraph(graph: CitationGraph, format: Format): string {
             return toDot(graph);
         case "mermaid":
             return toMermaid(graph);
+        default:
+            throw new Error(`Unknown format: ${format}`);
     }
 }
 
@@ -41,7 +54,7 @@ const program = new Command();
 program
     .name("paper-visualizer")
     .description("OpenCitations 引用グラフ可視化CLI")
-    .version("0.1.0");
+    .version(version);
 
 program
     .command("graph")
@@ -53,6 +66,12 @@ program
     .option("-o, --output <path>", "出力先ファイルパス")
     .action(async (doi: string, opts: { depth: number; direction: string; format: string; output?: string }) => {
         try {
+            if (!["citing", "cited", "both"].includes(opts.direction)) {
+                throw new Error(`Invalid direction: ${opts.direction}`);
+            }
+            if (!["json", "dot", "mermaid"].includes(opts.format)) {
+                throw new Error(`Invalid format: ${opts.format}`);
+            }
             const graph = await buildCitationGraph(doi, opts.depth, opts.direction as Direction);
             const content = formatGraph(graph, opts.format as Format);
             outputResult(content, opts.output);
@@ -72,6 +91,12 @@ program
     .option("-o, --output <path>", "出力先ファイルパス")
     .action(async (dois: string[], opts: { depth: number; direction: string; format: string; output?: string }) => {
         try {
+            if (!["citing", "cited", "both"].includes(opts.direction)) {
+                throw new Error(`Invalid direction: ${opts.direction}`);
+            }
+            if (!["json", "dot", "mermaid"].includes(opts.format)) {
+                throw new Error(`Invalid format: ${opts.format}`);
+            }
             const graphs: CitationGraph[] = [];
             for (const doi of dois) {
                 const graph = await buildCitationGraph(doi, opts.depth, opts.direction as Direction);

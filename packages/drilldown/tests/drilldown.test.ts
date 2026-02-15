@@ -39,8 +39,10 @@ describe("extractKeywords", () => {
         ];
 
         const keywords = extractKeywords(papers, 3);
-        // "neural networks" as a keyword field should rank high
-        expect(keywords).toContain("neural networks");
+        // tokenize で "neural networks" は分割されるため、"neural" と "networks" は別扱いになる
+        // keywords フィールドも tokenize されるため、各トークンは重み 2 倍で登録される
+        expect(keywords).toContain("neural");
+        expect(keywords).toContain("networks");
     });
 
     it("should filter out stopwords", () => {
@@ -125,11 +127,9 @@ describe("drilldown", () => {
         ];
 
         const results = await drilldown(seedPapers, 1, 10);
-        expect(results.length).toBeGreaterThanOrEqual(1);
+        expect(results.length).toBeGreaterThan(1);
         expect(results[0].level).toBe(0);
-        if (results.length > 1) {
-            expect(results[1].level).toBe(1);
-        }
+        expect(results[1].level).toBe(1);
     });
 
     it("should deduplicate papers by DOI", async () => {
@@ -168,10 +168,9 @@ describe("drilldown", () => {
         ];
 
         const results = await drilldown(seedPapers, 1, 10);
-        if (results.length > 1) {
-            const level1Papers = results[1].papers;
-            const hasDuplicate = level1Papers.some((p) => p.doi?.toLowerCase() === "10.1234/seed");
-            expect(hasDuplicate).toBe(false);
-        }
+        expect(results.length).toBeGreaterThan(1);
+        const level1Papers = results[1].papers;
+        const hasDuplicate = level1Papers.some((p) => p.doi?.toLowerCase() === "10.1234/seed");
+        expect(hasDuplicate).toBe(false);
     });
 });

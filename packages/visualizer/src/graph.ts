@@ -58,26 +58,31 @@ export async function buildCitationGraph(
         for (const currentDoi of frontier) {
             const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
 
-            if (direction === "citing" || direction === "both") {
-                const citing = await getCitations(currentDoi);
-                for (const c of citing) {
-                    citations.push({
-                        source: c.citing.toLowerCase(),
-                        target: c.cited.toLowerCase(),
-                        creationDate: c.creationDate,
-                    });
+            try {
+                if (direction === "citing" || direction === "both") {
+                    const citing = await getCitations(currentDoi);
+                    for (const c of citing) {
+                        citations.push({
+                            source: c.citing.toLowerCase(),
+                            target: c.cited.toLowerCase(),
+                            creationDate: c.creationDate,
+                        });
+                    }
                 }
-            }
 
-            if (direction === "cited" || direction === "both") {
-                const refs = await getReferences(currentDoi);
-                for (const r of refs) {
-                    citations.push({
-                        source: r.citing.toLowerCase(),
-                        target: r.cited.toLowerCase(),
-                        creationDate: r.creationDate,
-                    });
+                if (direction === "cited" || direction === "both") {
+                    const refs = await getReferences(currentDoi);
+                    for (const r of refs) {
+                        citations.push({
+                            source: r.citing.toLowerCase(),
+                            target: r.cited.toLowerCase(),
+                            creationDate: r.creationDate,
+                        });
+                    }
                 }
+            } catch (error) {
+                console.error(`Error fetching citations for ${currentDoi}:`, error);
+                continue;
             }
 
             for (const c of citations) {
@@ -123,10 +128,16 @@ export function mergeGraphs(...graphs: CitationGraph[]): CitationGraph {
             }
         }
         for (const edge of g.edges) {
-            const edgeKey = `${edge.source}->${edge.target}`;
+            const normalizedSource = edge.source.toLowerCase();
+            const normalizedTarget = edge.target.toLowerCase();
+            const edgeKey = `${normalizedSource}->${normalizedTarget}`;
             if (!edgeSet.has(edgeKey)) {
                 edgeSet.add(edgeKey);
-                edges.push(edge);
+                edges.push({
+                    source: normalizedSource,
+                    target: normalizedTarget,
+                    creationDate: edge.creationDate,
+                });
             }
         }
     }

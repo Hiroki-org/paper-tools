@@ -4,9 +4,19 @@ import "dotenv/config";
 import { Command } from "commander";
 import { searchByKeyword, searchByVenue, enrichAllWithCrossref, searchCrossref } from "./search.js";
 import { drilldown, extractKeywords } from "./drilldown.js";
-import type { Paper } from "@paper-tools/core";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 const program = new Command();
+
+// Get version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+    readFileSync(join(__dirname, "../package.json"), "utf-8")
+);
+const version = packageJson.version;
 
 function parsePositiveInt(value: string, optionName: string): number {
     const parsed = Number.parseInt(value, 10);
@@ -27,10 +37,22 @@ async function outputJson(data: unknown, output?: string): Promise<void> {
     console.log(json);
 }
 
+/**
+ * 非同期アクション実行のヘルパー関数
+ */
+async function runAction(fn: () => Promise<void>): Promise<void> {
+    try {
+        await fn();
+    } catch (error) {
+        console.error("Error:", error instanceof Error ? error.message : error);
+        process.exit(1);
+    }
+}
+
 program
     .name("paper-drilldown")
     .description("DBLP + Crossref による論文キーワード検索・深掘り CLI")
-    .version("0.1.0");
+    .version(version);
 
 // ── search コマンド ──────────────────────────────────
 program
@@ -39,18 +61,15 @@ program
     .option("--limit <n>", "最大取得件数", "30")
     .option("--enrich", "Crossref で情報を補完する", false)
     .option("-o, --output <file>", "出力JSONファイル")
-    .action(async (keyword: string, options: { limit?: string; enrich?: boolean; output?: string }) => {
-        try {
+    .action((keyword: string, options: { limit?: string; enrich?: boolean; output?: string }) => {
+        runAction(async () => {
             const limit = parsePositiveInt(options.limit || "30", "--limit");
             let papers = await searchByKeyword(keyword, limit);
             if (options.enrich) {
                 papers = await enrichAllWithCrossref(papers);
             }
             await outputJson(papers, options.output);
-        } catch (error) {
-            console.error("Error:", error instanceof Error ? error.message : error);
-            process.exit(1);
-        }
+        });
     });
 
 // ── venue コマンド ──────────────────────────────────
@@ -61,8 +80,8 @@ program
     .option("--limit <n>", "最大取得件数", "100")
     .option("--enrich", "Crossref で情報を補完する", false)
     .option("-o, --output <file>", "出力JSONファイル")
-    .action(async (venue: string, options: { year?: string; limit?: string; enrich?: boolean; output?: string }) => {
-        try {
+    .action((venue: string, options: { year?: string; limit?: string; enrich?: boolean; output?: string }) => {
+        runAction(async () => {
             const limit = parsePositiveInt(options.limit || "100", "--limit");
             const year = options.year ? parsePositiveInt(options.year, "--year") : undefined;
             let papers = await searchByVenue(venue, year, limit);
@@ -70,10 +89,7 @@ program
                 papers = await enrichAllWithCrossref(papers);
             }
             await outputJson(papers, options.output);
-        } catch (error) {
-            console.error("Error:", error instanceof Error ? error.message : error);
-            process.exit(1);
-        }
+        });
     });
 
 // ── crossref コマンド ──────────────────────────────────
@@ -82,15 +98,12 @@ program
     .argument("<query>", "Crossref 検索クエリ")
     .option("--limit <n>", "最大取得件数", "20")
     .option("-o, --output <file>", "出力JSONファイル")
-    .action(async (query: string, options: { limit?: string; output?: string }) => {
-        try {
+    .action((query: string, options: { limit?: string; output?: string }) => {
+        runAction(async () => {
             const limit = parsePositiveInt(options.limit || "20", "--limit");
             const papers = await searchCrossref(query, limit);
             await outputJson(papers, options.output);
-        } catch (error) {
-            console.error("Error:", error instanceof Error ? error.message : error);
-            process.exit(1);
-        }
+        });
     });
 
 // ── drilldown コマンド ──────────────────────────────────
@@ -102,14 +115,14 @@ program
     .option("--max-per-level <n>", "各レベルの最大取得件数", "10")
     .option("--enrich", "Crossref で情報を補完する", false)
     .option("-o, --output <file>", "出力JSONファイル")
-    .action(async (keyword: string, options: {
+    .action((keyword: string, options: {
         seedLimit?: string;
         depth?: string;
         maxPerLevel?: string;
         enrich?: boolean;
         output?: string;
     }) => {
-        try {
+        runAction(async () => {
             const seedLimit = parsePositiveInt(options.seedLimit || "10", "--seed-limit");
             const depth = parsePositiveInt(options.depth || "1", "--depth");
             const maxPerLevel = parsePositiveInt(options.maxPerLevel || "10", "--max-per-level");
@@ -123,10 +136,7 @@ program
 
             const results = await drilldown(seedPapers, depth, maxPerLevel, enrich);
             await outputJson(results, options.output);
-        } catch (error) {
-            console.error("Error:", error instanceof Error ? error.message : error);
-            process.exit(1);
-        }
+        });
     });
 
 // ── keywords コマンド ──────────────────────────────────
@@ -136,8 +146,8 @@ program
     .option("--limit <n>", "検索で取得する論文数", "20")
     .option("--top <n>", "出力するキーワード数", "10")
     .option("-o, --output <file>", "出力JSONファイル")
-    .action(async (keyword: string, options: { limit?: string; top?: string; output?: string }) => {
-        try {
+    .action((keyword: string, options: { limit?: string; top?: string; output?: string }) => {
+        runAction(async () => {
             const limit = parsePositiveInt(options.limit || "20", "--limit");
             const topN = parsePositiveInt(options.top || "10", "--top");
 
@@ -149,10 +159,7 @@ program
 
             const keywords = extractKeywords(papers, topN);
             await outputJson({ query: keyword, papersAnalyzed: papers.length, keywords }, options.output);
-        } catch (error) {
-            console.error("Error:", error instanceof Error ? error.message : error);
-            process.exit(1);
-        }
+        });
     });
 
 program.parse();
