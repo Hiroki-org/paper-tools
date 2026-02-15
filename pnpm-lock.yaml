@@ -43,6 +43,9 @@ importers:
       '@types/node':
         specifier: ^22.19.11
         version: 22.19.11
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.2
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
@@ -112,6 +115,9 @@ importers:
       '@types/node':
         specifier: ^22.19.11
         version: 22.19.11
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.2
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
