@@ -37,7 +37,7 @@ export async function resolveToS2Id(identifier: string): Promise<string> {
 
     if (value.startsWith("title:") || isLikelyTitle(value)) {
         const query = value.startsWith("title:") ? value.slice("title:".length) : value;
-        const response = await searchPapers(query, undefined, 1);
+        const response = await searchPapers(query);
         const first = response.data?.[0];
         if (!first?.paperId) {
             throw new Error(`タイトルから論文を解決できませんでした: ${query}`);
@@ -68,8 +68,20 @@ export async function recommendFromMultiple(
     if (positiveIds.length === 0) {
         return [];
     }
-    const resolvedPositive = await Promise.all(positiveIds.map((id) => resolveToS2Id(id)));
-    const resolvedNegative = await Promise.all(negativeIds.map((id) => resolveToS2Id(id)));
+
+    const positiveSettled = await Promise.allSettled(positiveIds.map((id) => resolveToS2Id(id)));
+    const negativeSettled = await Promise.allSettled(negativeIds.map((id) => resolveToS2Id(id)));
+
+    const resolvedPositive = positiveSettled
+        .filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled")
+        .map((result) => result.value);
+    const resolvedNegative = negativeSettled
+        .filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled")
+        .map((result) => result.value);
+
+    if (resolvedPositive.length === 0) {
+        return [];
+    }
 
     const response = await getRecommendations(resolvedPositive, resolvedNegative, {
         limit: options.limit ?? 20,

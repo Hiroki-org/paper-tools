@@ -69,7 +69,21 @@ export interface S2SearchResponse {
     data: S2Paper[];
 }
 
-const rateLimiter = new RateLimiter(process.env["S2_API_KEY"] ? 10 : 1, 1000);
+let cachedLimiter: RateLimiter | undefined;
+let cachedKeyState: "key" | "no-key" | undefined;
+
+function getRateLimiter(): RateLimiter {
+    const hasApiKey = !!process.env["S2_API_KEY"];
+    const state: "key" | "no-key" = hasApiKey ? "key" : "no-key";
+    if (cachedLimiter && cachedKeyState === state) {
+        return cachedLimiter;
+    }
+    cachedKeyState = state;
+    cachedLimiter = hasApiKey
+        ? new RateLimiter(10, 1000)
+        : new RateLimiter(1, 3000);
+    return cachedLimiter;
+}
 
 function buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
@@ -83,11 +97,22 @@ function buildHeaders(): Record<string, string> {
     return headers;
 }
 
+async function parseResponse<T>(response: Response): Promise<T> {
+    if (response.ok) {
+        return await response.json() as T;
+    }
+
+    const bodyText = await response.text();
+    throw new Error(
+        `Semantic Scholar API error: ${response.status} ${response.statusText} - ${bodyText}`,
+    );
+}
+
 export async function getRecommendationsForPaper(
     paperId: string,
     options: S2RecommendationOptions = {},
 ): Promise<S2RecommendationsResponse> {
-    await rateLimiter.acquire();
+    await getRateLimiter().acquire();
 
     const params = new URLSearchParams({
         fields: options.fields ?? S2_DEFAULT_FIELDS,
@@ -99,7 +124,7 @@ export async function getRecommendationsForPaper(
 
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/recommendations/v1/papers/forpaper/${encodeURIComponent(paperId)}?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await response.json() as S2RecommendationsResponse;
+    return await parseResponse<S2RecommendationsResponse>(response);
 }
 
 export async function getRecommendations(
@@ -107,7 +132,7 @@ export async function getRecommendations(
     negativePaperIds: string[] = [],
     options: Omit<S2RecommendationOptions, "from"> = {},
 ): Promise<S2RecommendationsResponse> {
-    await rateLimiter.acquire();
+    await getRateLimiter().acquire();
 
     const params = new URLSearchParams({
         fields: options.fields ?? S2_DEFAULT_FIELDS,
@@ -123,19 +148,19 @@ export async function getRecommendations(
             negativePaperIds,
         }),
     });
-    return await response.json() as S2RecommendationsResponse;
+    return await parseResponse<S2RecommendationsResponse>(response);
 }
 
 export async function getPaper(
     paperId: string,
     fields = S2_DEFAULT_FIELDS,
 ): Promise<S2Paper> {
-    await rateLimiter.acquire();
+    await getRateLimiter().acquire();
 
     const params = new URLSearchParams({ fields });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/paper/${encodeURIComponent(paperId)}?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await response.json() as S2Paper;
+    return await parseResponse<S2Paper>(response);
 }
 
 export async function searchPapers(
@@ -143,7 +168,7 @@ export async function searchPapers(
     fields = S2_DEFAULT_FIELDS,
     limit = 1,
 ): Promise<S2SearchResponse> {
-    await rateLimiter.acquire();
+    await getRateLimiter().acquire();
 
     const params = new URLSearchParams({
         query,
@@ -152,5 +177,5 @@ export async function searchPapers(
     });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/paper/search?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await response.json() as S2SearchResponse;
+    return await parseResponse<S2SearchResponse>(response);
 }

@@ -39,4 +39,26 @@ describe("recommend resolveToS2Id", () => {
         expect(id).toBe("s2-title");
         expect(core.searchPapers).toHaveBeenCalled();
     });
+
+    it("空文字入力はエラー", async () => {
+        await expect(resolveToS2Id("   ")).rejects.toThrow("identifier が空です");
+    });
+
+    it("DOIプレフィックス付き入力はそのままgetPaperに渡す", async () => {
+        vi.mocked(core.getPaper).mockResolvedValueOnce({ paperId: "s2-doi-prefix", title: "t" } as any);
+
+        const id = await resolveToS2Id("DOI:10.1000/xyz");
+        expect(id).toBe("s2-doi-prefix");
+        expect(core.getPaper).toHaveBeenCalledWith("DOI:10.1000/xyz");
+    });
+
+    it("タイトル検索結果が空ならエラー", async () => {
+        vi.mocked(core.searchPapers).mockResolvedValueOnce({
+            total: 0,
+            offset: 0,
+            data: [],
+        } as any);
+
+        await expect(resolveToS2Id("Unknown Title")).rejects.toThrow("タイトルから論文を解決できませんでした");
+    });
 });

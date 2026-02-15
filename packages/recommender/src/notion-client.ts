@@ -52,6 +52,14 @@ export interface DatabaseValidationResult {
     missingOptional: string[];
 }
 
+function truncateRichTextContent(text: string, maxLength = 2000): string {
+    const chars = Array.from(text);
+    if (chars.length <= maxLength) {
+        return text;
+    }
+    return `${chars.slice(0, maxLength - 1).join("")}…`;
+}
+
 export async function getDatabase(
     databaseId: string,
     client: Client = createNotionClient(),
@@ -146,10 +154,11 @@ export async function createPaperPage(
     databaseId: string,
     paper: S2Paper,
     client: Client = createNotionClient(),
+    validation?: DatabaseValidationResult,
 ): Promise<void> {
-    const { properties, missingOptional } = await getDatabase(databaseId, client);
+    const { properties } = validation ?? await getDatabase(databaseId, client);
 
-    const has = (name: string) => !!properties[name] && !missingOptional.includes(name);
+    const has = (name: string) => !!properties[name];
     const authors = (paper.authors ?? []).map((a) => a.name).join(", ");
     const doi = paper.externalIds?.DOI ?? "";
     const fieldsOfStudy = paper.fieldsOfStudy ?? [];
@@ -190,7 +199,7 @@ export async function createPaperPage(
         notionProperties["Semantic Scholar ID"] = { rich_text: richText(paper.paperId) };
     }
     if (has("要約") && paper.abstract) {
-        notionProperties["要約"] = { rich_text: richText(paper.abstract) };
+        notionProperties["要約"] = { rich_text: richText(truncateRichTextContent(paper.abstract, 2000)) };
     }
 
     await client.pages.create({
@@ -214,23 +223,12 @@ export async function findDuplicates(
 
     const existing = await queryPapers(databaseId, client);
     const existingTitles = new Set(existing.map((p) => p.title.trim().toLowerCase()).filter(Boolean));
+    const existingDois = new Set(existing.map((p) => p.doi).filter((doi): doi is string => !!doi));
 
     for (const paper of papers) {
         const doi = paper.externalIds?.DOI;
-        if (doi) {
-            const doiQuery = await client.databases.query({
-                database_id: databaseId,
-                filter: {
-                    property: "DOI",
-                    rich_text: {
-                        equals: doi,
-                    },
-                } as any,
-                page_size: 1,
-            });
-            if (doiQuery.results.length > 0) {
-                duplicateDois.add(doi);
-            }
+        if (doi && existingDois.has(doi)) {
+            duplicateDois.add(doi);
         }
 
         const key = (paper.title ?? "").trim().toLowerCase();

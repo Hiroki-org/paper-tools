@@ -7,20 +7,63 @@ import {
     findDuplicates,
     getDatabase,
     queryPapers,
+    type DatabaseValidationResult,
+    type DuplicateResult,
 } from "./notion-client.js";
 import {
     recommendFromMultiple,
     recommendFromSingle,
 } from "./recommend.js";
+import type { S2Paper } from "@paper-tools/core";
 
 const program = new Command();
 
 function parsePositiveInt(value: string, optionName: string): number {
     const parsed = Number.parseInt(value, 10);
-    if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed <= 0) {
+    if (!Number.isFinite(parsed) || parsed <= 0) {
         throw new Error(`${optionName} には正の整数を指定してください: ${value}`);
     }
     return parsed;
+}
+
+async function syncPapers(
+    databaseId: string,
+    papers: S2Paper[],
+    duplicates: DuplicateResult,
+    dryRun: boolean,
+    validation: DatabaseValidationResult,
+): Promise<{ added: number; skipped: number; errors: number }> {
+    let added = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const paper of papers) {
+        const doi = paper.externalIds?.DOI;
+        const titleKey = (paper.title ?? "").trim().toLowerCase();
+        const isDuplicate = (doi && duplicates.duplicateDois.has(doi))
+            || (titleKey && duplicates.duplicateTitles.has(titleKey));
+
+        if (isDuplicate) {
+            skipped++;
+            continue;
+        }
+
+        if (dryRun) {
+            added++;
+            continue;
+        }
+
+        try {
+            await createPaperPage(databaseId, paper, undefined, validation);
+            added++;
+        } catch (err) {
+            const id = doi || paper.title || paper.paperId;
+            console.error(`Failed to add paper ${id}:`, err instanceof Error ? err.message : err);
+            errors++;
+        }
+    }
+
+    return { added, skipped, errors };
 }
 
 async function outputJson(data: unknown, output?: string): Promise<void> {
@@ -83,34 +126,13 @@ program
 
             const papers = await recommendFromSingle(paperId, { limit, from: "recent" });
             const duplicates = await findDuplicates(databaseId, papers);
-
-            let added = 0;
-            let skipped = 0;
-            let errors = 0;
-
-            for (const paper of papers) {
-                const doi = paper.externalIds?.DOI;
-                const titleKey = (paper.title ?? "").trim().toLowerCase();
-                const isDuplicate = (doi && duplicates.duplicateDois.has(doi))
-                    || (titleKey && duplicates.duplicateTitles.has(titleKey));
-
-                if (isDuplicate) {
-                    skipped++;
-                    continue;
-                }
-
-                if (dryRun) {
-                    added++;
-                    continue;
-                }
-
-                try {
-                    await createPaperPage(databaseId, paper);
-                    added++;
-                } catch {
-                    errors++;
-                }
-            }
+            const { added, skipped, errors } = await syncPapers(
+                databaseId,
+                papers,
+                duplicates,
+                dryRun,
+                database,
+            );
 
             console.log(JSON.stringify({ added, skipped, errors, dryRun }, null, 2));
         } catch (error) {
@@ -141,34 +163,13 @@ program
 
             const recommended = await recommendFromMultiple(positiveIds, [], { limit });
             const duplicates = await findDuplicates(databaseId, recommended);
-
-            let added = 0;
-            let skipped = 0;
-            let errors = 0;
-
-            for (const paper of recommended) {
-                const doi = paper.externalIds?.DOI;
-                const titleKey = (paper.title ?? "").trim().toLowerCase();
-                const isDuplicate = (doi && duplicates.duplicateDois.has(doi))
-                    || (titleKey && duplicates.duplicateTitles.has(titleKey));
-
-                if (isDuplicate) {
-                    skipped++;
-                    continue;
-                }
-
-                if (dryRun) {
-                    added++;
-                    continue;
-                }
-
-                try {
-                    await createPaperPage(databaseId, paper);
-                    added++;
-                } catch {
-                    errors++;
-                }
-            }
+            const { added, skipped, errors } = await syncPapers(
+                databaseId,
+                recommended,
+                duplicates,
+                dryRun,
+                database,
+            );
 
             console.log(JSON.stringify({ input: positiveIds.length, added, skipped, errors, dryRun }, null, 2));
         } catch (error) {

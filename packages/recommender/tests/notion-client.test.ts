@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { S2Paper } from "@paper-tools/core";
 
 const mockClient = {
@@ -18,6 +18,10 @@ const {
 } = await import("../src/notion-client.js");
 
 describe("notion-client", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     it("createPaperPage should map properties correctly", async () => {
         mockClient.databases.retrieve.mockResolvedValueOnce({
             properties: {
@@ -49,7 +53,8 @@ describe("notion-client", () => {
             abstract: "summary",
         };
 
-        await createPaperPage("db-1", paper, mockClient as any);
+        const validation = await getDatabase("db-1", mockClient as any);
+        await createPaperPage("db-1", paper, mockClient as any, validation);
 
         expect(mockClient.pages.create).toHaveBeenCalledTimes(1);
         const call = mockClient.pages.create.mock.calls[0]?.[0];
@@ -74,9 +79,7 @@ describe("notion-client", () => {
                 ],
                 has_more: false,
                 next_cursor: null,
-            })
-            .mockResolvedValueOnce({ results: [{ id: "dup" }] })
-            .mockResolvedValueOnce({ results: [] });
+            });
 
         const result = await findDuplicates(
             "db-1",
@@ -89,6 +92,7 @@ describe("notion-client", () => {
 
         expect(result.duplicateDois.has("10.1000/existing")).toBe(true);
         expect(result.duplicateTitles.has("existing")).toBe(true);
+        expect(mockClient.databases.query).toHaveBeenCalledTimes(1);
     });
 
     it("getDatabase should throw when required properties are missing", async () => {
