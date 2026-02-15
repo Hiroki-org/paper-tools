@@ -143,7 +143,11 @@ export function extractKeywords(papers: Paper[], topN = 10): string[] {
 }
 
 /**
- * テキストをトークン化し、ストップワードを除去
+ * テキストをトークン化し、ストップワードを除去する
+ * 小文字に変換し、英数字とハイフン以外を削除してトークンに分割し、
+ * ストップワードか3文字以下のトークンを除外する
+ * @param text - トークン化対象のテキスト
+ * @returns ストップワードが除去されたトークン配列
  */
 function tokenize(text: string): string[] {
     return text

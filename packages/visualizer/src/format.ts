@@ -8,14 +8,20 @@ export function toJson(graph: CitationGraph, pretty = true): string {
 }
 
 /**
- * ノードラベルを安全にエスケープ（DOT 用）
+ * ノードラベルを安全にエスケープして DOT 形式用に準備する
+ * バックスラッシュと二重引用符をエスケープして DOT グラフの引用符内で安全に使用できにする
+ * @param text - エスケープ対象のテキスト
+ * @returns DOT 形式用にエスケープされたテキスト
  */
 function escapeLabel(text: string): string {
     return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 /**
- * DOI を DOT / Mermaid 用の識別子に変換
+ * DOI を DOT / Mermaid 図形式用の有効な識別子に変換する
+ * すべての英数字以外の文字をアンダースコアに置換してグラフノード ID として使用できるようにする
+ * @param doi - 変換対象の DOI
+ * @returns グラフノード ID として使用可能な文字列
  */
 function doiToId(doi: string): string {
     return doi.replace(/[^a-zA-Z0-9]/g, "_");
@@ -54,8 +60,11 @@ export function toDot(graph: CitationGraph): string {
 }
 
 /**
- * Mermaid 用にテキストをエスケープ
- * 引用符を #quot; に置換し、括弧・括弧類を HTML エンティティに置換
+ * Mermaid ダイアグラム形式用にテキストをエスケープする
+ * 引用符を #quot; に、括弧類を HTML エンティティに置換して
+ * Mermaid グラフノードのラベルとして正しく表示されるようにする
+ * @param text - エスケープ対象のテキスト
+ * @returns Mermaid 形式用にエスケープされたテキスト
  */
 function escapeMermaid(text: string): string {
     return text

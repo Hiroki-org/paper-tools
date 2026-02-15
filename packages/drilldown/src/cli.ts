@@ -18,6 +18,13 @@ const packageJson = JSON.parse(
 );
 const version = packageJson.version;
 
+/**
+ * オプション値として与えられた文字列を正の整数にパースする
+ * @param value - パース対象の文字列
+ * @param optionName - オプション名（エラーメッセージに含める）
+ * @returns パースされた正の整数
+ * @throws エラーが正の整数でない場合は Error をスロー
+ */
 function parsePositiveInt(value: string, optionName: string): number {
     const parsed = Number.parseInt(value, 10);
     if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -26,6 +33,12 @@ function parsePositiveInt(value: string, optionName: string): number {
     return parsed;
 }
 
+/**
+ * データを JSON フォーマットで出力する
+ * 出力先ファイルが指定されている場合はファイルに書き込み、そうでない場合は stdout に出力する
+ * @param data - 出力するデータオブジェクト
+ * @param output - 出力先ファイルパス（省略時は stdout に出力）
+ */
 async function outputJson(data: unknown, output?: string): Promise<void> {
     const json = JSON.stringify(data, null, 2);
     if (output) {

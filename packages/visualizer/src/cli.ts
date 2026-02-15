@@ -17,6 +17,12 @@ const packageJson = JSON.parse(
 );
 const version = packageJson.version;
 
+/**
+ * CLI オプション値として与えられた文字列を正の整数にパースする
+ * @param value - パース対象の文字列
+ * @returns パースされた正の整数
+ * @throws 値が正の整数でない場合は Error をスロー
+ */
 function parsePositiveInt(value: string): number {
     const n = Number.parseInt(value, 10);
     if (Number.isNaN(n) || n <= 0) {
@@ -27,6 +33,13 @@ function parsePositiveInt(value: string): number {
 
 type Format = "json" | "dot" | "mermaid";
 
+/**
+ * グラフを指定されたフォーマットに変換・出力する
+ * @param graph - 変換対象の引用グラフ
+ * @param format - 出力フォーマット（"json" | "dot" | "mermaid"）
+ * @returns フォーマット済みのグラフ文字列
+ * @throws 未知のフォーマットが指定された場合は Error をスロー
+ */
 function formatGraph(graph: CitationGraph, format: Format): string {
     switch (format) {
         case "json":
@@ -40,6 +53,13 @@ function formatGraph(graph: CitationGraph, format: Format): string {
     }
 }
 
+/**
+ * グラフの処理結果を出力する
+ * 出力先ファイルが指定されている場合はファイルに書き込み、
+ * そうでない場合は stdout に出力する
+ * @param content - 出力するグラフコンテンツ
+ * @param outputPath - 出力先ファイルパス（省略時は stdout に出力）
+ */
 function outputResult(content: string, outputPath?: string): void {
     if (outputPath) {
         writeFileSync(outputPath, content, "utf-8");
