@@ -1,10 +1,13 @@
 {
   "name": "@paper-tools/visualizer",
   "version": "0.1.0",
-  "description": "Paper visualization tools (placeholder)",
+  "description": "OpenCitations 引用グラフ可視化CLI（DOT / Mermaid / JSON）",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "paper-visualizer": "dist/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -13,9 +16,18 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@paper-tools/core": "workspace:*",
+    "commander": "^13.0.0",
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
-    "typescript": "^5.8.0"
+    "@types/node": "^22.19.11",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
   }
 }
