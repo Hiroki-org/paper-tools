@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #f8fafc;
+  --color-sidebar: #1e293b;
+  --color-sidebar-hover: #334155;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-card: #ffffff;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Sidebar open state on mobile */
+.sidebar-open {
+  overflow: hidden;
+}
