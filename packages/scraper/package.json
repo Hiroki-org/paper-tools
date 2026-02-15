@@ -1,0 +1,26 @@
+{
+  "name": "@paper-tools/scraper",
+  "version": "0.1.0",
+  "description": "Conference scraper for conf.researchr.org with DBLP integration",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "paper-scraper": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@paper-tools/core": "workspace:*",
+    "cheerio": "^1.0.0",
+    "commander": "^13.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0",
+    "@types/node": "^22.0.0"
+  }
+}

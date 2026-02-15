@@ -1,0 +1,13 @@
+{
+  "name": "paper-tools",
+  "private": true,
+  "description": "論文関連ツール群のモノレポ",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

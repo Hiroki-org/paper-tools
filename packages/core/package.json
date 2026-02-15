@@ -1,0 +1,27 @@
+{
+  "name": "@paper-tools/core",
+  "version": "0.1.0",
+  "description": "共通モジュール（型定義・APIクライアント）",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.11",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
