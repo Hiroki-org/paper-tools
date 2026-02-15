@@ -53,46 +53,46 @@ const ACCEPTED_PAPERS_HTML = `
 `;
 
 describe("Researchr Scraper", () => {
-    beforeEach(() => {
-        mockFetch.mockReset();
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("scrapeConference should fetch and parse conference page", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => CONFERENCE_HTML,
     });
 
-    it("scrapeConference should fetch and parse conference page", async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            status: 200,
-            text: async () => CONFERENCE_HTML,
-        });
+    const conference = await scrapeConference("icse-2026");
+    expect(conference).toBeDefined();
+    expect(conference.name).toBe("ICSE 2026");
+    expect(conference.year).toBe(2026);
+    expect(conference.tracks.length).toBeGreaterThan(0);
+  });
 
-        const conference = await scrapeConference("icse-2026");
-        expect(conference).toBeDefined();
-        expect(conference.name).toBe("ICSE 2026");
-        expect(conference.year).toBe(2026);
-        expect(conference.tracks.length).toBeGreaterThan(0);
+  it("scrapeConference should throw on HTTP error", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
     });
 
-    it("scrapeConference should throw on HTTP error", async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: false,
-            status: 404,
-            statusText: "Not Found",
-        });
+    await expect(scrapeConference("nonexistent-conf")).rejects.toThrow();
+  });
 
-        await expect(scrapeConference("nonexistent-conf")).rejects.toThrow();
+  it("scrapeAcceptedPapers should fetch and parse accepted papers", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => ACCEPTED_PAPERS_HTML,
     });
 
-    it("scrapeAcceptedPapers should fetch and parse accepted papers", async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            status: 200,
-            text: async () => ACCEPTED_PAPERS_HTML,
-        });
-
-        const papers = await scrapeAcceptedPapers("https://conf.researchr.org/track/icse-2026/research-track");
-        expect(papers).toBeDefined();
-        expect(Array.isArray(papers)).toBe(true);
-        expect(papers.length).toBe(2);
-        expect(papers[0]?.title).toBe("Automated Bug Detection with AI");
-        expect(papers[0]?.authors.map((a) => a.name)).toEqual(["Alice Smith", "Bob Jones"]);
-    });
+    const papers = await scrapeAcceptedPapers("https://conf.researchr.org/track/icse-2026/research-track");
+    expect(papers).toBeDefined();
+    expect(Array.isArray(papers)).toBe(true);
+    expect(papers.length).toBe(2);
+    expect(papers[0]?.title).toBe("Automated Bug Detection with AI");
+    expect(papers[0]?.authors.map((a) => a.name)).toEqual(["Alice Smith", "Bob Jones"]);
+  });
 });
