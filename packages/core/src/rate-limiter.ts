@@ -20,10 +20,11 @@ export class RateLimiter {
     private refill(): void {
         const now = Date.now();
         const elapsed = now - this.lastRefill;
-        const tokensToAdd = Math.floor(elapsed / this.refillIntervalMs) * this.maxTokens;
+        const refillUnits = Math.floor(elapsed / this.refillIntervalMs);
+        const tokensToAdd = refillUnits * this.maxTokens;
         if (tokensToAdd > 0) {
             this.tokens = Math.min(this.maxTokens, this.tokens + tokensToAdd);
-            this.lastRefill = now;
+            this.lastRefill += refillUnits * this.refillIntervalMs;
         }
     }
 
@@ -86,8 +87,11 @@ export async function fetchWithRetry(
         }
         // 429 Too Many Requests — back off and retry
         if (response.status === 429) {
-            const delay = baseDelayMs * Math.pow(2, attempt);
-            await new Promise((resolve) => setTimeout(resolve, delay));
+            lastError = new Error(`HTTP ${response.status}: ${response.statusText} for ${url}`);
+            if (attempt < maxRetries) {
+                const delay = baseDelayMs * Math.pow(2, attempt);
+                await new Promise((resolve) => setTimeout(resolve, delay));
+            }
             continue;
         }
         // Other client errors — not retryable

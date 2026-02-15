@@ -92,8 +92,8 @@ export async function searchAuthors(
 
     const hits = data.result?.hits?.hit ?? [];
     return hits.map((hit) => ({
-        name: hit.info.author,
-        url: hit.info.url,
+        name: hit.info?.author ?? "",
+        url: hit.info?.url ?? "",
     }));
 }
 

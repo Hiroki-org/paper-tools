@@ -29,7 +29,7 @@ export async function scrapeConference(
 
     // 場所情報を取得
     const location = $(".conference-location, .location-info, .banner-location").first().text().trim()
-        || extractLocation($, html);
+        || extractLocation($);
 
     // トラック情報を取得
     const tracks = extractTracks($, conferenceSlug);
@@ -60,7 +60,7 @@ export async function scrapeConference(
     };
 }
 
-function extractLocation($: cheerio.CheerioAPI, html: string): string {
+function extractLocation($: cheerio.CheerioAPI): string {
     // ページ本文からよくある場所パターンを探す
     const bodyText = $("body").text();
     const locationPatterns = [
@@ -156,9 +156,10 @@ function extractImportantDates($: cheerio.CheerioAPI): ImportantDate[] {
                     const key = text;
                     if (!seen.has(key)) {
                         seen.add(key);
+                        const isDateFirst = pattern.source.startsWith("(\\w+");
                         dates.push({
-                            description: match[1].trim(),
-                            date: match[2].trim(),
+                            description: isDateFirst ? match[2].trim() : match[1].trim(),
+                            date: isDateFirst ? match[1].trim() : match[2].trim(),
                         });
                     }
                     break;
@@ -172,7 +173,7 @@ function extractImportantDates($: cheerio.CheerioAPI): ImportantDate[] {
 
 function parseDateRange(
     dateText: string,
-    year: number,
+    _year: number,
 ): { startDate?: string; endDate?: string } {
     if (!dateText) return {};
 
@@ -252,7 +253,11 @@ export async function scrapeAcceptedPapers(trackUrl: string): Promise<Paper[]> {
                 const authorText = cells.length >= 2 ? $(cells[1]).text().trim() : "";
                 if (title && title.length > 10) {
                     const authors = authorText
-                        ? authorText.split(/[,;]/).map((a) => ({ name: a.trim() }))
+                        ? authorText
+                            .replace(/, and /gi, ", ")
+                            .replace(/ and /gi, ", ")
+                            .split(/[,;]/)
+                            .map((a) => ({ name: a.trim() }))
                         : [];
                     papers.push({
                         title,

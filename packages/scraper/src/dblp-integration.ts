@@ -10,15 +10,28 @@ export async function enrichWithDblp(
     venueName: string,
     maxResults = 100,
 ): Promise<Conference> {
-    const papers = await searchVenuePublications(
+    const papersFromDblp = await searchVenuePublications(
         venueName,
         conference.year,
         maxResults,
     );
 
+    const existing = conference.acceptedPapers ?? [];
+    const mergedMap = new Map<string, Paper>();
+
+    for (const paper of existing) {
+        const key = paper.doi ?? paper.title.toLowerCase();
+        mergedMap.set(key, paper);
+    }
+    for (const paper of papersFromDblp) {
+        const key = paper.doi ?? paper.title.toLowerCase();
+        const current = mergedMap.get(key);
+        mergedMap.set(key, current ? { ...current, ...paper } : paper);
+    }
+
     return {
         ...conference,
-        acceptedPapers: papers,
+        acceptedPapers: Array.from(mergedMap.values()),
     };
 }
 

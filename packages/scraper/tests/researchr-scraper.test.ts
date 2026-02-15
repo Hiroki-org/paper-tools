@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import * as cheerio from "cheerio";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -67,8 +66,9 @@ describe("Researchr Scraper", () => {
 
         const conference = await scrapeConference("icse-2026");
         expect(conference).toBeDefined();
-        expect(conference.name).toBeDefined();
-        expect(typeof conference.name).toBe("string");
+        expect(conference.name).toBe("ICSE 2026");
+        expect(conference.year).toBe(2026);
+        expect(conference.tracks.length).toBeGreaterThan(0);
     });
 
     it("scrapeConference should throw on HTTP error", async () => {
@@ -91,5 +91,8 @@ describe("Researchr Scraper", () => {
         const papers = await scrapeAcceptedPapers("https://conf.researchr.org/track/icse-2026/research-track");
         expect(papers).toBeDefined();
         expect(Array.isArray(papers)).toBe(true);
+        expect(papers.length).toBe(2);
+        expect(papers[0]?.title).toBe("Automated Bug Detection with AI");
+        expect(papers[0]?.authors.map((a) => a.name)).toEqual(["Alice Smith", "Bob Jones"]);
     });
 });

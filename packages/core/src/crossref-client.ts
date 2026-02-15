@@ -62,8 +62,11 @@ export async function getWorkByDoi(doi: string): Promise<Paper | null> {
         const response = await fetchWithRetry(url, { headers: buildHeaders() });
         const data = await response.json() as { message: CrossrefWork };
         return mapCrossrefWorkToPaper(data.message);
-    } catch {
-        return null;
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("HTTP 404")) {
+            return null;
+        }
+        throw error;
     }
 }
 
