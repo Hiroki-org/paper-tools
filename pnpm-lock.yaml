@@ -29,10 +29,26 @@ importers:
         version: 3.2.4(@types/node@22.19.11)
 
   packages/drilldown:
+    dependencies:
+      '@paper-tools/core':
+        specifier: workspace:*
+        version: link:../core
+      commander:
+        specifier: ^13.0.0
+        version: 13.1.0
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
     devDependencies:
+      '@types/node':
+        specifier: ^22.19.11
+        version: 22.19.11
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.4(@types/node@22.19.11)
 
   packages/recommender:
     dependencies:
@@ -82,10 +98,26 @@ importers:
         version: 3.2.4(@types/node@22.19.11)
 
   packages/visualizer:
+    dependencies:
+      '@paper-tools/core':
+        specifier: workspace:*
+        version: link:../core
+      commander:
+        specifier: ^13.0.0
+        version: 13.1.0
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
     devDependencies:
+      '@types/node':
+        specifier: ^22.19.11
+        version: 22.19.11
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.4(@types/node@22.19.11)
 
 packages:
 

@@ -7,6 +7,8 @@
 - `@paper-tools/core`: 共通型・APIクライアント（DBLP/Crossref/OpenCitations/Semantic Scholar）
 - `@paper-tools/scraper`: conf.researchr.org スクレイパー
 - `@paper-tools/recommender`: Semantic Scholar + Notion 連携レコメンド PoC
+- `@paper-tools/drilldown`: DBLP / Crossref をキーワード・会議で深掘り検索
+- `@paper-tools/visualizer`: OpenCitations 引用グラフ可視化 CLI（JSON / DOT / Mermaid）
 
 ## Setup
 
@@ -43,6 +45,53 @@ node packages/recommender/dist/cli.js sync "DOI:10.1145/3597503.3639187" --limit
 # Notion内の全論文をseedに一括推薦
 node packages/recommender/dist/cli.js sync-all --limit 20 --dry-run
 ```
+
+## Drilldown CLI
+
+```bash
+# キーワードで DBLP 検索
+node packages/drilldown/dist/cli.js search "software testing" --limit 20
+
+# 会議名で検索（年指定可）
+node packages/drilldown/dist/cli.js venue ICSE --year 2024 --limit 50
+
+# Crossref で検索
+node packages/drilldown/dist/cli.js crossref "mutation testing" --limit 10
+
+# シード検索 → キーワード抽出 → 深掘り（BFS）
+node packages/drilldown/dist/cli.js drilldown "fault localization" \
+  --seed-limit 10 --depth 2 --max-per-level 15 --enrich
+
+# 論文タイトルから頻出キーワードを抽出
+node packages/drilldown/dist/cli.js keywords "program repair" --top 10
+```
+
+- `--enrich` を付けると Crossref で DOI / 被引用数などを補完します
+- `-o <file>` で結果を JSON ファイルに保存できます
+
+## Visualizer CLI
+
+```bash
+# 1つの DOI から引用グラフを構築（JSON 出力）
+node packages/visualizer/dist/cli.js graph "10.1145/3597503.3639187"
+
+# Graphviz DOT 形式で出力
+node packages/visualizer/dist/cli.js graph "10.1145/3597503.3639187" \
+  --depth 2 --direction both --format dot -o graph.dot
+
+# Mermaid 形式で出力
+node packages/visualizer/dist/cli.js graph "10.1145/3597503.3639187" \
+  --format mermaid
+
+# 複数 DOI のグラフをマージして出力
+node packages/visualizer/dist/cli.js multi \
+  "10.1145/3597503.3639187" "10.1145/3611643.3616265" \
+  --depth 1 --format mermaid -o merged.md
+```
+
+- `--direction`: `citing`（被引用）/ `cited`（参考文献）/ `both`（両方、デフォルト）
+- `--format`: `json`（デフォルト）/ `dot`（Graphviz）/ `mermaid`
+- `--depth`: BFS の探索深度（デフォルト 1）
 
 ### Notion DB expected properties
 
