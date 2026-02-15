@@ -64,7 +64,7 @@ function GraphPageClient() {
             next.add(`title:${String(record.title).trim().toLowerCase()}`);
         }
         setSavedKeys(next);
-      } catch {}
+      } catch (err) { console.warn("Failed to fetch archive:", err); }
     };
     void fetchArchive();
     return () => {
