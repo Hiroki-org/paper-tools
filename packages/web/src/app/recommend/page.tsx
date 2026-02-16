@@ -1,15 +1,51 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import type { S2Paper } from "@paper-tools/core";
 import RecommendForm from "@/components/RecommendForm";
+import SaveToNotionButton from "@/components/SaveToNotionButton";
 
-export default function RecommendPage() {
+function RecommendPageClient() {
+  const searchParams = useSearchParams();
+  const initializedFromQuery = useRef(false);
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [initialPaperId, setInitialPaperId] = useState<string>("");
   const [papers, setPapers] = useState<S2Paper[]>([]);
   const [loading, setLoading] = useState(false);
-  const [archiving, setArchiving] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [archiveMsg, setArchiveMsg] = useState<string | null>(null);
+
+  const makeKeys = useCallback((paper: S2Paper) => {
+    const keys: string[] = [];
+    if (paper.externalIds?.DOI?.trim()) {
+      keys.push(`doi:${paper.externalIds.DOI.trim().toLowerCase()}`);
+    }
+    if (paper.paperId?.trim()) {
+      keys.push(`s2:${paper.paperId.trim().toLowerCase()}`);
+    }
+    if (paper.title?.trim()) {
+      keys.push(`title:${paper.title.trim().toLowerCase()}`);
+    }
+    return keys;
+  }, []);
+
+  const isSaved = useCallback(
+    (paper: S2Paper) => makeKeys(paper).some((k) => savedKeys.has(k)),
+    [makeKeys, savedKeys],
+  );
+
+  const markSaved = useCallback(
+    (paper: S2Paper) => {
+      const keys = makeKeys(paper);
+      if (keys.length === 0) return;
+      setSavedKeys((prev) => {
+        const next = new Set(prev);
+        keys.forEach((k) => next.add(k));
+        return next;
+      });
+    },
+    [makeKeys],
+  );
 
   const handleRecommend = useCallback(
     async (params: {
@@ -22,11 +58,14 @@ export default function RecommendPage() {
     }) => {
       setLoading(true);
       setError(null);
-      setArchiveMsg(null);
       try {
         const body =
           params.mode === "single"
-            ? { paperId: params.paperId, limit: params.limit, from: params.from }
+            ? {
+                paperId: params.paperId,
+                limit: params.limit,
+                from: params.from,
+              }
             : {
                 positiveIds: params.positiveIds,
                 negativeIds: params.negativeIds,
@@ -47,47 +86,66 @@ export default function RecommendPage() {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
-  const handleArchive = useCallback(async (paper: S2Paper) => {
-    const id = paper.paperId;
-    setArchiving((prev) => new Set(prev).add(id));
-    setArchiveMsg(null);
-    try {
-      const res = await fetch("/api/archive", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paper }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Archive failed");
-      setArchiveMsg(`"${paper.title}" を Notion に保存しました`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setArchiving((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }
+  useEffect(() => {
+    let cancelled = false;
+    const fetchArchive = async () => {
+      try {
+        const res = await fetch("/api/archive");
+        const data = await res.json();
+        if (!res.ok || cancelled) return;
+        const next = new Set<string>();
+        for (const record of data.records ?? []) {
+          if (record.doi)
+            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+          if (record.semanticScholarId) {
+            next.add(
+              `s2:${String(record.semanticScholarId).trim().toLowerCase()}`,
+            );
+          }
+          if (record.title)
+            next.add(`title:${String(record.title).trim().toLowerCase()}`);
+        }
+        setSavedKeys(next);
+      } catch (err) {
+        console.warn("Failed to fetch archive:", err);
+      }
+    };
+    void fetchArchive();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (initializedFromQuery.current) return;
+    const paperId = searchParams.get("paperId")?.trim() ?? "";
+    if (!paperId) return;
+    initializedFromQuery.current = true;
+    setInitialPaperId(paperId);
+    void handleRecommend({
+      mode: "single",
+      paperId,
+      limit: 10,
+      from: "recent",
+    });
+  }, [searchParams, handleRecommend]);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Paper Recommendations</h1>
 
-      <RecommendForm onRecommend={handleRecommend} loading={loading} />
+      <RecommendForm
+        onRecommend={handleRecommend}
+        loading={loading}
+        initialPaperId={initialPaperId}
+      />
 
       {error && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {error}
-        </div>
-      )}
-      {archiveMsg && (
-        <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
-          {archiveMsg}
         </div>
       )}
 
@@ -153,21 +211,21 @@ export default function RecommendPage() {
                 )}
 
                 <div className="mt-3 flex gap-2">
-                  <button
-                    onClick={() => handleArchive(p)}
-                    disabled={archiving.has(p.paperId)}
-                    className="rounded border border-[var(--color-primary)] px-3 py-1 text-xs font-medium text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-50"
+                  <SaveToNotionButton
+                    paper={p}
+                    saved={isSaved(p)}
+                    onSaved={() => markSaved(p)}
+                  />
+                  <a
+                    href={
+                      p.externalIds?.DOI
+                        ? `/graph?doi=${encodeURIComponent(p.externalIds.DOI)}`
+                        : `/graph?title=${encodeURIComponent(p.title)}`
+                    }
+                    className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
                   >
-                    {archiving.has(p.paperId) ? "Saving…" : "Save to Notion"}
-                  </button>
-                  {p.externalIds?.DOI && (
-                    <a
-                      href={`/graph?doi=${encodeURIComponent(p.externalIds.DOI)}`}
-                      className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                    >
-                      View Graph
-                    </a>
-                  )}
+                    View Graph
+                  </a>
                 </div>
               </div>
             ))}
@@ -175,5 +233,19 @@ export default function RecommendPage() {
         </section>
       )}
     </div>
+  );
+}
+
+export default function RecommendPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="text-sm text-[var(--color-text-muted)]">
+          Loading recommend page...
+        </div>
+      }
+    >
+      <RecommendPageClient />
+    </Suspense>
   );
 }

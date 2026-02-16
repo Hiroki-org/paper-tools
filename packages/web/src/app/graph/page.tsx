@@ -1,30 +1,129 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import GraphViewer, { type CitationGraph } from "@/components/GraphViewer";
+import SaveToNotionButton from "@/components/SaveToNotionButton";
 
 type Direction = "citing" | "cited" | "both";
+type InputMode = "doi" | "title" | "s2id";
 
-export default function GraphPage() {
-  const [doi, setDoi] = useState("");
+function GraphPageClient() {
+  const searchParams = useSearchParams();
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [mode, setMode] = useState<InputMode>("doi");
+  const [identifier, setIdentifier] = useState("");
   const [depth, setDepth] = useState(1);
   const [direction, setDirection] = useState<Direction>("both");
   const [graph, setGraph] = useState<CitationGraph | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [resolvedDoi, setResolvedDoi] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<{
+    doi: string;
+    title?: string;
+  } | null>(null);
 
-  const handleBuild = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!doi.trim()) return;
+  const makeKeys = useCallback((doi?: string, title?: string) => {
+    const keys: string[] = [];
+    if (doi?.trim()) keys.push(`doi:${doi.trim().toLowerCase()}`);
+    if (title?.trim()) keys.push(`title:${title.trim().toLowerCase()}`);
+    return keys;
+  }, []);
+
+  const selectedSaved = selectedNode
+    ? makeKeys(selectedNode.doi, selectedNode.title).some((k) =>
+        savedKeys.has(k),
+      )
+    : false;
+
+  const markSelectedSaved = useCallback(() => {
+    if (!selectedNode) return;
+    const keys = makeKeys(selectedNode.doi, selectedNode.title);
+    if (keys.length === 0) return;
+    setSavedKeys((prev) => {
+      const next = new Set(prev);
+      keys.forEach((k) => next.add(k));
+      return next;
+    });
+  }, [selectedNode, makeKeys]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchArchive = async () => {
+      try {
+        const res = await fetch("/api/archive");
+        const data = await res.json();
+        if (!res.ok || cancelled) return;
+        const next = new Set<string>();
+        for (const record of data.records ?? []) {
+          if (record.doi)
+            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+          if (record.title)
+            next.add(`title:${String(record.title).trim().toLowerCase()}`);
+        }
+        setSavedKeys(next);
+      } catch (err) { console.warn("Failed to fetch archive:", err); }
+    };
+    void fetchArchive();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const resolveToDoi = useCallback(
+    async (nextMode: InputMode, value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        throw new Error("識別子を入力してください");
+      }
+
+      if (nextMode === "doi") {
+        return trimmed;
+      }
+
+      const body =
+        nextMode === "title" ? { title: trimmed } : { s2Id: trimmed };
+      const resolveRes = await fetch("/api/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const resolveData = await resolveRes.json();
+      if (!resolveRes.ok) {
+        throw new Error(resolveData.error ?? "論文の解決に失敗しました");
+      }
+
+      const doi = resolveData.paper?.externalIds?.DOI as string | undefined;
+      if (!doi) {
+        throw new Error(
+          "この論文の DOI が見つかりませんでした。OpenCitations は DOI ベースのため，DOI がない論文の引用グラフは構築できません。",
+        );
+      }
+
+      return doi;
+    },
+    [],
+  );
+
+  const buildGraph = useCallback(
+    async (
+      nextMode: InputMode,
+      value: string,
+      nextDepth: number,
+      nextDirection: Direction,
+    ) => {
       setLoading(true);
       setError(null);
+      setSelectedNode(null);
       try {
+        const doi = await resolveToDoi(nextMode, value);
+        setResolvedDoi(doi);
         const params = new URLSearchParams({
-          doi: doi.trim(),
-          depth: String(depth),
-          direction,
+          doi,
+          depth: String(nextDepth),
+          direction: nextDirection,
         });
         const res = await fetch(`/api/graph?${params}`);
         const data = await res.json();
@@ -33,12 +132,34 @@ export default function GraphPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
         setGraph(null);
+        setResolvedDoi(null);
       } finally {
         setLoading(false);
       }
     },
-    [doi, depth, direction]
+    [resolveToDoi],
   );
+
+  const handleBuild = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      await buildGraph(mode, identifier, depth, direction);
+    },
+    [mode, identifier, depth, direction, buildGraph],
+  );
+
+  useEffect(() => {
+    const doi = searchParams.get("doi")?.trim();
+    const title = searchParams.get("title")?.trim();
+    const s2id = searchParams.get("s2id")?.trim();
+    if (!doi && !title && !s2id) return;
+
+    const nextMode: InputMode = doi ? "doi" : title ? "title" : "s2id";
+    const nextIdentifier = doi ?? title ?? s2id ?? "";
+    setMode(nextMode);
+    setIdentifier(nextIdentifier);
+    void buildGraph(nextMode, nextIdentifier, depth, direction);
+  }, [searchParams, buildGraph, depth, direction]);
 
   const handleExport = useCallback(
     async (format: "json" | "dot" | "mermaid") => {
@@ -58,7 +179,8 @@ export default function GraphPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        const ext = format === "mermaid" ? "md" : format === "dot" ? "gv" : "json";
+        const ext =
+          format === "mermaid" ? "md" : format === "dot" ? "gv" : "json";
         a.download = `graph.${ext}`;
         a.click();
         URL.revokeObjectURL(url);
@@ -68,7 +190,7 @@ export default function GraphPage() {
         setExporting(false);
       }
     },
-    [graph]
+    [graph],
   );
 
   return (
@@ -76,23 +198,59 @@ export default function GraphPage() {
       <h1 className="text-2xl font-bold">Citation Graph</h1>
 
       <form onSubmit={handleBuild} className="flex flex-wrap items-end gap-3">
+        <div className="w-44">
+          <label
+            htmlFor="graph-mode"
+            className="mb-1 block text-sm font-medium"
+          >
+            入力モード
+          </label>
+          <select
+            id="graph-mode"
+            value={mode}
+            onChange={(e) => setMode(e.target.value as InputMode)}
+            disabled={loading}
+            className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)]"
+          >
+            <option value="doi">DOI</option>
+            <option value="title">タイトル</option>
+            <option value="s2id">Semantic Scholar ID</option>
+          </select>
+        </div>
+
         <div className="flex-1">
-          <label htmlFor="graph-doi" className="mb-1 block text-sm font-medium">
-            DOI
+          <label
+            htmlFor="graph-input"
+            className="mb-1 block text-sm font-medium"
+          >
+            {mode === "doi"
+              ? "DOI"
+              : mode === "title"
+                ? "タイトル"
+                : "Semantic Scholar ID"}
           </label>
           <input
-            id="graph-doi"
+            id="graph-input"
             type="text"
-            value={doi}
-            onChange={(e) => setDoi(e.target.value)}
-            placeholder="10.1145/3292500.3330672"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder={
+              mode === "doi"
+                ? "10.1145/3292500.3330672"
+                : mode === "title"
+                  ? "Graph Neural Networks..."
+                  : "649def34f8be52c8b66281af98ae884c09aef38b"
+            }
             disabled={loading}
             className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
           />
         </div>
 
         <div className="w-24">
-          <label htmlFor="graph-depth" className="mb-1 block text-sm font-medium">
+          <label
+            htmlFor="graph-depth"
+            className="mb-1 block text-sm font-medium"
+          >
             Depth
           </label>
           <input
@@ -126,7 +284,7 @@ export default function GraphPage() {
 
         <button
           type="submit"
-          disabled={loading || !doi.trim()}
+          disabled={loading || !identifier.trim()}
           className="rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "Building…" : "Build Graph"}
@@ -145,6 +303,9 @@ export default function GraphPage() {
             <span className="text-sm text-gray-500">
               {graph.nodes.length} nodes · {graph.edges.length} edges
             </span>
+            {resolvedDoi && (
+              <span className="text-xs text-gray-400">DOI: {resolvedDoi}</span>
+            )}
             <div className="ml-auto flex gap-2">
               {(["json", "dot", "mermaid"] as const).map((fmt) => (
                 <button
@@ -159,9 +320,51 @@ export default function GraphPage() {
             </div>
           </div>
 
-          <GraphViewer graph={graph} />
+          <GraphViewer graph={graph} onNodeTap={setSelectedNode} />
+
+          {selectedNode && (
+            <div className="space-y-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+              <h2 className="text-sm font-semibold">選択ノード</h2>
+              <p className="text-sm text-[var(--color-text)]">
+                {selectedNode.title ?? "Untitled"}
+              </p>
+              <p className="text-xs text-[var(--color-text-muted)] break-all">
+                {selectedNode.doi}
+              </p>
+              <div className="flex items-center gap-2">
+                <SaveToNotionButton
+                  doi={selectedNode.doi}
+                  title={selectedNode.title}
+                  saved={selectedSaved}
+                  onSaved={markSelectedSaved}
+                />
+                <a
+                  href={`https://doi.org/${encodeURIComponent(selectedNode.doi)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                >
+                  DOIを開く
+                </a>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+export default function GraphPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="text-sm text-[var(--color-text-muted)]">
+          Loading graph page...
+        </div>
+      }
+    >
+      <GraphPageClient />
+    </Suspense>
   );
 }

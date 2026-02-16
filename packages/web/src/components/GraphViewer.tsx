@@ -23,7 +23,7 @@ interface GraphViewerProps {
   /** Height of the canvas. Default 600 */
   height?: number;
   /** Called when a node is tapped */
-  onNodeTap?: (doi: string) => void;
+  onNodeTap?: (node: { doi: string; title?: string }) => void;
 }
 
 export default function GraphViewer({
@@ -49,6 +49,8 @@ export default function GraphViewer({
       ...graph.nodes.map((n) => ({
         data: {
           id: n.doi,
+          doi: n.doi,
+          title: n.title,
           label: n.title ?? n.doi,
         },
       })),
@@ -101,8 +103,9 @@ export default function GraphViewer({
     });
 
     cy.on("tap", "node", (evt) => {
-      const doi = evt.target.id();
-      onNodeTap?.(doi);
+      const data = evt.target.data() as { doi?: string; title?: string };
+      const doi = data.doi ?? evt.target.id();
+      onNodeTap?.({ doi, title: data.title });
     });
 
     cyRef.current = cy;
