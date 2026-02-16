@@ -37,10 +37,14 @@ jobs:
           path: packages/*/dist
           retention-days: 1
 
-  test-core:
-    name: Test Core
+  test:
+    name: Test ${{ matrix.package }}
     needs: build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [core, scraper, drilldown, visualizer, recommender]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -54,80 +58,4 @@ jobs:
           name: build-artifacts
           path: packages
       - name: Test
-        run: pnpm --filter @paper-tools/core test
-
-  test-scraper:
-    name: Test Scraper
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: packages
-      - name: Test
-        run: pnpm --filter @paper-tools/scraper test
-
-  test-drilldown:
-    name: Test Drilldown
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: packages
-      - name: Test
-        run: pnpm --filter @paper-tools/drilldown test
-
-  test-visualizer:
-    name: Test Visualizer
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: packages
-      - name: Test
-        run: pnpm --filter @paper-tools/visualizer test
-
-  test-recommender:
-    name: Test Recommender
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: packages
-      - name: Test
-        run: pnpm --filter @paper-tools/recommender test
+        run: pnpm --filter @paper-tools/${{ matrix.package }} test
