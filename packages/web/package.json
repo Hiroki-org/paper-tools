@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "clean": "rimraf .next"
+    "clean": "rimraf .next",
+    "test": "vitest run"
   },
   "dependencies": {
     "@paper-tools/core": "workspace:*",
@@ -26,10 +27,12 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
     "@types/cytoscape": "^3.21.0",
+    "@types/node": "^22.19.11",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "rimraf": "^6.1.2",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
   }
 }
