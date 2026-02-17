@@ -3,13 +3,15 @@ import Link from "next/link";
 const cards = [
   {
     title: "Search",
-    description: "キーワードで論文を検索し、ドリルダウン分析で関連論文を深掘りします。",
+    description:
+      "キーワードで論文を検索し、ドリルダウン分析で関連論文を深掘りします。",
     href: "/search",
     icon: "🔍",
   },
   {
     title: "Citation Graph",
-    description: "DOI から引用ネットワークを構築し、Cytoscape.js で可視化します。",
+    description:
+      "DOI から引用ネットワークを構築し、Cytoscape.js で可視化します。",
     href: "/graph",
     icon: "🕸️",
   },
@@ -31,11 +33,19 @@ const cards = [
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
-      <section>
-        <h1 className="text-3xl font-bold">Paper Tools Dashboard</h1>
-        <p className="mt-2 text-gray-500">
-          論文検索・引用グラフ可視化・推薦・アーカイブを統合した研究支援ツール
-        </p>
+      <section className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Paper Tools Dashboard</h1>
+          <p className="mt-2 text-gray-500">
+            論文検索・引用グラフ可視化・推薦・アーカイブを統合した研究支援ツール
+          </p>
+        </div>
+        <Link
+          href="/setup"
+          className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-slate-50"
+        >
+          DB を変更
+        </Link>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
