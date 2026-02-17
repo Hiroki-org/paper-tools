@@ -33,6 +33,37 @@ pnpm build
 pnpm test
 ```
 
+## Web UI — 起動と使い方
+
+- ローカル開発サーバー（ホットリロード）:
+
+```bash
+pnpm --filter @paper-tools/web dev
+# ブラウザで http://localhost:3000 を開く
+```
+
+- 本番ビルド（ローカル確認）:
+
+```bash
+pnpm --filter @paper-tools/web build
+pnpm --filter @paper-tools/web start
+```
+
+- 主要ページと用途:
+  - `/search` — 論文検索。検索結果カードから `Save to Notion` / `View Graph` / `Recommend` をすばやく実行できます。
+  - `/graph` — 引用グラフ（入力は DOI / 論文タイトル / Semantic Scholar ID をサポート）。URL クエリで自動ビルド可能（例: `/graph?doi=10.1145/...`）。
+  - `/recommend` — 指定論文または保存済み論文をもとにおすすめを表示。
+  - `/archive` — Notion に保存した論文一覧（Notion の認証とデータベースが必要）。
+
+- Notion 連携について:
+  - `.env` に `NOTION_API_KEY` と `NOTION_DATABASE_ID` を設定してください（README の Setup セクション参照）。
+  - 保存ボタンは Notion の設定が有効な場合に動作します。
+
+- よくある確認点 / トラブルシュート:
+  - 保存できない → `.env` の Notion 情報を確認
+  - 依存でエラー → `pnpm install` を実行
+  - ビルドで失敗 → `pnpm --filter @paper-tools/web build` を実行してログを見る
+
 ## Recommender CLI
 
 ```bash
