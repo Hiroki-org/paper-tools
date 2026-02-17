@@ -53,9 +53,9 @@ export default function GraphViewer({
           doi: n.doi,
           title: n.title,
           label: n.title
-            ? (Array.from(n.title).length > 20
+            ? Array.from(n.title).length > 20
               ? Array.from(n.title).slice(0, 20).join("") + "…"
-              : n.title)
+              : n.title
             : n.doi,
           fullTitle: n.title ?? n.doi,
         },
@@ -78,7 +78,7 @@ export default function GraphViewer({
           style: {
             label: "data(label)",
             "background-color": "#3b82f6", // var(--color-primary)
-            color: "#64748b",             // var(--color-text-muted)
+            color: "#64748b", // var(--color-text-muted)
             "font-size": "11px",
             "font-weight": "bold",
             "text-valign": "bottom",
@@ -95,7 +95,7 @@ export default function GraphViewer({
           selector: "edge",
           style: {
             width: 1.5,
-            "line-color": "#cbd5e1",      // slate-300
+            "line-color": "#cbd5e1", // slate-300
             "target-arrow-color": "#cbd5e1",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
@@ -107,11 +107,11 @@ export default function GraphViewer({
           style: {
             "background-color": "#2563eb", // primary-hover
             "border-width": 3,
-            "border-color": "#bfdbfe",    // blue-200
+            "border-color": "#bfdbfe", // blue-200
             width: 40,
             height: 40,
             "font-size": "12px",
-            color: "#0f172a",             // text-main
+            color: "#0f172a", // text-main
           },
         },
         {
@@ -147,10 +147,11 @@ export default function GraphViewer({
     });
 
     cy.on("mouseout", "node", (evt) => {
-      if (containerRef.current) containerRef.current.style.cursor = "default";      });
+      if (containerRef.current) containerRef.current.style.cursor = "default";
+    });
 
-      cyRef.current = cy;
-    }, [graph, onNodeTap]);
+    cyRef.current = cy;
+  }, [graph, onNodeTap]);
   useEffect(() => {
     initGraph();
     return () => {
@@ -169,7 +170,9 @@ export default function GraphViewer({
           <Network className="text-slate-400" size={32} />
         </div>
         <p className="font-medium">No graph data</p>
-        <p className="mt-1 text-xs text-slate-400">Enter a DOI or search term to build a citation graph.</p>
+        <p className="mt-1 text-xs text-slate-400">
+          Enter a DOI or search term to build a citation graph.
+        </p>
       </div>
     );
   }
@@ -181,13 +184,13 @@ export default function GraphViewer({
       style={{ height }}
     >
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-         <button
-           className="rounded bg-white p-2 shadow-md hover:bg-slate-50 text-slate-600 border border-slate-100 transition-colors"
-           onClick={() => cyRef.current?.fit()}
-           title="Fit to screen"
-         >
-           <Maximize size={18} />
-         </button>
+        <button
+          className="rounded bg-white p-2 shadow-md hover:bg-slate-50 text-slate-600 border border-slate-100 transition-colors"
+          onClick={() => cyRef.current?.fit()}
+          title="Fit to screen"
+        >
+          <Maximize size={18} />
+        </button>
       </div>
     </div>
   );
