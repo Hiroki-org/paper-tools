@@ -16,7 +16,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="mb-6 rounded-lg border border-[var(--color-border)] bg-slate-50 p-3 text-sm text-slate-600">
+        <div className="mb-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)]/50 p-3 text-sm text-[var(--color-text-muted)]">
           <div className="flex items-center gap-2 font-medium">
             <Lock size={16} /> OAuth 2.0 (Notion Public Integration)
           </div>

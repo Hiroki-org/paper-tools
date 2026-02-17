@@ -110,13 +110,13 @@ export default function Sidebar() {
 
         <div className="border-t border-white/10 px-6 py-4">
           <div className="mb-3 space-y-2">
-            <a
+            <Link
               href="/setup"
               className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
             >
               <Settings size={14} />
               DB を変更
-            </a>
+            </Link>
             <a
               href="/api/auth/logout"
               className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
