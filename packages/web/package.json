@@ -13,13 +13,16 @@
   "dependencies": {
     "@paper-tools/core": "workspace:*",
     "@paper-tools/drilldown": "workspace:*",
-    "@paper-tools/visualizer": "workspace:*",
     "@paper-tools/recommender": "workspace:*",
     "@paper-tools/scraper": "workspace:*",
+    "@paper-tools/visualizer": "workspace:*",
+    "clsx": "^2.1.1",
+    "cytoscape": "^3.30.0",
+    "lucide-react": "^0.564.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "cytoscape": "^3.30.0"
+    "tailwind-merge": "^3.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

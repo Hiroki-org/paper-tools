@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import type cytoscape from "cytoscape";
+import { Network, Maximize } from "lucide-react";
 
 /** Minimal node / edge shapes matching visualizer output */
 interface GraphNode {
@@ -51,7 +52,12 @@ export default function GraphViewer({
           id: n.doi,
           doi: n.doi,
           title: n.title,
-          label: n.title ?? n.doi,
+          label: n.title
+            ? Array.from(n.title).length > 20
+              ? Array.from(n.title).slice(0, 20).join("") + "…"
+              : n.title
+            : n.doi,
+          fullTitle: n.title ?? n.doi,
         },
       })),
       ...graph.edges.map((e, i) => ({
@@ -71,35 +77,62 @@ export default function GraphViewer({
           selector: "node",
           style: {
             label: "data(label)",
-            "background-color": "#6366f1",
-            color: "#111827",
-            "font-size": "10px",
+            "background-color": "#3b82f6", // var(--color-primary)
+            color: "#64748b", // var(--color-text-muted)
+            "font-size": "11px",
+            "font-weight": "bold",
+            "text-valign": "bottom",
+            "text-margin-y": 6,
             "text-wrap": "wrap" as any,
             "text-max-width": "120px",
-            width: 28,
-            height: 28,
+            width: 32,
+            height: 32,
+            "border-width": 2,
+            "border-color": "#ffffff",
           },
         },
         {
           selector: "edge",
           style: {
             width: 1.5,
-            "line-color": "#a5b4fc",
-            "target-arrow-color": "#6366f1",
+            "line-color": "#cbd5e1", // slate-300
+            "target-arrow-color": "#cbd5e1",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
+            "arrow-scale": 0.8,
+          },
+        },
+        {
+          selector: "node:selected",
+          style: {
+            "background-color": "#2563eb", // primary-hover
+            "border-width": 3,
+            "border-color": "#bfdbfe", // blue-200
+            width: 40,
+            height: 40,
+            "font-size": "12px",
+            color: "#0f172a", // text-main
           },
         },
         {
           selector: "node:active",
           style: {
-            "overlay-opacity": 0.2,
+            "overlay-opacity": 0.1,
+            "overlay-color": "#3b82f6",
           },
         },
       ],
-      layout: { name: "cose", animate: true, animationDuration: 600 } as any,
+      layout: {
+        name: "cose",
+        animate: true,
+        animationDuration: 800,
+        padding: 50,
+        componentSpacing: 100,
+        nodeRepulsion: (node: any) => 400000,
+      } as any,
       minZoom: 0.2,
-      maxZoom: 5,
+      maxZoom: 3,
+      wheelSensitivity: 0.2,
     });
 
     cy.on("tap", "node", (evt) => {
@@ -108,9 +141,17 @@ export default function GraphViewer({
       onNodeTap?.({ doi, title: data.title });
     });
 
+    // Add hover effect (guard containerRef)
+    cy.on("mouseover", "node", (evt) => {
+      if (containerRef.current) containerRef.current.style.cursor = "pointer";
+    });
+
+    cy.on("mouseout", "node", (evt) => {
+      if (containerRef.current) containerRef.current.style.cursor = "default";
+    });
+
     cyRef.current = cy;
   }, [graph, onNodeTap]);
-
   useEffect(() => {
     initGraph();
     return () => {
@@ -122,10 +163,16 @@ export default function GraphViewer({
   if (graph.nodes.length === 0) {
     return (
       <div
-        className="flex items-center justify-center rounded-lg border border-[var(--color-border)] text-sm text-gray-400"
+        className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500"
         style={{ height }}
       >
-        No graph data. Enter a DOI above to build a citation graph.
+        <div className="rounded-full bg-white p-4 shadow-sm mb-3">
+          <Network className="text-slate-400" size={32} />
+        </div>
+        <p className="font-medium">No graph data</p>
+        <p className="mt-1 text-xs text-slate-400">
+          Enter a DOI or search term to build a citation graph.
+        </p>
       </div>
     );
   }
@@ -133,8 +180,18 @@ export default function GraphViewer({
   return (
     <div
       ref={containerRef}
-      className="rounded-lg border border-[var(--color-border)]"
+      className="relative rounded-xl border border-[var(--color-border)] bg-white shadow-sm overflow-hidden"
       style={{ height }}
-    />
+    >
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        <button
+          className="rounded bg-white p-2 shadow-md hover:bg-slate-50 text-slate-600 border border-slate-100 transition-colors"
+          onClick={() => cyRef.current?.fit()}
+          title="Fit to screen"
+        >
+          <Maximize size={18} />
+        </button>
+      </div>
+    </div>
   );
 }
