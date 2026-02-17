@@ -147,8 +147,10 @@ export default function GraphViewer({
     });
 
     cy.on("mouseout", "node", (evt) => {
-      if (containerRef.current) containerRef.current.style.cursor = "default";
+      if (containerRef.current) containerRef.current.style.cursor = "default";      });
 
+      cyRef.current = cy;
+    }, [graph, onNodeTap]);
   useEffect(() => {
     initGraph();
     return () => {
