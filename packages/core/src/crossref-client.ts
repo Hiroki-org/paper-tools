@@ -1,11 +1,8 @@
 import { RateLimiter, fetchWithRetry } from "./rate-limiter.js";
 import type { Paper, Author } from "./types.js";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const packageJson = require("../package.json") as { version: string };
 
 const CROSSREF_API_BASE = "https://api.crossref.org";
+const APP_USER_AGENT = "paper-tools";
 
 // Crossref Polite Pool: ~50 req/s with mailto, ~1 req/s without
 const rateLimiter = new RateLimiter(10, 1000);
@@ -20,7 +17,7 @@ function buildHeaders(): Record<string, string> {
     };
     const mailto = getMailto();
     if (mailto) {
-        headers["User-Agent"] = `paper-tools/${packageJson.version} (mailto:${mailto})`;
+        headers["User-Agent"] = `${APP_USER_AGENT} (mailto:${mailto})`;
     }
     return headers;
 }
