@@ -8,7 +8,8 @@ on:
   pull_request:
 
 jobs:
-  build-test:
+  build:
+    name: Build All
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,8 +17,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10.18.3
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,5 +30,32 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: packages/*/dist
+          retention-days: 1
+
+  test:
+    name: Test ${{ matrix.package }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [core, scraper, drilldown, visualizer, recommender]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: packages
       - name: Test
-        run: pnpm test
+        run: pnpm --filter @paper-tools/${{ matrix.package }} test

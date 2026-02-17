@@ -52,7 +52,11 @@ export default function GraphViewer({
           id: n.doi,
           doi: n.doi,
           title: n.title,
-          label: n.title ? (n.title.length > 20 ? n.title.substring(0, 20) + "..." : n.title) : n.doi,
+          label: n.title
+            ? (Array.from(n.title).length > 20
+              ? Array.from(n.title).slice(0, 20).join("") + "…"
+              : n.title)
+            : n.doi,
           fullTitle: n.title ?? n.doi,
         },
       })),
@@ -137,17 +141,13 @@ export default function GraphViewer({
       onNodeTap?.({ doi, title: data.title });
     });
 
-    // Add hover effect
+    // Add hover effect (guard containerRef)
     cy.on("mouseover", "node", (evt) => {
-      containerRef.current!.style.cursor = "pointer";
+      if (containerRef.current) containerRef.current.style.cursor = "pointer";
     });
 
     cy.on("mouseout", "node", (evt) => {
-      containerRef.current!.style.cursor = "default";
-    });
-
-    cyRef.current = cy;
-  }, [graph, onNodeTap]);
+      if (containerRef.current) containerRef.current.style.cursor = "default";
 
   useEffect(() => {
     initGraph();
