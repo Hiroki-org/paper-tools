@@ -23,8 +23,8 @@ type RequestLike = {
 };
 
 function getSecret() {
-    const secret = process.env.NEXTAUTH_SECRET;
-    if (!secret) throw new Error("NEXTAUTH_SECRET is not set");
+    const secret = process.env.COOKIE_SECRET;
+    if (!secret) throw new Error("COOKIE_SECRET is not set");
     return secret;
 }
 

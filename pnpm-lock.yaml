@@ -132,8 +132,8 @@ importers:
   packages/web:
     dependencies:
       '@notionhq/client':
-        specifier: ^2.3.0
-        version: 2.3.0
+        specifier: ^5.9.0
+        version: 5.9.0
       '@paper-tools/core':
         specifier: workspace:*
         version: link:../core
@@ -575,6 +575,10 @@ packages:
   '@notionhq/client@2.3.0':
     resolution: {integrity: sha512-l7WqTCpQqC+HibkB9chghONQTYcxNQT0/rOJemBfmuKQRTu2vuV8B3yA395iKaUdDo7HI+0KvQaz9687Xskzkw==}
     engines: {node: '>=12'}
+
+  '@notionhq/client@5.9.0':
+    resolution: {integrity: sha512-TvAVMfwtVv61hsPrRfB9ehgzSjX6DaAi1ZRAnpg8xFjzaXhzhEfbO0PhBRm3ecSv1azDuO2kBuyQHh2/z7G4YQ==}
+    engines: {node: '>=18'}
 
   '@rollup/rollup-android-arm-eabi@4.57.1':
     resolution: {integrity: sha512-A6ehUVSiSaaliTxai040ZpZ2zTevHYbvu/lDoeAteHI8QnaosIzm4qwtezfRg1jOYaUmnzLX1AOD6Z+UJjtifg==}
@@ -1710,6 +1714,8 @@ snapshots:
       node-fetch: 2.7.0
     transitivePeerDependencies:
       - encoding
+
+  '@notionhq/client@5.9.0': {}
 
   '@rollup/rollup-android-arm-eabi@4.57.1':
     optional: true

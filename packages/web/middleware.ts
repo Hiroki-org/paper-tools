@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-const ACCESS_TOKEN_COOKIE = "pt_notion_access";
-const DATABASE_ID_COOKIE = "pt_notion_db";
+import { ACCESS_TOKEN_COOKIE, DATABASE_ID_COOKIE } from "@/lib/auth";
 
 function isPublicPath(pathname: string) {
-    return pathname === "/login" || pathname === "/privacy" || pathname === "/terms";
+    return pathname === "/privacy" || pathname === "/terms";
 }
 
 export function middleware(request: NextRequest) {
@@ -26,6 +24,18 @@ export function middleware(request: NextRequest) {
     const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
     const databaseId = request.cookies.get(DATABASE_ID_COOKIE)?.value;
 
+    // Redirect authenticated users away from /login
+    if (pathname === "/login") {
+        if (accessToken) {
+            if (databaseId) {
+                return NextResponse.redirect(new URL("/", request.url));
+            }
+            return NextResponse.redirect(new URL("/setup", request.url));
+        }
+        return NextResponse.next();
+    }
+
+    // Require authentication for all other routes
     if (!accessToken) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -35,10 +45,6 @@ export function middleware(request: NextRequest) {
             return NextResponse.next();
         }
         return NextResponse.redirect(new URL("/setup", request.url));
-    }
-
-    if (pathname === "/login") {
-        return NextResponse.redirect(new URL("/", request.url));
     }
 
     return NextResponse.next();

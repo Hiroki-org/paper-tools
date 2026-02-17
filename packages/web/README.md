@@ -17,7 +17,7 @@ pnpm --filter @paper-tools/web dev
 ```dotenv
 NOTION_OAUTH_CLIENT_ID=
 NOTION_OAUTH_CLIENT_SECRET=
-NEXTAUTH_SECRET=
+COOKIE_SECRET=
 ```
 
 ## 使い方

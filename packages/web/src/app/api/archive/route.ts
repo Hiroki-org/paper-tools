@@ -66,14 +66,17 @@ export async function GET(request: NextRequest) {
 
     try {
         const notion = getNotionClient(auth.accessToken);
-        const [databaseRes, recordsRes] = await Promise.all([
-            notion.databases.retrieve({ database_id: auth.databaseId }),
-            notion.databases.query({ database_id: auth.databaseId }),
-        ]);
+        const databaseRes = await notion.databases.retrieve({ database_id: auth.databaseId });
 
         if (databaseRes.object !== "database") {
             return NextResponse.json({ error: "Database not found" }, { status: 404 });
         }
+
+        // Fetch pages from the database using search API (v5 does not have databases.query)
+        const recordsRes = await notion.search({
+            
+            sort: { direction: "descending", timestamp: "last_edited_time" } as any,
+        });
 
         const records = recordsRes.results
             .filter((r) => r.object === "page")
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Database not found" }, { status: 404 });
         }
 
-        const props = database.properties as Record<string, NotionProperty>;
+        const props = (database as any).properties as Record<string, NotionProperty>;
         const titleKey = findTitleProperty(props);
         const doiKey = findPropertyByKeyword(props, "doi");
         const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");

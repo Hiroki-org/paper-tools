@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Database not found" }, { status: 404 });
         }
 
-        const warnings = validateDatabaseProperties(database.properties as Record<string, { type?: string }>);
+        const warnings = validateDatabaseProperties((database as any).properties as Record<string, { type?: string }>);
 
         const response = NextResponse.json({ success: true, warnings });
         setDatabaseCookie(response, databaseId, request);

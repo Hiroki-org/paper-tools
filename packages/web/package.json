@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@notionhq/client": "^2.3.0",
+    "@notionhq/client": "^5.9.0",
     "@paper-tools/core": "workspace:*",
     "@paper-tools/drilldown": "workspace:*",
     "@paper-tools/recommender": "workspace:*",
