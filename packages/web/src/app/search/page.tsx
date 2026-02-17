@@ -81,8 +81,22 @@ export default function SearchPage() {
         const res = await fetch(
           `/api/search?q=${encodeURIComponent(query)}&maxResults=${maxResults}`,
         );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Search failed");
+        const contentType = res.headers.get("content-type") ?? "";
+        const data = contentType.includes("application/json")
+          ? await res.json()
+          : { error: await res.text() };
+
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        if (!res.ok) {
+          throw new Error(
+            typeof data.error === "string" && data.error.trim().length > 0
+              ? data.error
+              : `Search failed (HTTP ${res.status})`,
+          );
+        }
         setPapers(data.papers ?? []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unknown error");
