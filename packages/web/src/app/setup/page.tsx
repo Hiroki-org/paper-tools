@@ -101,7 +101,8 @@ export default function SetupPage() {
       <div>
         <h1 className="text-2xl font-bold">Notion データベースを選択</h1>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          一覧から選択するか、Database ID / URL を直接入力して保存先を設定してください。
+          一覧から選択するか、Database ID / URL
+          を直接入力して保存先を設定してください。
         </p>
       </div>
 
@@ -166,8 +167,9 @@ export default function SetupPage() {
 
       {!loading && items.length === 0 && (
         <div className="rounded-lg border border-dashed border-[var(--color-border)] p-8 text-center text-sm text-[var(--color-text-muted)]">
-          一覧で選べるデータベースが見つかりませんでした。上の入力欄で Database ID を直接指定できます。
-          Public Integration を使う場合は、Notion 側で対象DBに「接続」していることも確認してください。
+          一覧で選べるデータベースが見つかりませんでした。上の入力欄で Database
+          ID を直接指定できます。 Public Integration を使う場合は、Notion
+          側で対象DBに「接続」していることも確認してください。
         </div>
       )}
 
