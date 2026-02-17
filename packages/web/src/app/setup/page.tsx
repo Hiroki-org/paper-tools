@@ -27,6 +27,10 @@ export default function SetupPage() {
       try {
         const res = await fetch("/api/databases", { cache: "no-store" });
         const data = await res.json();
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
         if (!res.ok)
           throw new Error(data.error ?? "データベース取得に失敗しました");
         if (!cancelled) setItems(data.databases ?? []);

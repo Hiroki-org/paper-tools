@@ -6,6 +6,24 @@ function isPublicPath(pathname: string) {
     return pathname === "/privacy" || pathname === "/terms";
 }
 
+function decodeBase64Url(input: string) {
+    const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
+    const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+    return atob(normalized + padding);
+}
+
+function hasValidAccessTokenShape(rawCookieValue?: string) {
+    if (!rawCookieValue) return false;
+    const [payload, signature] = rawCookieValue.split(".");
+    if (!payload || !signature) return false;
+    try {
+        const parsed = JSON.parse(decodeBase64Url(payload)) as { token?: unknown };
+        return typeof parsed.token === "string" && parsed.token.length > 0;
+    } catch {
+        return false;
+    }
+}
+
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
@@ -21,12 +39,13 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+    const accessTokenRaw = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
     const databaseId = request.cookies.get(DATABASE_ID_COOKIE)?.value;
+    const hasAccessToken = hasValidAccessTokenShape(accessTokenRaw);
 
     // Redirect authenticated users away from /login
     if (pathname === "/login") {
-        if (accessToken) {
+        if (hasAccessToken) {
             if (databaseId) {
                 return NextResponse.redirect(new URL("/", request.url));
             }
@@ -36,7 +55,7 @@ export function middleware(request: NextRequest) {
     }
 
     // Require authentication for all other routes
-    if (!accessToken) {
+    if (!hasAccessToken) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 

@@ -29,6 +29,10 @@ export default function ArchivePage() {
     try {
       const res = await fetch("/api/archive");
       const data = await res.json();
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "Failed to load archive");
       setRecords(data.records ?? []);
       setDatabaseMeta((data.database as NotionDatabaseMeta) ?? null);
