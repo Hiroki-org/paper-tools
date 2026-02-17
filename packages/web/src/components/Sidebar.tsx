@@ -9,6 +9,8 @@ import {
   Network,
   Lightbulb,
   Archive,
+  Settings,
+  LogOut,
   Menu,
   X,
   LibraryBig
@@ -26,6 +28,16 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  const hideSidebar =
+    pathname === "/login" ||
+    pathname === "/setup" ||
+    pathname === "/privacy" ||
+    pathname === "/terms";
+
+  if (hideSidebar) {
+    return null;
+  }
 
   return (
     <>
@@ -89,6 +101,22 @@ export default function Sidebar() {
         </nav>
 
         <div className="border-t border-white/10 px-6 py-4">
+          <div className="mb-3 space-y-2">
+            <a
+              href="/setup"
+              className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
+            >
+              <Settings size={14} />
+              DB を変更
+            </a>
+            <a
+              href="/api/auth/logout"
+              className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
+            >
+              <LogOut size={14} />
+              ログアウト
+            </a>
+          </div>
           <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Project</div>
           <div className="text-xs text-slate-400">
             paper-tools web v0.1.0

@@ -31,11 +31,19 @@ const cards = [
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
-      <section>
-        <h1 className="text-3xl font-bold">Paper Tools Dashboard</h1>
-        <p className="mt-2 text-gray-500">
-          論文検索・引用グラフ可視化・推薦・アーカイブを統合した研究支援ツール
-        </p>
+      <section className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Paper Tools Dashboard</h1>
+          <p className="mt-2 text-gray-500">
+            論文検索・引用グラフ可視化・推薦・アーカイブを統合した研究支援ツール
+          </p>
+        </div>
+        <a
+          href="/setup"
+          className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-slate-50"
+        >
+          DB を変更
+        </a>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">

@@ -131,6 +131,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@notionhq/client':
+        specifier: ^2.3.0
+        version: 2.3.0
       '@paper-tools/core':
         specifier: workspace:*
         version: link:../core
