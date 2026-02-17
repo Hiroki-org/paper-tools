@@ -26,11 +26,21 @@ function hasValidAccessTokenShape(rawCookieValue?: string) {
 
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const isApiRoute = pathname.startsWith("/api/");
 
     if (
         pathname.startsWith("/_next") ||
         pathname.startsWith("/favicon.ico") ||
         pathname.startsWith("/api/auth")
+    ) {
+        return NextResponse.next();
+    }
+
+    if (
+        pathname.startsWith("/api/search") ||
+        pathname.startsWith("/api/graph") ||
+        pathname.startsWith("/api/recommend") ||
+        pathname.startsWith("/api/resolve")
     ) {
         return NextResponse.next();
     }
@@ -56,12 +66,18 @@ export function middleware(request: NextRequest) {
 
     // Require authentication for all other routes
     if (!hasAccessToken) {
+        if (isApiRoute) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
     if (!databaseId) {
         if (pathname === "/setup" || pathname.startsWith("/api/databases")) {
             return NextResponse.next();
+        }
+        if (isApiRoute) {
+            return NextResponse.json({ error: "Database is not selected" }, { status: 400 });
         }
         return NextResponse.redirect(new URL("/setup", request.url));
     }
