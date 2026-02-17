@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ACCESS_TOKEN_COOKIE, DATABASE_ID_COOKIE } from "@/lib/auth";
+import { ACCESS_TOKEN_COOKIE, DATABASE_ID_COOKIE } from "@/lib/auth-cookies";
 
 function isPublicPath(pathname: string) {
     return pathname === "/privacy" || pathname === "/terms";

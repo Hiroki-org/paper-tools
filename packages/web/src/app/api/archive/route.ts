@@ -48,14 +48,14 @@ function mapPageRecord(page: {
 
 function parseAuth(request: NextRequest) {
     const accessToken = getAccessToken(request.cookies);
-    const databaseId = getSelectedDatabaseId(request.cookies);
+    const dataSourceId = getSelectedDatabaseId(request.cookies);
     if (!accessToken) {
         return { ok: false as const, status: 401, error: "Not authenticated" };
     }
-    if (!databaseId) {
+    if (!dataSourceId) {
         return { ok: false as const, status: 400, error: "Database is not selected" };
     }
-    return { ok: true as const, accessToken, databaseId };
+    return { ok: true as const, accessToken, dataSourceId };
 }
 
 export async function GET(request: NextRequest) {
@@ -66,16 +66,28 @@ export async function GET(request: NextRequest) {
 
     try {
         const notion = getNotionClient(auth.accessToken);
-        const databaseRes = await notion.databases.retrieve({ database_id: auth.databaseId });
+        let dataSourceRes: any;
+        try {
+            dataSourceRes = await notion.dataSources.retrieve({ data_source_id: auth.dataSourceId });
+        } catch {
+            const databaseRes = await notion.databases.retrieve({ database_id: auth.dataSourceId });
+            if (databaseRes.object !== "database") {
+                return NextResponse.json({ error: "Database not found" }, { status: 404 });
+            }
+            const firstDataSourceId = (databaseRes as any).data_sources?.[0]?.id as string | undefined;
+            if (!firstDataSourceId) {
+                return NextResponse.json({ error: "No data source found in database" }, { status: 400 });
+            }
+            dataSourceRes = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
+        }
 
-        if (databaseRes.object !== "database") {
+        if (dataSourceRes.object !== "data_source") {
             return NextResponse.json({ error: "Database not found" }, { status: 404 });
         }
 
-        // Fetch pages from the database using search API (v5 does not have databases.query)
-        const recordsRes = await notion.search({
-            
-            sort: { direction: "descending", timestamp: "last_edited_time" } as any,
+        const recordsRes = await notion.dataSources.query({
+            data_source_id: dataSourceRes.id,
+            page_size: 100,
         });
 
         const records = recordsRes.results
@@ -83,8 +95,8 @@ export async function GET(request: NextRequest) {
             .map((page) => mapPageRecord(page as { id: string; properties: Record<string, NotionProperty> }));
 
         const userInfo = getUserInfo(request.cookies);
-        const databaseTitle = "title" in databaseRes
-            ? (databaseRes.title as Array<{ plain_text?: string }>)
+        const databaseTitle = "title" in dataSourceRes
+            ? (dataSourceRes.title as Array<{ plain_text?: string }>)
             : [];
         const databaseName = getPlainText(databaseTitle) || "(untitled database)";
 
@@ -92,7 +104,7 @@ export async function GET(request: NextRequest) {
             records,
             total: records.length,
             database: {
-                databaseId: databaseRes.id,
+                databaseId: dataSourceRes.id,
                 databaseName,
                 workspaceName: userInfo?.workspaceName ?? "Notion Workspace",
             },
@@ -118,12 +130,26 @@ export async function POST(request: NextRequest) {
         }
 
         const notion = getNotionClient(auth.accessToken);
-        const database = await notion.databases.retrieve({ database_id: auth.databaseId });
-        if (database.object !== "database") {
-            return NextResponse.json({ error: "Database not found" }, { status: 404 });
+        let dataSource: any;
+        try {
+            dataSource = await notion.dataSources.retrieve({ data_source_id: auth.dataSourceId });
+        } catch {
+            const database = await notion.databases.retrieve({ database_id: auth.dataSourceId });
+            if (database.object !== "database") {
+                return NextResponse.json({ error: "Database not found" }, { status: 404 });
+            }
+            const firstDataSourceId = (database as any).data_sources?.[0]?.id as string | undefined;
+            if (!firstDataSourceId) {
+                return NextResponse.json({ error: "No data source found in database" }, { status: 400 });
+            }
+            dataSource = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
         }
 
-        const props = (database as any).properties as Record<string, NotionProperty>;
+        if (dataSource.object !== "data_source") {
+            return NextResponse.json({ error: "Data source not found" }, { status: 404 });
+        }
+
+        const props = (dataSource as any).properties as Record<string, NotionProperty>;
         const titleKey = findTitleProperty(props);
         const doiKey = findPropertyByKeyword(props, "doi");
         const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");
@@ -151,7 +177,7 @@ export async function POST(request: NextRequest) {
         }
 
         await notion.pages.create({
-            parent: { database_id: auth.databaseId },
+            parent: { data_source_id: dataSource.id },
             properties: properties as any,
         });
 

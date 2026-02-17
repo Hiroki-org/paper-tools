@@ -117,13 +117,15 @@ export default function Sidebar() {
               <Settings size={14} />
               DB を変更
             </Link>
-            <a
-              href="/api/auth/logout"
-              className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
-            >
-              <LogOut size={14} />
-              ログアウト
-            </a>
+            <form action="/api/auth/logout" method="post">
+              <button
+                type="submit"
+                className="flex w-full items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
+              >
+                <LogOut size={14} />
+                ログアウト
+              </button>
+            </form>
           </div>
           <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
             Project

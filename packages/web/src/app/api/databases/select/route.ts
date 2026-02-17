@@ -34,15 +34,37 @@ export async function POST(request: NextRequest) {
         }
 
         const notion = getNotionClient(accessToken);
-        const database = await notion.databases.retrieve({ database_id: databaseId });
-        if (database.object !== "database") {
-            return NextResponse.json({ error: "Database not found" }, { status: 404 });
+
+        let selectedDataSourceId: string | null = null;
+        let properties: Record<string, { type?: string }> | null = null;
+
+        try {
+            const dataSource = await notion.dataSources.retrieve({ data_source_id: databaseId });
+            if (dataSource.object === "data_source") {
+                selectedDataSourceId = dataSource.id;
+                properties = (dataSource as any).properties as Record<string, { type?: string }>;
+            }
+        } catch {
+            const database = await notion.databases.retrieve({ database_id: databaseId });
+            if (database.object !== "database") {
+                return NextResponse.json({ error: "Database not found" }, { status: 404 });
+            }
+            const firstDataSourceId = (database as any).data_sources?.[0]?.id as string | undefined;
+            if (!firstDataSourceId) {
+                return NextResponse.json({ error: "No data source found in selected database" }, { status: 400 });
+            }
+            const dataSource = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
+            if (dataSource.object !== "data_source") {
+                return NextResponse.json({ error: "Data source not found" }, { status: 404 });
+            }
+            selectedDataSourceId = dataSource.id;
+            properties = (dataSource as any).properties as Record<string, { type?: string }>;
         }
 
-        const warnings = validateDatabaseProperties((database as any).properties as Record<string, { type?: string }>);
+        const warnings = validateDatabaseProperties(properties ?? {});
 
         const response = NextResponse.json({ success: true, warnings });
-        setDatabaseCookie(response, databaseId, request);
+        setDatabaseCookie(response, selectedDataSourceId ?? databaseId, request);
         return response;
     } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to select database";

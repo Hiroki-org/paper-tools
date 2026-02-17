@@ -1,12 +1,21 @@
 import { createHmac, randomBytes } from "crypto";
 import { Client } from "@notionhq/client";
 import { NextResponse } from "next/server";
+import {
+    ACCESS_TOKEN_COOKIE,
+    REFRESH_TOKEN_COOKIE,
+    USER_INFO_COOKIE,
+    DATABASE_ID_COOKIE,
+    OAUTH_STATE_COOKIE,
+} from "@/lib/auth-cookies";
 
-export const ACCESS_TOKEN_COOKIE = "pt_notion_access";
-export const REFRESH_TOKEN_COOKIE = "pt_notion_refresh";
-export const USER_INFO_COOKIE = "pt_notion_user";
-export const DATABASE_ID_COOKIE = "pt_notion_db";
-export const OAUTH_STATE_COOKIE = "pt_notion_oauth_state";
+export {
+    ACCESS_TOKEN_COOKIE,
+    REFRESH_TOKEN_COOKIE,
+    USER_INFO_COOKIE,
+    DATABASE_ID_COOKIE,
+    OAUTH_STATE_COOKIE,
+};
 
 type CookieStore = {
     get: (name: string) => { value: string } | undefined;
@@ -23,8 +32,8 @@ type RequestLike = {
 };
 
 function getSecret() {
-    const secret = process.env.COOKIE_SECRET;
-    if (!secret) throw new Error("COOKIE_SECRET is not set");
+    const secret = process.env.COOKIE_SECRET ?? process.env.NEXTAUTH_SECRET;
+    if (!secret) throw new Error("COOKIE_SECRET (or NEXTAUTH_SECRET) is not set");
     return secret;
 }
 
