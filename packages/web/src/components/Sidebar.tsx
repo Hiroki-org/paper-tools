@@ -13,7 +13,7 @@ import {
   LogOut,
   Menu,
   X,
-  LibraryBig
+  LibraryBig,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -64,7 +64,7 @@ export default function Sidebar() {
           "fixed top-0 left-0 z-40 flex h-full w-64 flex-col",
           "bg-[var(--color-sidebar)] text-white shadow-xl transition-transform duration-300 ease-in-out",
           "md:translate-x-0 border-r border-slate-700/50",
-          open ? "translate-x-0" : "-translate-x-full"
+          open ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex h-16 items-center gap-3 border-b border-white/10 px-6">
@@ -90,10 +90,18 @@ export default function Sidebar() {
                   "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   active
                     ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-900/20"
-                    : "text-slate-400 hover:bg-[var(--color-sidebar-hover)] hover:text-white hover:pl-4"
+                    : "text-slate-400 hover:bg-[var(--color-sidebar-hover)] hover:text-white hover:pl-4",
                 )}
               >
-                <Icon size={20} className={clsx("transition-colors", active ? "text-white" : "text-slate-500 group-hover:text-white")} />
+                <Icon
+                  size={20}
+                  className={clsx(
+                    "transition-colors",
+                    active
+                      ? "text-white"
+                      : "text-slate-500 group-hover:text-white",
+                  )}
+                />
                 {item.label}
               </Link>
             );
@@ -117,10 +125,10 @@ export default function Sidebar() {
               ログアウト
             </a>
           </div>
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Project</div>
-          <div className="text-xs text-slate-400">
-            paper-tools web v0.1.0
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+            Project
           </div>
+          <div className="text-xs text-slate-400">paper-tools web v0.1.0</div>
         </div>
       </aside>
     </>

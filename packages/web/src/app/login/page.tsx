@@ -10,7 +10,9 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">Paper Tools</h1>
-            <p className="text-sm text-[var(--color-text-muted)]">Notion と接続して論文管理を始める</p>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Notion と接続して論文管理を始める
+            </p>
           </div>
         </div>
 
@@ -18,7 +20,9 @@ export default function LoginPage() {
           <div className="flex items-center gap-2 font-medium">
             <Lock size={16} /> OAuth 2.0 (Notion Public Integration)
           </div>
-          <p className="mt-1 text-xs">アクセストークンは HttpOnly Cookie で管理されます。</p>
+          <p className="mt-1 text-xs">
+            アクセストークンは HttpOnly Cookie で管理されます。
+          </p>
         </div>
 
         <a

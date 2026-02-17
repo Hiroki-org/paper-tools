@@ -25,10 +25,12 @@ export default function SetupPage() {
       try {
         const res = await fetch("/api/databases", { cache: "no-store" });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "データベース取得に失敗しました");
+        if (!res.ok)
+          throw new Error(data.error ?? "データベース取得に失敗しました");
         if (!cancelled) setItems(data.databases ?? []);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Unknown error");
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -66,7 +68,9 @@ export default function SetupPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Notion データベースを選択</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">OAuth で許可されたデータベースから、論文保存先を選択してください。</p>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+          OAuth で許可されたデータベースから、論文保存先を選択してください。
+        </p>
       </div>
 
       {error && (
@@ -88,18 +92,24 @@ export default function SetupPage() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-[var(--color-text-muted)]">読み込み中…</p>}
+      {loading && (
+        <p className="text-sm text-[var(--color-text-muted)]">読み込み中…</p>
+      )}
 
       {!loading && !hasItems && (
         <div className="rounded-lg border border-dashed border-[var(--color-border)] p-8 text-center text-sm text-[var(--color-text-muted)]">
-          共有済みデータベースが見つかりませんでした。Notion 側で Integration を対象DBに接続してください。
+          共有済みデータベースが見つかりませんでした。Notion 側で Integration
+          を対象DBに接続してください。
         </div>
       )}
 
       {hasItems && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
-            <div key={item.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm">
+            <div
+              key={item.id}
+              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm"
+            >
               <div className="mb-2 flex items-center gap-2">
                 <div className="rounded-md bg-slate-100 p-2 text-sm">
                   {item.icon ?? <Database size={16} />}

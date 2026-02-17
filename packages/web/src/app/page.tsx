@@ -3,13 +3,15 @@ import Link from "next/link";
 const cards = [
   {
     title: "Search",
-    description: "キーワードで論文を検索し、ドリルダウン分析で関連論文を深掘りします。",
+    description:
+      "キーワードで論文を検索し、ドリルダウン分析で関連論文を深掘りします。",
     href: "/search",
     icon: "🔍",
   },
   {
     title: "Citation Graph",
-    description: "DOI から引用ネットワークを構築し、Cytoscape.js で可視化します。",
+    description:
+      "DOI から引用ネットワークを構築し、Cytoscape.js で可視化します。",
     href: "/graph",
     icon: "🕸️",
   },
