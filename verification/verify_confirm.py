@@ -1,15 +1,15 @@
 import json
 import base64
+import os
 from playwright.sync_api import sync_playwright, expect
 
-def base64url_encode(data):
+def base64url_encode(data: dict) -> str:
     return base64.urlsafe_b64encode(json.dumps(data).encode()).decode().rstrip("=")
-
-import os
 
 def test_setup_page_confirm_dialog():
     base_url = os.environ.get("BASE_URL", "http://localhost:3000")
     with sync_playwright() as p:
+        browser = None
         try:
             browser = p.chromium.launch(headless=True)
             context = browser.new_context()
@@ -62,7 +62,7 @@ def test_setup_page_confirm_dialog():
             assert "Notionの再認可を行います" in dialog_message
             print("Verification successful: Confirmation dialog appeared.")
         finally:
-            if 'browser' in locals():
+            if browser:
                 browser.close()
 
 if __name__ == "__main__":
