@@ -122,6 +122,15 @@ export default function SetupPage() {
           </a>
           <a
             href="/api/auth/notion"
+            onClick={(e) => {
+              if (
+                !window.confirm(
+                  "Notionの再認可を行います。現在のページから離れますがよろしいですか？",
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
             className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] hover:underline"
           >
             <RefreshCw size={14} />
