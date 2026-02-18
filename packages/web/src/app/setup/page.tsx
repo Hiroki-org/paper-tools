@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { Database, CheckCircle2, AlertCircle } from "lucide-react";
+import { Database, CheckCircle2, AlertCircle, ExternalLink, RefreshCw } from "lucide-react";
 
 type DatabaseItem = {
   id: string;
@@ -102,12 +102,41 @@ export default function SetupPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Notion データベースを選択</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          一覧から選択するか、Database ID / URL
-          を直接入力して保存先を設定してください。
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Notion データベースを選択</h1>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+            一覧から選択するか、Database ID / URL
+            を直接入力して保存先を設定してください。
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <a
+            href="https://www.notion.so/my-connections"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] hover:underline"
+          >
+            <ExternalLink size={14} />
+            Notion設定 (アクセス管理)
+          </a>
+          <a
+            href="/api/auth/notion"
+            onClick={(e) => {
+              if (
+                !window.confirm(
+                  "Notionの再認可を行います。現在のページから離れますがよろしいですか？",
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
+            className="flex items-center gap-1.5 text-xs text-[var(--color-primary)] transition-colors hover:text-[var(--color-primary-hover)] hover:underline"
+          >
+            <RefreshCw size={14} />
+            再認可 (DB一覧更新)
+          </a>
+        </div>
       </div>
 
       <form

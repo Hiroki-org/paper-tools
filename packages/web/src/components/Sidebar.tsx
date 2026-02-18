@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   LibraryBig,
+  Shield,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -117,6 +118,15 @@ export default function Sidebar() {
               <Settings size={14} />
               DB を変更
             </Link>
+            <a
+              href="https://www.notion.so/my-connections"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
+            >
+              <Shield size={14} />
+              アクセスを管理
+            </a>
             <form action="/api/auth/logout" method="post">
               <button
                 type="submit"
