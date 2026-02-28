@@ -158,8 +158,14 @@ program
             }
 
             const chunks: string[] = [];
-            for (const record of targets) {
-                const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
+            const results = await Promise.all(
+                targets.map(async (record) => {
+                    const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
+                    return { record, fetched };
+                })
+            );
+
+            for (const { record, fetched } of results) {
                 if (!fetched) {
                     console.error(`Warning: BibTeX取得失敗: ${record.title}`);
                     continue;
