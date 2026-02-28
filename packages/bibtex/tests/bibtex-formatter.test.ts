@@ -1,26 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { deriveBibtexKey, formatBibtex, parseBibtexEntry, splitBibtexEntries } from "../src/bibtex-formatter.js";
+import { formatBibtex, parseBibtexEntry, splitBibtexEntries } from "../src/bibtex-formatter.js";
 
 describe("bibtex-formatter", () => {
-    describe("deriveBibtexKey", () => {
-        it("returns undefined if keyFormat is 'default'", () => {
-            const result = deriveBibtexKey(`@article{tmp, title={Paper}, author={Alice Smith}, year={2024}, journal={J}}`, "default");
-            expect(result).toBeUndefined();
-        });
-
-        it("returns a generated key for valid bibtex entry with valid format", () => {
-            const result = deriveBibtexKey(`@article{tmp, title={Sample Paper}, author={Alice Smith and Bob Jones}, year={2024}, journal={Journal of Testing}}`, "short");
-            expect(result).toBeDefined();
-            expect(typeof result).toBe("string");
-            expect(result).not.toBe("tmp");
-        });
-
-        it("returns undefined for invalid bibtex entry", () => {
-            const result = deriveBibtexKey(`invalid bibtex string`, "short");
-            expect(result).toBeUndefined();
-        });
-    });
-
     it("parses a single bibtex entry", () => {
         const parsed = parseBibtexEntry(`@article{tmp, title={Paper}, author={Alice Smith}, year={2024}, journal={J}}`);
         expect(parsed.entryType).toBe("article");

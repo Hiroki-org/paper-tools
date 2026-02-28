@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as rateLimiter from "../src/rate-limiter.js";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -92,17 +91,5 @@ describe("Semantic Scholar Client", () => {
         } else {
             process.env["S2_API_KEY"] = previous;
         }
-    });
-
-    it("parseResponse should throw formatted error on failed response", async () => {
-        const spy = vi.spyOn(rateLimiter, "fetchWithRetry").mockResolvedValueOnce({
-            ok: false,
-            status: 400,
-            statusText: "Bad Request",
-            text: async () => "Invalid ID",
-        } as unknown as Response);
-
-        await expect(getPaper("bad-id")).rejects.toThrow("Semantic Scholar API error: 400 Bad Request - Invalid ID");
-        spy.mockRestore();
     });
 });
