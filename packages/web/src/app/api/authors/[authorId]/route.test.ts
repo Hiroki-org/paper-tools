@@ -2,42 +2,42 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@paper-tools/author-profiler", () => ({
-  buildAuthorProfile: vi.fn(),
+    buildAuthorProfile: vi.fn(),
 }));
 
 const profiler = await import("@paper-tools/author-profiler");
 const { GET } = await import("./route");
 
 describe("/api/authors/[authorId] GET", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
-  it("returns author profile", async () => {
-    vi.mocked(profiler.buildAuthorProfile).mockResolvedValueOnce({
-      id: "123",
-      name: "Alice",
-      affiliations: [{ name: "Example U" }],
-      hIndex: 10,
-      citationCount: 200,
-      paperCount: 30,
-      influentialCitationCount: 50,
-      topPapers: [],
-      coauthors: [],
-      topicTimeline: [],
-    } as any);
+    it("returns author profile", async () => {
+        vi.mocked(profiler.buildAuthorProfile).mockResolvedValueOnce({
+            id: "123",
+            name: "Alice",
+            affiliations: [{ name: "Example U" }],
+            hIndex: 10,
+            citationCount: 200,
+            paperCount: 30,
+            influentialCitationCount: 50,
+            topPapers: [],
+            coauthors: [],
+            topicTimeline: [],
+        } as any);
 
-    const req = new NextRequest("http://localhost/api/authors/123");
-    const res = await GET(req, { params: { authorId: "123" } });
-    const data = await res.json();
+        const req = new NextRequest("http://localhost/api/authors/123");
+        const res = await GET(req, { params: { authorId: "123" } });
+        const data = await res.json();
 
-    expect(res.status).toBe(200);
-    expect(data.id).toBe("123");
-  });
+        expect(res.status).toBe(200);
+        expect(data.id).toBe("123");
+    });
 
-  it("returns 400 when authorId is empty", async () => {
-    const req = new NextRequest("http://localhost/api/authors/");
-    const res = await GET(req, { params: { authorId: "" } });
-    expect(res.status).toBe(400);
-  });
+    it("returns 400 when authorId is empty", async () => {
+        const req = new NextRequest("http://localhost/api/authors/");
+        const res = await GET(req, { params: { authorId: "" } });
+        expect(res.status).toBe(400);
+    });
 });
