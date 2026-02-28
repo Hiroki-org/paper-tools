@@ -6,6 +6,11 @@ import type { DrilldownResult } from "@paper-tools/drilldown";
 import SearchForm from "@/components/SearchForm";
 import PaperCard from "@/components/PaperCard";
 import SaveToNotionButton from "@/components/SaveToNotionButton";
+import { preCachePaper } from "@/components/paper/usePaperDetail";
+
+type SearchPaper = Paper & {
+  paperId?: string;
+};
 
 export default function SearchPage() {
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
@@ -145,6 +150,33 @@ export default function SearchPage() {
     return `/recommend${base ? `?paperId=${encodeURIComponent(base)}` : ""}`;
   }, []);
 
+  const getPaperId = useCallback((paper: SearchPaper): string | null => {
+    if (paper.paperId?.trim()) return paper.paperId.trim();
+    if (!paper.url) return null;
+    const match = paper.url.match(/\/paper\/([^/?#]+)/i);
+    return match?.[1] ? decodeURIComponent(match[1]) : null;
+  }, []);
+
+  const preCacheFromPaper = useCallback(
+    (paper: SearchPaper, paperId: string) => {
+      preCachePaper({
+        paperId,
+        title: paper.title,
+        authors: (paper.authors ?? []).map((author) => ({
+          authorId: "",
+          name: author.name,
+        })),
+        year: paper.year ?? null,
+        venue: paper.venue ?? "",
+        citationCount: paper.citationCount ?? 0,
+        externalIds: paper.doi ? { DOI: paper.doi } : {},
+        url: paper.url ?? `https://www.semanticscholar.org/paper/${paperId}`,
+        abstract: paper.abstract ?? null,
+      });
+    },
+    [],
+  );
+
   const levelDescription = useCallback(
     (level: number) => {
       if (level === 0) {
@@ -261,11 +293,24 @@ export default function SearchPage() {
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       {dr.papers.map((p, i) => {
-                        const paper = p as Paper;
+                        const paper = p as SearchPaper;
+                        const paperId = getPaperId(paper);
                         return (
                           <PaperCard
                             key={i}
                             paper={paper}
+                            detailHref={
+                              paperId
+                                ? `/paper/${encodeURIComponent(paperId)}`
+                                : undefined
+                            }
+                            onDetailNavigate={
+                              paperId
+                                ? () => {
+                                    preCacheFromPaper(paper, paperId);
+                                  }
+                                : undefined
+                            }
                             actions={
                               <>
                                 <SaveToNotionButton
@@ -299,34 +344,50 @@ export default function SearchPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {papers.map((p, i) => (
-              <PaperCard
-                key={i}
-                paper={p}
-                actions={
-                  <>
-                    <SaveToNotionButton
-                      doi={p.doi}
-                      title={p.title}
-                      saved={isSaved(p)}
-                      onSaved={() => markSaved(p)}
-                    />
-                    <a
-                      href={getGraphHref(p)}
-                      className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                    >
-                      🕸️ グラフを見る
-                    </a>
-                    <a
-                      href={getRecommendHref(p)}
-                      className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                    >
-                      ✨ おすすめ
-                    </a>
-                  </>
-                }
-              />
-            ))}
+            {papers.map((p, i) => {
+              const paper = p as SearchPaper;
+              const paperId = getPaperId(paper);
+              return (
+                <PaperCard
+                  key={i}
+                  paper={paper}
+                  detailHref={
+                    paperId
+                      ? `/paper/${encodeURIComponent(paperId)}`
+                      : undefined
+                  }
+                  onDetailNavigate={
+                    paperId
+                      ? () => {
+                          preCacheFromPaper(paper, paperId);
+                        }
+                      : undefined
+                  }
+                  actions={
+                    <>
+                      <SaveToNotionButton
+                        doi={paper.doi}
+                        title={paper.title}
+                        saved={isSaved(paper)}
+                        onSaved={() => markSaved(paper)}
+                      />
+                      <a
+                        href={getGraphHref(paper)}
+                        className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                      >
+                        🕸️ グラフを見る
+                      </a>
+                      <a
+                        href={getRecommendHref(paper)}
+                        className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                      >
+                        ✨ おすすめ
+                      </a>
+                    </>
+                  }
+                />
+              );
+            })}
           </div>
         </section>
       )}

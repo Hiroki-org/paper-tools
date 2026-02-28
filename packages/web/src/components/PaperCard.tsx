@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Paper } from "@paper-tools/core";
 import {
   User,
@@ -10,25 +11,54 @@ import {
   Link as LinkIcon,
   MessageSquareQuote,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from "lucide-react";
 import { clsx } from "clsx";
 
 interface PaperCardProps {
   paper: Paper;
   actions?: React.ReactNode;
+  detailHref?: string;
+  onDetailNavigate?: () => void;
 }
 
-export default function PaperCard({ paper, actions }: PaperCardProps) {
+export default function PaperCard({
+  paper,
+  actions,
+  detailHref,
+  onDetailNavigate,
+}: PaperCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasAbstract = !!paper.abstract;
 
   return (
     <div className="group relative flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm transition-all hover:shadow-md hover:border-blue-200">
-
       {/* Title */}
       <h3 className="text-lg font-semibold leading-tight text-[var(--color-text)] pr-8">
-        {paper.url ? (
+        {detailHref ? (
+          <span className="flex items-start gap-2">
+            <Link
+              href={detailHref}
+              onClick={onDetailNavigate}
+              className="hover:text-[var(--color-primary)] transition-colors"
+            >
+              {paper.title}
+            </Link>
+            {paper.url && (
+              <a
+                href={paper.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open in Semantic Scholar"
+                title="Open in Semantic Scholar"
+                onClick={(e) => e.stopPropagation()}
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+              >
+                ↗
+              </a>
+            )}
+          </span>
+        ) : paper.url ? (
           <a
             href={paper.url}
             target="_blank"
@@ -36,7 +66,10 @@ export default function PaperCard({ paper, actions }: PaperCardProps) {
             className="hover:text-[var(--color-primary)] transition-colors flex items-start gap-2"
           >
             {paper.title}
-            <ExternalLink size={16} className="mt-1 opacity-40 group-hover:opacity-100 transition-opacity" />
+            <ExternalLink
+              size={16}
+              className="mt-1 opacity-40 group-hover:opacity-100 transition-opacity"
+            />
           </a>
         ) : (
           paper.title
@@ -90,13 +123,13 @@ export default function PaperCard({ paper, actions }: PaperCardProps) {
           <div
             className={clsx(
               "text-sm leading-relaxed text-slate-600 transition-all duration-300 relative",
-              !isExpanded && "line-clamp-3 max-h-[4.5em] overflow-hidden"
+              !isExpanded && "line-clamp-3 max-h-[4.5em] overflow-hidden",
             )}
           >
-             {paper.abstract}
-             {!isExpanded && (
-               <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[var(--color-surface)] to-transparent" />
-             )}
+            {paper.abstract}
+            {!isExpanded && (
+              <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[var(--color-surface)] to-transparent" />
+            )}
           </div>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
