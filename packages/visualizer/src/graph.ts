@@ -55,36 +55,49 @@ export async function buildCitationGraph(
     for (let d = 0; d < depth; d++) {
         const nextFrontier: string[] = [];
 
-        for (const currentDoi of frontier) {
-            const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
+        const frontierResults = await Promise.all(
+            frontier.map(async (currentDoi) => {
+                const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
+                try {
+                    const tasks: Promise<void>[] = [];
 
-            try {
-                if (direction === "citing" || direction === "both") {
-                    const citing = await getCitations(currentDoi);
-                    for (const c of citing) {
-                        citations.push({
-                            source: c.citing.toLowerCase(),
-                            target: c.cited.toLowerCase(),
-                            creationDate: c.creationDate,
-                        });
+                    if (direction === "citing" || direction === "both") {
+                        tasks.push(
+                            getCitations(currentDoi).then((citing) => {
+                                for (const c of citing) {
+                                    citations.push({
+                                        source: c.citing.toLowerCase(),
+                                        target: c.cited.toLowerCase(),
+                                        creationDate: c.creationDate,
+                                    });
+                                }
+                            })
+                        );
                     }
-                }
 
-                if (direction === "cited" || direction === "both") {
-                    const refs = await getReferences(currentDoi);
-                    for (const r of refs) {
-                        citations.push({
-                            source: r.citing.toLowerCase(),
-                            target: r.cited.toLowerCase(),
-                            creationDate: r.creationDate,
-                        });
+                    if (direction === "cited" || direction === "both") {
+                        tasks.push(
+                            getReferences(currentDoi).then((refs) => {
+                                for (const r of refs) {
+                                    citations.push({
+                                        source: r.citing.toLowerCase(),
+                                        target: r.cited.toLowerCase(),
+                                        creationDate: r.creationDate,
+                                    });
+                                }
+                            })
+                        );
                     }
-                }
-            } catch (error) {
-                console.error(`Error fetching citations for ${currentDoi}:`, error);
-                continue;
-            }
 
+                    await Promise.all(tasks);
+                } catch (error) {
+                    console.error(`Error fetching citations for ${currentDoi}:`, error);
+                }
+                return citations;
+            })
+        );
+
+        for (const citations of frontierResults) {
             for (const c of citations) {
                 const edgeKey = `${c.source}->${c.target}`;
                 if (!edgeSet.has(edgeKey)) {
