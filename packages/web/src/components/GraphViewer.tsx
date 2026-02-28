@@ -129,7 +129,7 @@ export default function GraphViewer({
         padding: 50,
         componentSpacing: 100,
         nodeRepulsion: (node: cytoscape.NodeSingular) => 400000,
-      } as cytoscape.LayoutOptions,
+      } satisfies cytoscape.LayoutOptions,
       minZoom: 0.2,
       maxZoom: 3,
       wheelSensitivity: 0.2,
