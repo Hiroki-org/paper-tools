@@ -1,0 +1,10 @@
+--- packages/core/tests/semantic-scholar-client.test.ts
++++ packages/core/tests/semantic-scholar-client.test.ts
+@@ -1,6 +1,7 @@
+ import { beforeEach, describe, expect, it, vi } from "vitest";
++import * as rateLimiter from "../src/rate-limiter.js";
+
+ const mockFetch = vi.fn();
+ vi.stubGlobal("fetch", mockFetch);
+
+ const {

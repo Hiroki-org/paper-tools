@@ -1,0 +1,18 @@
+--- packages/core/tests/semantic-scholar-client.test.ts
++++ packages/core/tests/semantic-scholar-client.test.ts
+@@ -82,3 +82,14 @@
+         }
+     });
++
++    it("parseResponse should throw formatted error on failed response", async () => {
++        const spy = vi.spyOn(rateLimiter, "fetchWithRetry").mockResolvedValueOnce({
++            ok: false,
++            status: 400,
++            statusText: "Bad Request",
++            text: async () => "Invalid ID",
++        } as unknown as Response);
++
++        await expect(getPaper("bad-id")).rejects.toThrow("Semantic Scholar API error: 400 Bad Request - Invalid ID");
++        spy.mockRestore();
++    });
+ });
