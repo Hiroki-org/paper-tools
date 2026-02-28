@@ -25,8 +25,22 @@ const SEMANTIC_SCHOLAR_FIELDS = [
 const detailLimiter = new RateLimiter(100, 300000);
 
 type RouteContext = {
-    params: Promise<{ paperId: string }>;
+    params: { paperId: string };
 };
+
+function getStatusCodeFromError(error: unknown): number | null {
+    if (!(error instanceof Error)) {
+        return null;
+    }
+
+    const match = error.message.match(/Semantic Scholar API error:\s*(\d{3})\b/i);
+    if (!match?.[1]) {
+        return null;
+    }
+
+    const status = Number(match[1]);
+    return Number.isInteger(status) ? status : null;
+}
 
 function toPaperDetail(input: any): PaperDetail {
     const rawFields = Array.isArray(input?.fieldsOfStudy) ? input.fieldsOfStudy : null;
@@ -91,7 +105,7 @@ function toPaperDetail(input: any): PaperDetail {
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
-    const { paperId } = await context.params;
+    const { paperId } = context.params;
     if (!paperId?.trim()) {
         return NextResponse.json({ error: "paperId is required" }, { status: 400 });
     }
@@ -108,7 +122,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         return NextResponse.json(normalized);
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        if (message.includes("404")) {
+        const statusCode = getStatusCodeFromError(error);
+        if (statusCode === 404) {
             return NextResponse.json({ error: message }, { status: 404 });
         }
         return NextResponse.json({ error: message }, { status: 502 });

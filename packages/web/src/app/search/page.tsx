@@ -151,9 +151,29 @@ export default function SearchPage() {
   }, []);
 
   const getPaperId = useCallback((paper: SearchPaper): string | null => {
-    if (paper.paperId?.trim()) return paper.paperId.trim();
+    const manualId = paper.paperId?.trim();
+    if (manualId) return manualId;
     if (!paper.url) return null;
-    const match = paper.url.match(/\/paper\/([^/?#]+)/i);
+
+    try {
+      const url = new URL(paper.url);
+      const hostname = url.hostname.toLowerCase();
+      if (hostname === "semanticscholar.org" || hostname === "www.semanticscholar.org") {
+        const paperIndex = url.pathname.toLowerCase().indexOf("/paper/");
+        if (paperIndex !== -1) {
+          const afterPaper = url.pathname.substring(paperIndex + "/paper/".length);
+          const segments = afterPaper.split("/").filter(Boolean);
+          const lastSegment = segments[segments.length - 1];
+          if (lastSegment) {
+            return decodeURIComponent(lastSegment);
+          }
+        }
+      }
+    } catch {
+      // Keep regex fallback for non-absolute or malformed URLs.
+    }
+
+    const match = paper.url.match(/\/paper\/(?:[^/?#]+\/)?([^/?#]+)/i);
     return match?.[1] ? decodeURIComponent(match[1]) : null;
   }, []);
 

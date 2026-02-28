@@ -48,14 +48,39 @@ function previewToPaperDetail(preview: PaperDetailPreview): PaperDetail {
     };
 }
 
+function previewToPaperDetailPatch(preview: PaperDetailPreview): Partial<PaperDetail> {
+    const patch: Partial<PaperDetail> = {
+        paperId: preview.paperId,
+    };
+
+    if (preview.title !== undefined) patch.title = preview.title;
+    if (preview.abstract !== undefined) patch.abstract = preview.abstract;
+    if (preview.authors !== undefined) patch.authors = preview.authors;
+    if (preview.year !== undefined) patch.year = preview.year;
+    if (preview.venue !== undefined) patch.venue = preview.venue;
+    if (preview.citationCount !== undefined) patch.citationCount = preview.citationCount;
+    if (preview.influentialCitationCount !== undefined) {
+        patch.influentialCitationCount = preview.influentialCitationCount;
+    }
+    if (preview.referenceCount !== undefined) patch.referenceCount = preview.referenceCount;
+    if (preview.externalIds !== undefined) patch.externalIds = preview.externalIds;
+    if (preview.url !== undefined) patch.url = preview.url;
+    if (preview.tldr !== undefined) patch.tldr = preview.tldr;
+    if (preview.fieldsOfStudy !== undefined) patch.fieldsOfStudy = preview.fieldsOfStudy;
+    if (preview.publicationDate !== undefined) patch.publicationDate = preview.publicationDate;
+    if (preview.journal !== undefined) patch.journal = preview.journal;
+
+    return patch;
+}
+
 export function preCachePaper(preview: PaperDetailPreview): void {
     const existing = paperCache.get(preview.paperId);
-    const partial = previewToPaperDetail(preview);
     if (existing) {
-        setCache(preview.paperId, mergePaper(existing, partial));
+        const patch = previewToPaperDetailPatch(preview);
+        setCache(preview.paperId, mergePaper(existing, patch));
         return;
     }
-    setCache(preview.paperId, partial);
+    setCache(preview.paperId, previewToPaperDetail(preview));
 }
 
 export function usePaperDetail(paperId: string | null) {

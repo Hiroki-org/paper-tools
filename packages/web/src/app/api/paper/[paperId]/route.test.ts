@@ -14,7 +14,7 @@ const core = await import("@paper-tools/core");
 const { GET } = await import("./route");
 
 function ctx(paperId: string) {
-    return { params: Promise.resolve({ paperId }) } as { params: Promise<{ paperId: string }> };
+    return { params: { paperId } } as { params: { paperId: string } };
 }
 
 describe("/api/paper/[paperId] GET", () => {
