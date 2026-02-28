@@ -53,8 +53,7 @@ export default function ArchivePage() {
     fetchRecords();
   }, [fetchRecords]);
 
-  const allSelected =
-    records.length > 0 && selectedIds.size === records.length;
+  const allSelected = records.length > 0 && selectedIds.size === records.length;
 
   const selectedPapers = records
     .filter((record) => selectedIds.has(record.pageId))
@@ -242,9 +241,7 @@ export default function ArchivePage() {
 
       {selectedIds.size > 0 && (
         <div className="fixed bottom-4 left-1/2 z-40 flex w-[min(96vw,760px)] -translate-x-1/2 items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-lg">
-          <p className="text-sm">
-            {selectedIds.size}件を選択中
-          </p>
+          <p className="text-sm">{selectedIds.size}件を選択中</p>
           <div className="flex items-center gap-2">
             <button
               type="button"

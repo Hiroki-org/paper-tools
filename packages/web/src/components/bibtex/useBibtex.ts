@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type BibtexFormat = "bibtex" | "biblatex";
 export type BibtexKeyFormat = "default" | "short" | "venue";
@@ -24,6 +24,17 @@ type BibtexBulkResult = {
 
 const SETTINGS_STORAGE_KEY = "paper-tools:bibtex-settings";
 const sharedCache = new Map<string, BibtexSingleResult>();
+const MAX_CACHE_ENTRIES = 200;
+
+function setCacheWithEviction(key: string, value: BibtexSingleResult): void {
+    if (!sharedCache.has(key) && sharedCache.size >= MAX_CACHE_ENTRIES) {
+        const oldestKey = sharedCache.keys().next().value as string | undefined;
+        if (oldestKey) {
+            sharedCache.delete(oldestKey);
+        }
+    }
+    sharedCache.set(key, value);
+}
 
 function normalizeDoi(value?: string): string {
     if (!value) return "";
@@ -37,6 +48,7 @@ function cacheKey(input: { doi?: string; title?: string; format: BibtexFormat; k
 export function useBibtex() {
     const [format, setFormat] = useState<BibtexFormat>("bibtex");
     const [keyFormat, setKeyFormat] = useState<BibtexKeyFormat>("default");
+    const didLoadSettings = useRef(false);
 
     useEffect(() => {
         try {
@@ -51,10 +63,15 @@ export function useBibtex() {
             }
         } catch {
             // ignore storage parse errors
+        } finally {
+            didLoadSettings.current = true;
         }
     }, []);
 
     useEffect(() => {
+        if (!didLoadSettings.current) {
+            return;
+        }
         localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ format, keyFormat }));
     }, [format, keyFormat]);
 
@@ -92,7 +109,7 @@ export function useBibtex() {
             source: String(data.source ?? "unknown"),
             warnings: Array.isArray(data.warnings) ? data.warnings.map(String) : [],
         };
-        sharedCache.set(key, result);
+        setCacheWithEviction(key, result);
         return result;
     }, [format, keyFormat]);
 
