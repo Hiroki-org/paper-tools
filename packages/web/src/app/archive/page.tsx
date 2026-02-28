@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { BibtexButton } from "@/components/bibtex/BibtexButton";
 import { BibtexBulkCopy } from "@/components/bibtex/BibtexBulkCopy";
 import { BibtexPreviewModal } from "@/components/bibtex/BibtexPreviewModal";
+import { preCachePaper } from "@/components/paper/usePaperDetail";
 
 interface NotionRecord {
   pageId: string;
@@ -145,8 +147,7 @@ export default function ArchivePage() {
               {records.map((r, i) => (
                 <tr
                   key={r.pageId}
-                  onClick={() => setPreviewTarget(r)}
-                  className="cursor-pointer border-b border-[var(--color-border)] transition-colors hover:bg-gray-50"
+                  className="border-b border-[var(--color-border)] transition-colors hover:bg-gray-50"
                 >
                   <td
                     className="px-4 py-3"
@@ -163,7 +164,44 @@ export default function ArchivePage() {
                   </td>
                   <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                   <td className="max-w-xs truncate px-4 py-3 font-medium">
-                    {r.title}
+                    {r.semanticScholarId ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Link
+                          href={`/paper/${encodeURIComponent(r.semanticScholarId)}`}
+                          onClick={() => {
+                            preCachePaper({
+                              paperId: r.semanticScholarId!,
+                              title: r.title,
+                              externalIds: r.doi ? { DOI: r.doi } : {},
+                            });
+                          }}
+                          className="hover:text-[var(--color-primary)] hover:underline"
+                        >
+                          {r.title}
+                        </Link>
+                        <a
+                          href={`https://www.semanticscholar.org/paper/${encodeURIComponent(r.semanticScholarId)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Open in Semantic Scholar"
+                          title="Open in Semantic Scholar"
+                          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                        >
+                          ↗
+                        </a>
+                      </span>
+                    ) : r.doi ? (
+                      <a
+                        href={`https://doi.org/${r.doi}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[var(--color-primary)] hover:underline"
+                      >
+                        {r.title}
+                      </a>
+                    ) : (
+                      r.title
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {r.doi ? (
@@ -182,7 +220,7 @@ export default function ArchivePage() {
                   <td className="px-4 py-3 font-mono text-xs">
                     {r.semanticScholarId ? (
                       <a
-                        href={`https://api.semanticscholar.org/graph/v1/paper/${r.semanticScholarId}`}
+                        href={`https://www.semanticscholar.org/paper/${encodeURIComponent(r.semanticScholarId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[var(--color-primary)] hover:underline"
@@ -201,6 +239,13 @@ export default function ArchivePage() {
                       }}
                     >
                       <BibtexButton doi={r.doi} title={r.title} />
+                      <button
+                        type="button"
+                        onClick={() => setPreviewTarget(r)}
+                        className="rounded border border-[var(--color-border)] px-2 py-0.5 text-xs transition-colors hover:bg-gray-100"
+                      >
+                        Preview
+                      </button>
                       {r.doi && (
                         <a
                           href={`/graph?doi=${encodeURIComponent(r.doi)}`}
