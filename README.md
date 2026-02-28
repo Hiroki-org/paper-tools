@@ -1,144 +1,166 @@
 # paper-tools
 
-論文ツール群の TypeScript モノレポです。`pnpm workspaces` で各パッケージを管理します。
+A TypeScript monorepo for a suite of academic paper tools. It uses `pnpm workspaces` to manage multiple packages.
 
 ## Packages
 
-- `@paper-tools/core`: 共通型・APIクライアント（DBLP/Crossref/OpenCitations/Semantic Scholar）
-- `@paper-tools/scraper`: conf.researchr.org スクレイパー
-- `@paper-tools/recommender`: Semantic Scholar + Notion 連携レコメンド PoC
-- `@paper-tools/drilldown`: DBLP / Crossref をキーワード・会議で深掘り検索
-- `@paper-tools/visualizer`: OpenCitations 引用グラフ可視化 CLI（JSON / DOT / Mermaid）
+| Package | Description |
+| ------- | ----------- |
+| `@paper-tools/core` | Common types and API clients (DBLP, Crossref, OpenCitations, Semantic Scholar) |
+| `@paper-tools/scraper` | Web scraper for `conf.researchr.org` |
+| `@paper-tools/recommender` | Proof of Concept (PoC) for paper recommendations linking Semantic Scholar and Notion |
+| `@paper-tools/drilldown` | Deep-dive search using keywords and venues via DBLP and Crossref |
+| `@paper-tools/visualizer` | CLI for visualizing OpenCitations citation graphs (outputs in JSON, DOT, or Mermaid) |
+| `@paper-tools/web` | Next.js Web UI for searching, visualizing, and recommending papers |
 
 ## Setup
 
+1. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+2. Configure environment variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Update `.env` with your API keys and configuration:
+
+   ```dotenv
+   CROSSREF_MAILTO=your-email@example.com
+   NOTION_API_KEY=your_notion_api_key
+   S2_API_KEY=your_semantic_scholar_api_key
+   NOTION_DATABASE_ID=your_notion_database_id
+   ```
+
+## Build and Test
+
 ```bash
-pnpm install
-cp .env.example .env
-```
-
-`.env` には以下を設定します。
-
-```dotenv
-CROSSREF_MAILTO=your-email@example.com
-NOTION_API_KEY=
-S2_API_KEY=
-NOTION_DATABASE_ID=
-```
-
-## Build / Test
-
-```bash
+# Build all packages
 pnpm build
+
+# Run tests
 pnpm test
 ```
 
-## Web UI — 起動と使い方
+## Web UI
 
-- ローカル開発サーバー（ホットリロード）:
+### Starting the Application
+
+- **Local Development Server (Hot Reload):**
+
+  ```bash
+  pnpm --filter @paper-tools/web dev
+  ```
+
+  Open `http://localhost:3000` in your browser.
+
+- **Production Build (Local Verification):**
+
+  ```bash
+  pnpm --filter @paper-tools/web build
+  pnpm --filter @paper-tools/web start
+  ```
+
+### Key Pages & Features
+
+- `/search` — Paper search. From the search result cards, you can quickly execute actions such as **Save to Notion**, **View Graph**, and **Recommend**.
+- `/graph` — Citation graph visualization. Supports DOI, paper titles, and Semantic Scholar IDs as inputs. Can be automatically built via URL queries (e.g., `/graph?doi=10.1145/...`).
+- `/recommend` — Displays paper recommendations based on a specified paper or your saved papers.
+- `/archive` — List of papers saved to Notion (requires Notion authentication and database setup).
+
+### Notion Integration
+
+- Ensure `NOTION_API_KEY` and `NOTION_DATABASE_ID` are set in your `.env` file (see the Setup section).
+- The "Save" button will function only if the Notion configuration is valid.
+
+### Troubleshooting
+
+- **Cannot save to Notion:** Check the Notion credentials in your `.env` file.
+- **Dependency errors:** Run `pnpm install` again to ensure all packages are linked.
+- **Build failures:** Run `pnpm --filter @paper-tools/web build` and inspect the logs for detailed error messages.
+
+## CLI Tools Usage
+
+### Recommender CLI
 
 ```bash
-pnpm --filter @paper-tools/web dev
-# ブラウザで http://localhost:3000 を開く
-```
-
-- 本番ビルド（ローカル確認）:
-
-```bash
-pnpm --filter @paper-tools/web build
-pnpm --filter @paper-tools/web start
-```
-
-- 主要ページと用途:
-  - `/search` — 論文検索。検索結果カードから `Save to Notion` / `View Graph` / `Recommend` をすばやく実行できます。
-  - `/graph` — 引用グラフ（入力は DOI / 論文タイトル / Semantic Scholar ID をサポート）。URL クエリで自動ビルド可能（例: `/graph?doi=10.1145/...`）。
-  - `/recommend` — 指定論文または保存済み論文をもとにおすすめを表示。
-  - `/archive` — Notion に保存した論文一覧（Notion の認証とデータベースが必要）。
-
-- Notion 連携について:
-  - `.env` に `NOTION_API_KEY` と `NOTION_DATABASE_ID` を設定してください（README の Setup セクション参照）。
-  - 保存ボタンは Notion の設定が有効な場合に動作します。
-
-- よくある確認点 / トラブルシュート:
-  - 保存できない → `.env` の Notion 情報を確認
-  - 依存でエラー → `pnpm install` を実行
-  - ビルドで失敗 → `pnpm --filter @paper-tools/web build` を実行してログを見る
-
-## Recommender CLI
-
-```bash
-# 1本の論文から類似論文取得
+# Get similar papers from a single paper
 node packages/recommender/dist/cli.js recommend "DOI:10.1145/3597503.3639187" --limit 10 --from recent
 
-# Notionへ同期（重複除外）
+# Sync recommendations to Notion (excluding duplicates)
 node packages/recommender/dist/cli.js sync "DOI:10.1145/3597503.3639187" --limit 10 --dry-run
 
-# Notion内の全論文をseedに一括推薦
+# Recommend papers using all papers in your Notion DB as seeds
 node packages/recommender/dist/cli.js sync-all --limit 20 --dry-run
 ```
 
-## Drilldown CLI
+### Drilldown CLI
 
 ```bash
-# キーワードで DBLP 検索
+# Search DBLP by keyword
 node packages/drilldown/dist/cli.js search "software testing" --limit 20
 
-# 会議名で検索（年指定可）
+# Search by venue (with optional year)
 node packages/drilldown/dist/cli.js venue ICSE --year 2024 --limit 50
 
-# Crossref で検索
+# Search Crossref
 node packages/drilldown/dist/cli.js crossref "mutation testing" --limit 10
 
-# シード検索 → キーワード抽出 → 深掘り（BFS）
+# Drill-down (BFS): Seed search -> Keyword extraction -> Deep dive
 node packages/drilldown/dist/cli.js drilldown "fault localization" \
   --seed-limit 10 --depth 2 --max-per-level 15 --enrich
 
-# 論文タイトルから頻出キーワードを抽出
+# Extract frequent keywords from paper titles
 node packages/drilldown/dist/cli.js keywords "program repair" --top 10
 ```
 
-- `--enrich` を付けると Crossref で DOI / 被引用数などを補完します
-- `-o <file>` で結果を JSON ファイルに保存できます
+- Adding the `--enrich` flag complements the results with DOI, citation counts, etc., via Crossref.
+- Use `-o <file>` to save the results to a JSON file.
 
-## Visualizer CLI
+### Visualizer CLI
 
 ```bash
-# 1つの DOI から引用グラフを構築（JSON 出力）
+# Build a citation graph from a single DOI (JSON output)
 node packages/visualizer/dist/cli.js graph "10.1145/3597503.3639187"
 
-# Graphviz DOT 形式で出力
+# Output in Graphviz DOT format
 node packages/visualizer/dist/cli.js graph "10.1145/3597503.3639187" \
   --depth 2 --direction both --format dot -o graph.dot
 
-# Mermaid 形式で出力
+# Output in Mermaid format
 node packages/visualizer/dist/cli.js graph "10.1145/3597503.3639187" \
   --format mermaid
 
-# 複数 DOI のグラフをマージして出力
+# Merge graphs for multiple DOIs and output
 node packages/visualizer/dist/cli.js multi \
   "10.1145/3597503.3639187" "10.1145/3611643.3616265" \
   --depth 1 --format mermaid -o merged.md
 ```
 
-- `--direction`: `citing`（被引用）/ `cited`（参考文献）/ `both`（両方、デフォルト）
-- `--format`: `json`（デフォルト）/ `dot`（Graphviz）/ `mermaid`
-- `--depth`: BFS の探索深度（デフォルト 1）
+#### Options:
+- `--direction`: `citing` (papers citing this), `cited` (references), or `both` (default).
+- `--format`: `json` (default), `dot` (Graphviz), or `mermaid`.
+- `--depth`: BFS exploration depth (default: `1`).
 
-### Notion DB expected properties
+## Notion Database Schema Requirements
 
-必須:
+> **Note:** The Web UI currently has limitations compared to the CLI tools. When saving papers from the Web UI, only English property names are recognized, and only `title`, `DOI`, and `Semantic Scholar ID` are populated. The CLI tools, however, correctly handle all optional properties (including Japanese names).
 
-- タイトル (title)
-- DOI (rich_text)
+**Required Properties:**
+- `title` (Title)
+- `DOI` (Rich text)
 
-任意:
-
-- 著者 (rich_text)
-- 年 (number)
-- 会議/ジャーナル (rich_text)
-- 被引用数 (number)
-- 分野 (multi_select)
-- ソース (select)
-- Open Access PDF (url)
-- Semantic Scholar ID (rich_text)
-- 要約 (rich_text)
+**Optional Properties:**
+- `著者` / `Authors` (Rich text)
+- `年` / `Year` (Number)
+- `会議/ジャーナル` / `Venue` (Rich text)
+- `被引用数` / `Citation Count` (Number)
+- `分野` / `Fields` (Multi-select)
+- `ソース` / `Source` (Select)
+- `Open Access PDF` (URL)
+- `Semantic Scholar ID` (Rich text)
+- `要約` / `Summary` (Rich text)
