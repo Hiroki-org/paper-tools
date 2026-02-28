@@ -5,8 +5,7 @@ import { Command } from "commander";
 import { readFile, writeFile } from "node:fs/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { fetchBibtex } from "./bibtex-fetcher.js";
-import { formatBibtex, parseBibtexEntry, splitBibtexEntries } from "./bibtex-formatter.js";
-import { generateBibtexKey } from "./bibtex-key.js";
+import { deriveBibtexKey, formatBibtex, getValidationWarnings, parseBibtexEntry, splitBibtexEntries } from "./bibtex-formatter.js";
 import type { BibtexFormat, BibtexKeyFormat, ValidateIssue } from "./types.js";
 import { queryPapers } from "@paper-tools/recommender";
 
@@ -40,26 +39,7 @@ function parseFormat(value: string | undefined): BibtexFormat {
 }
 
 function deriveCustomKey(rawBibtex: string, keyFormat: BibtexKeyFormat): string | undefined {
-    if (keyFormat === "default") return undefined;
-    try {
-        const parsed = parseBibtexEntry(rawBibtex);
-        const year = Number.parseInt((parsed.fields.year ?? "").match(/\d{4}/)?.[0] ?? "0", 10);
-        const authors = (parsed.fields.author ?? "")
-            .split(/\s+and\s+/i)
-            .map((a) => a.trim())
-            .filter(Boolean);
-        return generateBibtexKey(
-            {
-                authors,
-                year: Number.isFinite(year) ? year : 0,
-                title: parsed.fields.title ?? "",
-                venue: parsed.fields.booktitle ?? parsed.fields.journal,
-            },
-            keyFormat,
-        );
-    } catch {
-        return undefined;
-    }
+    return deriveBibtexKey(rawBibtex, keyFormat);
 }
 
 async function readStdinText(): Promise<string> {
@@ -81,8 +61,7 @@ function buildValidateReport(entries: string[]): { issues: ValidateIssue[]; tota
             const key = parsed.key;
             const doi = (parsed.fields.doi ?? "").trim().toLowerCase();
 
-            const formatResult = formatBibtex(raw);
-            for (const warning of formatResult.warnings) {
+            for (const warning of getValidationWarnings(parsed)) {
                 issues.push({ level: "warning", message: warning, key });
             }
 

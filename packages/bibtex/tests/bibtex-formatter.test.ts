@@ -31,5 +31,15 @@ describe("bibtex-formatter", () => {
         const entries = splitBibtexEntries(`@article{a,title={A}}\n\n@article{b,title={B}}`);
         expect(entries).toHaveLength(2);
     });
+
+    it("parses nested braces in field values", () => {
+        const parsed = parseBibtexEntry(`@article{k,
+  title={An article with {nested {curly braces}} in title},
+  author={Alice Smith},
+  year={2024},
+  journal={J}
+}`);
+        expect(parsed.fields.title).toBe("An article with {nested {curly braces}} in title");
+    });
 }
 );
