@@ -27,12 +27,13 @@ interface ProfileCacheItem {
 }
 
 type ProfileCache = Record<string, ProfileCacheItem>;
+const inFlightProfiles = new Map<string, Promise<AuthorProfile>>();
 
 const CACHE_DIR = join(homedir(), ".paper-tools", "author-profiler");
 const PROFILE_CACHE_FILE = join(CACHE_DIR, "profile-cache.json");
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-function toCorePaper(paper: S2Paper): Paper {
+export function toCorePaper(paper: S2Paper): Paper {
     return {
         title: paper.title,
         authors: (paper.authors ?? []).map((a) => ({ name: a.name })),
@@ -54,7 +55,7 @@ function toAffiliations(values?: string[]): Affiliation[] {
         .map((name) => ({ name }));
 }
 
-function mergeAffiliations(base: Affiliation[], other: Affiliation[]): Affiliation[] {
+export function mergeAffiliations(base: Affiliation[], other: Affiliation[]): Affiliation[] {
     const keys = new Set<string>();
     const merged: Affiliation[] = [];
 
@@ -70,7 +71,7 @@ function mergeAffiliations(base: Affiliation[], other: Affiliation[]): Affiliati
     return merged;
 }
 
-function buildTopicTimelineFromPapers(papers: S2Paper[]): TopicTimelineEntry[] {
+export function buildTopicTimelineFromPapers(papers: S2Paper[]): TopicTimelineEntry[] {
     const yearly = new Map<number, Map<string, number>>();
 
     for (const paper of papers) {
@@ -119,6 +120,31 @@ export async function buildAuthorProfile(
     authorId: string,
     options: BuildAuthorProfileOptions = {},
 ): Promise<AuthorProfile> {
+    if (!options.forceRefresh) {
+        const inFlight = inFlightProfiles.get(authorId);
+        if (inFlight) {
+            return await inFlight;
+        }
+    }
+
+    const task = buildAuthorProfileInternal(authorId, options);
+    if (!options.forceRefresh) {
+        inFlightProfiles.set(authorId, task);
+    }
+
+    try {
+        return await task;
+    } finally {
+        if (!options.forceRefresh) {
+            inFlightProfiles.delete(authorId);
+        }
+    }
+}
+
+async function buildAuthorProfileInternal(
+    authorId: string,
+    options: BuildAuthorProfileOptions,
+): Promise<AuthorProfile> {
     const paperLimit = options.paperLimit ?? 200;
     const topPaperLimit = options.topPapers ?? 10;
     const cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
@@ -152,7 +178,7 @@ export async function buildAuthorProfile(
     const baseAffiliations = toAffiliations(detail.affiliations);
 
     let openAlexAffiliations: Affiliation[] = [];
-    let topicTimeline = buildTopicTimelineFromPapers(papers);
+    const topicTimeline = buildTopicTimelineFromPapers(papers);
 
     try {
         const openAlexId = await resolveOpenAlexAuthorId({
@@ -169,19 +195,8 @@ export async function buildAuthorProfile(
                     : [{ name: a.institution.display_name }]))
                 .filter((v) => !!v.name);
 
-            if ((openAlex.counts_by_year?.length ?? 0) > 0 && (openAlex.x_concepts?.length ?? 0) > 0) {
-                const topConcepts = (openAlex.x_concepts ?? [])
-                    .slice(0, 5)
-                    .map((c) => ({ name: c.display_name, score: c.score }));
-                topicTimeline = (openAlex.counts_by_year ?? [])
-                    .filter((v) => v.year > 0)
-                    .sort((a, b) => a.year - b.year)
-                    .slice(-10)
-                    .map((v) => ({
-                        year: v.year,
-                        topics: topConcepts,
-                    }));
-            }
+            // Keep timeline derived from paper-level fields to avoid misleading
+            // per-year duplication from OpenAlex lifetime aggregate concepts.
         }
     } catch {
         // OpenAlex enrichment is best-effort.

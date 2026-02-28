@@ -40,4 +40,24 @@ describe("/api/authors/[authorId] GET", () => {
         const res = await GET(req, { params: { authorId: "" } });
         expect(res.status).toBe(400);
     });
+
+    it("returns 404 only for Semantic Scholar 404 error format", async () => {
+        vi.mocked(profiler.buildAuthorProfile).mockRejectedValueOnce(
+            new Error("Semantic Scholar API error: 404 Not Found - missing"),
+        );
+
+        const req = new NextRequest("http://localhost/api/authors/unknown");
+        const res = await GET(req, { params: { authorId: "unknown" } });
+        expect(res.status).toBe(404);
+    });
+
+    it("returns 502 when message incidentally includes 404", async () => {
+        vi.mocked(profiler.buildAuthorProfile).mockRejectedValueOnce(
+            new Error("Topic score 0.404 failed validation"),
+        );
+
+        const req = new NextRequest("http://localhost/api/authors/unknown");
+        const res = await GET(req, { params: { authorId: "unknown" } });
+        expect(res.status).toBe(502);
+    });
 });

@@ -1,7 +1,16 @@
 import { fetchWithRetry } from "./rate-limiter.js";
 
 const OPENALEX_API_BASE = "https://api.openalex.org";
-const OPENALEX_USER_AGENT = "paper-tools-author-profiler (mailto:muika0923@gmail.com)";
+
+function getOpenAlexMailto(): string {
+    const configured = process.env["OPENALEX_MAILTO"]?.trim();
+    return configured && configured.length > 0
+        ? configured
+        : "muika0923@gmail.com";
+}
+
+const OPENALEX_MAILTO = getOpenAlexMailto();
+const OPENALEX_USER_AGENT = `paper-tools-author-profiler (mailto:${OPENALEX_MAILTO})`;
 
 export interface OpenAlexConcept {
     id: string;
@@ -57,18 +66,19 @@ function buildHeaders(): Record<string, string> {
 
 function normalizeAuthorId(authorId: string): string {
     const trimmed = authorId.trim();
-    if (trimmed.startsWith("https://openalex.org/")) {
-        return trimmed;
+    const fullUrlMatch = trimmed.match(/^https?:\/\/openalex\.org\/(A\d+)\/?$/i);
+    if (fullUrlMatch?.[1]) {
+        return fullUrlMatch[1].toUpperCase();
     }
     if (/^A\d+$/i.test(trimmed)) {
-        return `https://openalex.org/${trimmed.toUpperCase()}`;
+        return trimmed.toUpperCase();
     }
     return trimmed;
 }
 
 export async function getOpenAlexAuthor(authorId: string): Promise<OpenAlexAuthor> {
     const normalized = normalizeAuthorId(authorId);
-    const url = `${OPENALEX_API_BASE}/authors/${encodeURIComponent(normalized)}?mailto=muika0923@gmail.com`;
+    const url = `${OPENALEX_API_BASE}/authors/${encodeURIComponent(normalized)}?mailto=${encodeURIComponent(OPENALEX_MAILTO)}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
 
     if (!response.ok) {
@@ -123,7 +133,7 @@ export async function resolveOpenAlexAuthorId(options: {
     const params = new URLSearchParams({
         search: q,
         per_page: "10",
-        mailto: "muika0923@gmail.com",
+        mailto: OPENALEX_MAILTO,
     });
 
     const url = `${OPENALEX_API_BASE}/authors?${params}`;

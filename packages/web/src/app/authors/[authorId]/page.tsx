@@ -10,7 +10,6 @@ import TopicTimelineChart from "@/components/author/TopicTimelineChart";
 
 export default function AuthorDetailPage() {
   const params = useParams<{ authorId: string }>();
-  const [authorId, setAuthorId] = useState<string>("");
   const [profile, setProfile] = useState<AuthorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,10 +19,12 @@ export default function AuthorDetailPage() {
     const run = async () => {
       const resolvedAuthorId = params.authorId;
       if (!resolvedAuthorId) {
-        throw new Error("authorId is required");
+        if (!cancelled) {
+          setError("authorId is required");
+          setLoading(false);
+        }
+        return;
       }
-      if (cancelled) return;
-      setAuthorId(resolvedAuthorId);
 
       try {
         setLoading(true);
@@ -101,7 +102,7 @@ export default function AuthorDetailPage() {
             </a>
           )}
           <a
-            href={`https://www.semanticscholar.org/author/${encodeURIComponent(authorId)}`}
+            href={`https://www.semanticscholar.org/author/${encodeURIComponent(profile.id)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded border border-[var(--color-border)] px-3 py-1.5 text-sm hover:bg-slate-50"

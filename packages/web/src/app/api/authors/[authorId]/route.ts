@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         return NextResponse.json(profile);
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        const status = /404/.test(message) ? 404 : 502;
+        const status = /Semantic Scholar API error:\s*404\b/.test(message) ? 404 : 502;
         return NextResponse.json({ error: message }, { status });
     }
 }

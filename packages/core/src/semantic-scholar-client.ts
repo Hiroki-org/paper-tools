@@ -70,11 +70,6 @@ export interface S2SearchResponse {
     data: S2Paper[];
 }
 
-export interface S2AuthorAffiliation {
-    name: string;
-    year?: number;
-}
-
 export interface S2AuthorSummary {
     authorId?: string;
     name: string;
