@@ -12,7 +12,7 @@ import {
     type S2Paper,
     type TopicTimelineEntry,
 } from "@paper-tools/core";
-import { buildCoauthorNetwork } from "./coauthor-network.js";
+import { aggregateCoauthorsFromPapers } from "./coauthor-network.js";
 
 export interface BuildAuthorProfileOptions {
     paperLimit?: number;
@@ -170,10 +170,7 @@ async function buildAuthorProfileInternal(
         .slice(0, topPaperLimit)
         .map(toCorePaper);
 
-    const coauthors = await buildCoauthorNetwork(authorId, {
-        limit: paperLimit,
-        sort: "citationCount:desc",
-    });
+    const coauthors = aggregateCoauthorsFromPapers(authorId, papers);
 
     const baseAffiliations = toAffiliations(detail.affiliations);
 
