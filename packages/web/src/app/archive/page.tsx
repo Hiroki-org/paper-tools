@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { BibtexButton } from "@/components/bibtex/BibtexButton";
+import { BibtexBulkCopy } from "@/components/bibtex/BibtexBulkCopy";
+import { BibtexPreviewModal } from "@/components/bibtex/BibtexPreviewModal";
 
 interface NotionRecord {
   pageId: string;
@@ -22,6 +25,8 @@ export default function ArchivePage() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [previewTarget, setPreviewTarget] = useState<NotionRecord | null>(null);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -36,6 +41,7 @@ export default function ArchivePage() {
       if (!res.ok) throw new Error(data.error ?? "Failed to load archive");
       setRecords(data.records ?? []);
       setDatabaseMeta((data.database as NotionDatabaseMeta) ?? null);
+      setSelectedIds(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -46,6 +52,32 @@ export default function ArchivePage() {
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
+
+  const allSelected = records.length > 0 && selectedIds.size === records.length;
+
+  const selectedPapers = records
+    .filter((record) => selectedIds.has(record.pageId))
+    .map((record) => ({ doi: record.doi, title: record.title }));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(records.map((record) => record.pageId)));
+  };
+
+  const toggleRow = (pageId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(pageId)) {
+        next.delete(pageId);
+      } else {
+        next.add(pageId);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -94,6 +126,14 @@ export default function ArchivePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-gray-50 text-left">
+                <th className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all papers"
+                  />
+                </th>
                 <th className="px-4 py-3 font-medium">#</th>
                 <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">DOI</th>
@@ -105,8 +145,22 @@ export default function ArchivePage() {
               {records.map((r, i) => (
                 <tr
                   key={r.pageId}
-                  className="border-b border-[var(--color-border)] transition-colors hover:bg-gray-50"
+                  onClick={() => setPreviewTarget(r)}
+                  className="cursor-pointer border-b border-[var(--color-border)] transition-colors hover:bg-gray-50"
                 >
+                  <td
+                    className="px-4 py-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(r.pageId)}
+                      onChange={() => toggleRow(r.pageId)}
+                      aria-label={`Select ${r.title}`}
+                    />
+                  </td>
                   <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                   <td className="max-w-xs truncate px-4 py-3 font-medium">
                     {r.title}
@@ -140,7 +194,13 @@ export default function ArchivePage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div
+                      className="flex flex-wrap gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      <BibtexButton doi={r.doi} title={r.title} />
                       {r.doi && (
                         <a
                           href={`/graph?doi=${encodeURIComponent(r.doi)}`}
@@ -169,6 +229,31 @@ export default function ArchivePage() {
       <p className="text-xs text-gray-400">
         Showing {records.length} records from Notion database
       </p>
+
+      {previewTarget && (
+        <BibtexPreviewModal
+          doi={previewTarget.doi}
+          title={previewTarget.title}
+          isOpen={Boolean(previewTarget)}
+          onClose={() => setPreviewTarget(null)}
+        />
+      )}
+
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 z-40 flex w-[min(96vw,760px)] -translate-x-1/2 items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-lg">
+          <p className="text-sm">{selectedIds.size}件を選択中</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="rounded border border-[var(--color-border)] px-3 py-2 text-xs hover:bg-gray-100"
+            >
+              選択解除
+            </button>
+            <BibtexBulkCopy papers={selectedPapers} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
