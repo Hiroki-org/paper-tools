@@ -5,7 +5,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 // Import after mocking
-const { searchByKeyword, searchByVenue, enrichWithCrossref, enrichAllWithCrossref } = await import("../src/search.js");
+const { searchByKeyword, searchByVenue, enrichWithCrossref, enrichAllWithCrossref, searchCrossref } = await import("../src/search.js");
 
 describe("search", () => {
     beforeEach(() => {
@@ -92,5 +92,34 @@ describe("search", () => {
         const result = await enrichWithCrossref(paper);
         expect(result).toEqual(paper);
         expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("searchCrossref should call Crossref API and return papers", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                message: {
+                    items: [
+                        {
+                            title: ["Machine Learning Basics"],
+                            author: [{ given: "John", family: "Doe" }],
+                            DOI: "10.5678/ml",
+                            "container-title": ["Journal of ML"],
+                        },
+                    ],
+                },
+            }),
+        });
+
+        const papers = await searchCrossref("machine learning", 15);
+        expect(papers).toHaveLength(1);
+        expect(papers[0].title).toBe("Machine Learning Basics");
+        expect(papers[0].doi).toBe("10.5678/ml");
+        expect(papers[0].venue).toBe("Journal of ML");
+
+        const calledUrl = mockFetch.mock.calls[0][0] as string;
+        expect(calledUrl).toContain("query=machine+learning");
+        expect(calledUrl).toContain("rows=15");
     });
 });
