@@ -176,16 +176,16 @@ export default function SearchPage() {
     if (paper.url) {
       const match = paper.url.match(/\/paper\/(?:[^/?#]+\/)?([^/?#]+)/i);
       if (match?.[1]) {
-        return decodeURIComponent(match[1]);
+        try {
+          return decodeURIComponent(match[1]);
+        } catch {
+          return match[1];
+        }
       }
     }
 
     if (paper.doi) {
       return paper.doi;
-    }
-
-    if (paper.title) {
-      return paper.title;
     }
 
     return null;
