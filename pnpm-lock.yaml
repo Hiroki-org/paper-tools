@@ -162,6 +162,9 @@ importers:
       '@notionhq/client':
         specifier: ^5.9.0
         version: 5.9.0
+      '@paper-tools/bibtex':
+        specifier: workspace:*
+        version: link:../bibtex
       '@paper-tools/core':
         specifier: workspace:*
         version: link:../core
