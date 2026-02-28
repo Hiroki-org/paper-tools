@@ -16,16 +16,19 @@ A TypeScript monorepo for a suite of academic paper tools. It uses `pnpm workspa
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 2. Configure environment variables:
+
    ```bash
    cp .env.example .env
    ```
 
    Update `.env` with your API keys and configuration:
+
    ```dotenv
    CROSSREF_MAILTO=your-email@example.com
    NOTION_API_KEY=your_notion_api_key
@@ -48,12 +51,15 @@ pnpm test
 ### Starting the Application
 
 - **Local Development Server (Hot Reload):**
+
   ```bash
   pnpm --filter @paper-tools/web dev
   ```
+
   Open `http://localhost:3000` in your browser.
 
 - **Production Build (Local Verification):**
+
   ```bash
   pnpm --filter @paper-tools/web build
   pnpm --filter @paper-tools/web start
@@ -141,6 +147,8 @@ node packages/visualizer/dist/cli.js multi \
 - `--depth`: BFS exploration depth (default: `1`).
 
 ## Notion Database Schema Requirements
+
+> **Note:** The Web UI currently has limitations compared to the CLI tools. When saving papers from the Web UI, only English property names are recognized, and only `title`, `DOI`, and `Semantic Scholar ID` are populated. The CLI tools, however, correctly handle all optional properties (including Japanese names).
 
 **Required Properties:**
 - `title` (Title)
