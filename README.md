@@ -4,14 +4,15 @@ A TypeScript monorepo for a suite of academic paper tools. It uses `pnpm workspa
 
 ## Packages
 
-| Package | Description |
-| ------- | ----------- |
-| `@paper-tools/core` | Common types and API clients (DBLP, Crossref, OpenCitations, Semantic Scholar) |
-| `@paper-tools/scraper` | Web scraper for `conf.researchr.org` |
-| `@paper-tools/recommender` | Proof of Concept (PoC) for paper recommendations linking Semantic Scholar and Notion |
-| `@paper-tools/drilldown` | Deep-dive search using keywords and venues via DBLP and Crossref |
-| `@paper-tools/visualizer` | CLI for visualizing OpenCitations citation graphs (outputs in JSON, DOT, or Mermaid) |
-| `@paper-tools/web` | Next.js Web UI for searching, visualizing, and recommending papers |
+| Package                    | Description                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `@paper-tools/core`        | Common types and API clients (DBLP, Crossref, OpenCitations, Semantic Scholar)                             |
+| `@paper-tools/scraper`     | Web scraper for `conf.researchr.org`                                                                       |
+| `@paper-tools/recommender` | Proof of Concept (PoC) for paper recommendations linking Semantic Scholar and Notion                       |
+| `@paper-tools/drilldown`   | Deep-dive search using keywords and venues via DBLP and Crossref                                           |
+| `@paper-tools/visualizer`  | CLI for visualizing OpenCitations citation graphs (outputs in JSON, DOT, or Mermaid)                       |
+| `@paper-tools/bibtex`      | CLI for generating, formatting, exporting, and validating BibTeX entries from DOI/title and Notion records |
+| `@paper-tools/web`         | Next.js Web UI for searching, visualizing, and recommending papers                                         |
 
 ## Setup
 
@@ -121,6 +122,25 @@ node packages/drilldown/dist/cli.js keywords "program repair" --top 10
 - Adding the `--enrich` flag complements the results with DOI, citation counts, etc., via Crossref.
 - Use `-o <file>` to save the results to a JSON file.
 
+### BibTeX CLI
+
+```bash
+# Fetch BibTeX from DOI or title
+node packages/bibtex/dist/index.js get "10.1145/3597503.3639187"
+node packages/bibtex/dist/index.js get "coverage guided fuzzing" --key-format short
+
+# Export BibTeX for papers in Notion DB
+node packages/bibtex/dist/index.js export --format bibtex --output papers.bib
+
+# Validate BibTeX file (or use '-' for stdin)
+node packages/bibtex/dist/index.js validate papers.bib
+cat papers.bib | node packages/bibtex/dist/index.js validate -
+```
+
+- `get` は取得優先順位として Crossref (DOI) → DBLP (title) → Semantic Scholar (title→DOI→Crossref) を使用します。
+- `export` は `NOTION_DATABASE_ID` で指定した Notion DB を読み取り、DOI 優先で BibTeX を生成します。
+- `validate` は必須フィールド不足、重複キー、重複 DOI を検出します。
+
 ### Visualizer CLI
 
 ```bash
@@ -142,6 +162,7 @@ node packages/visualizer/dist/cli.js multi \
 ```
 
 #### Options:
+
 - `--direction`: `citing` (papers citing this), `cited` (references), or `both` (default).
 - `--format`: `json` (default), `dot` (Graphviz), or `mermaid`.
 - `--depth`: BFS exploration depth (default: `1`).
@@ -151,10 +172,12 @@ node packages/visualizer/dist/cli.js multi \
 > **Note:** The Web UI currently has limitations compared to the CLI tools. When saving papers from the Web UI, only English property names are recognized, and only `title`, `DOI`, and `Semantic Scholar ID` are populated. The CLI tools, however, correctly handle all optional properties (including Japanese names).
 
 **Required Properties:**
+
 - `title` (Title)
 - `DOI` (Rich text)
 
 **Optional Properties:**
+
 - `著者` / `Authors` (Rich text)
 - `年` / `Year` (Number)
 - `会議/ジャーナル` / `Venue` (Rich text)
