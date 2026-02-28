@@ -55,12 +55,16 @@ export async function buildCitationGraph(
     for (let d = 0; d < depth; d++) {
         const nextFrontier: string[] = [];
 
-        for (const currentDoi of frontier) {
-            const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
+        // Fetch all citations for the current frontier in parallel
+        const results = await Promise.all(
+            frontier.map(async (currentDoi) => {
+                const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
+                try {
+                    const [citing, refs] = await Promise.all([
+                        direction === "citing" || direction === "both" ? getCitations(currentDoi) : Promise.resolve([]),
+                        direction === "cited" || direction === "both" ? getReferences(currentDoi) : Promise.resolve([])
+                    ]);
 
-            try {
-                if (direction === "citing" || direction === "both") {
-                    const citing = await getCitations(currentDoi);
                     for (const c of citing) {
                         citations.push({
                             source: c.citing.toLowerCase(),
@@ -68,10 +72,6 @@ export async function buildCitationGraph(
                             creationDate: c.creationDate,
                         });
                     }
-                }
-
-                if (direction === "cited" || direction === "both") {
-                    const refs = await getReferences(currentDoi);
                     for (const r of refs) {
                         citations.push({
                             source: r.citing.toLowerCase(),
@@ -79,11 +79,18 @@ export async function buildCitationGraph(
                             creationDate: r.creationDate,
                         });
                     }
+                    return { citations, currentDoi };
+                } catch (error) {
+                    console.error(`Error fetching citations for ${currentDoi}:`, error);
+                    return { citations: [], currentDoi, error };
                 }
-            } catch (error) {
-                console.error(`Error fetching citations for ${currentDoi}:`, error);
-                continue;
-            }
+            })
+        );
+
+        for (const result of results) {
+            const { citations, currentDoi, error } = result;
+            if (error) continue;
+
 
             for (const c of citations) {
                 const edgeKey = `${c.source}->${c.target}`;
