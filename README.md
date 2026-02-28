@@ -4,15 +4,16 @@ A TypeScript monorepo for a suite of academic paper tools. It uses `pnpm workspa
 
 ## Packages
 
-| Package                    | Description                                                                                                |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `@paper-tools/core`        | Common types and API clients (DBLP, Crossref, OpenCitations, Semantic Scholar)                             |
-| `@paper-tools/scraper`     | Web scraper for `conf.researchr.org`                                                                       |
-| `@paper-tools/recommender` | Proof of Concept (PoC) for paper recommendations linking Semantic Scholar and Notion                       |
-| `@paper-tools/drilldown`   | Deep-dive search using keywords and venues via DBLP and Crossref                                           |
-| `@paper-tools/visualizer`  | CLI for visualizing OpenCitations citation graphs (outputs in JSON, DOT, or Mermaid)                       |
-| `@paper-tools/bibtex`      | CLI for generating, formatting, exporting, and validating BibTeX entries from DOI/title and Notion records |
-| `@paper-tools/web`         | Next.js Web UI for searching, visualizing, and recommending papers                                         |
+| Package                        | Description                                                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `@paper-tools/core`            | Common types and API clients (DBLP, Crossref, OpenCitations, Semantic Scholar)                             |
+| `@paper-tools/scraper`         | Web scraper for `conf.researchr.org`                                                                       |
+| `@paper-tools/recommender`     | Proof of Concept (PoC) for paper recommendations linking Semantic Scholar and Notion                       |
+| `@paper-tools/drilldown`       | Deep-dive search using keywords and venues via DBLP and Crossref                                           |
+| `@paper-tools/visualizer`      | CLI for visualizing OpenCitations citation graphs (outputs in JSON, DOT, or Mermaid)                       |
+| `@paper-tools/bibtex`          | CLI for generating, formatting, exporting, and validating BibTeX entries from DOI/title and Notion records |
+| `@paper-tools/author-profiler` | CLI/Service for author profile analysis (h-index, coauthors, topics timeline, Notion sync)                 |
+| `@paper-tools/web`             | Next.js Web UI for searching, visualizing, and recommending papers                                         |
 
 ## Setup
 
@@ -72,6 +73,7 @@ pnpm test
 - `/graph` — Citation graph visualization. Supports DOI, paper titles, and Semantic Scholar IDs as inputs. Can be automatically built via URL queries (e.g., `/graph?doi=10.1145/...`).
 - `/recommend` — Displays paper recommendations based on a specified paper or your saved papers.
 - `/archive` — List of papers saved to Notion (requires Notion authentication and database setup).
+- `/authors` — Search authors and view profile analytics (h-index, top papers, coauthor graph, topic timeline).
 
 ### Notion Integration
 
@@ -140,6 +142,36 @@ cat papers.bib | node packages/bibtex/dist/index.js validate -
 - `get` は取得優先順位として Crossref (DOI) → DBLP (title) → Semantic Scholar (title→DOI→Crossref) を使用します。
 - `export` は `NOTION_DATABASE_ID` で指定した Notion DB を読み取り、DOI 優先で BibTeX を生成します。
 - `validate` は必須フィールド不足、重複キー、重複 DOI を検出します。
+
+### Author Profiler CLI
+
+```bash
+# Resolve author by name and show profile metrics
+node packages/author-profiler/dist/cli.js profile "Geoffrey Hinton"
+
+# Resolve by Semantic Scholar Author ID
+node packages/author-profiler/dist/cli.js profile 1741105 --id
+
+# Show top cited papers
+node packages/author-profiler/dist/cli.js papers "Yoshua Bengio" --top 10
+
+# Show coauthor counts (depth 1 only)
+node packages/author-profiler/dist/cli.js coauthors "Yann LeCun" --depth 1
+
+# Save profile to Notion author database
+node packages/author-profiler/dist/cli.js save "Geoffrey Hinton" --dry-run
+```
+
+- `save` は `NOTION_API_KEY` と `NOTION_AUTHOR_DATABASE_ID` を利用します。
+- Notion 著者 DB 推奨プロパティ:
+  - `Name` (title)
+  - `Semantic Scholar ID` (text)
+  - `H-Index` (number)
+  - `Citation Count` (number)
+  - `Paper Count` (number)
+  - `Affiliations` (text)
+  - `Homepage` (url)
+  - `Last Updated` (date)
 
 ### Visualizer CLI
 

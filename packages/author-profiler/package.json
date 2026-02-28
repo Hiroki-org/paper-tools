@@ -1,0 +1,36 @@
+{
+  "name": "@paper-tools/author-profiler",
+  "version": "0.1.0",
+  "description": "Author profiling CLI and shared services for paper-tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "paper-author": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.3.0",
+    "@paper-tools/core": "workspace:*",
+    "commander": "^13.0.0",
+    "dotenv": "^16.4.7",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.11",
+    "@types/prompts": "^2.4.9",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  }
+}
