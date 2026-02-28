@@ -55,14 +55,14 @@ export async function buildCitationGraph(
     for (let d = 0; d < depth; d++) {
         const nextFrontier: string[] = [];
 
-        // Fetch all citations for the current frontier in parallel
-        const results = await Promise.all(
+<<<<<<< HEAD
+        const frontierResults = await Promise.all(
             frontier.map(async (currentDoi) => {
                 const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
                 try {
                     const [citing, refs] = await Promise.all([
                         direction === "citing" || direction === "both" ? getCitations(currentDoi) : Promise.resolve([]),
-                        direction === "cited" || direction === "both" ? getReferences(currentDoi) : Promise.resolve([])
+                        direction === "cited" || direction === "both" ? getReferences(currentDoi) : Promise.resolve([]),
                     ]);
 
                     for (const c of citing) {
@@ -79,19 +79,14 @@ export async function buildCitationGraph(
                             creationDate: r.creationDate,
                         });
                     }
-                    return { citations, currentDoi };
                 } catch (error) {
                     console.error(`Error fetching citations for ${currentDoi}:`, error);
-                    return { citations: [], currentDoi, error };
                 }
+                return citations;
             })
         );
 
-        for (const result of results) {
-            const { citations, error } = result;
-            if (error) continue;
-
-
+        for (const citations of frontierResults) {
             for (const c of citations) {
                 const edgeKey = `${c.source}->${c.target}`;
                 if (!edgeSet.has(edgeKey)) {
