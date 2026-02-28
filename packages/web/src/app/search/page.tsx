@@ -173,8 +173,22 @@ export default function SearchPage() {
       // Keep regex fallback for non-absolute or malformed URLs.
     }
 
-    const match = paper.url.match(/\/paper\/(?:[^/?#]+\/)?([^/?#]+)/i);
-    return match?.[1] ? decodeURIComponent(match[1]) : null;
+    if (paper.url) {
+      const match = paper.url.match(/\/paper\/(?:[^/?#]+\/)?([^/?#]+)/i);
+      if (match?.[1]) {
+        return decodeURIComponent(match[1]);
+      }
+    }
+
+    if (paper.doi) {
+      return paper.doi;
+    }
+
+    if (paper.title) {
+      return paper.title;
+    }
+
+    return null;
   }, []);
 
   const preCacheFromPaper = useCallback(

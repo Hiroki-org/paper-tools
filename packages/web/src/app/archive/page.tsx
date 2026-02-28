@@ -164,21 +164,21 @@ export default function ArchivePage() {
                   </td>
                   <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                   <td className="max-w-xs truncate px-4 py-3 font-medium">
-                    {r.semanticScholarId ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Link
-                          href={`/paper/${encodeURIComponent(r.semanticScholarId)}`}
-                          onClick={() => {
-                            preCachePaper({
-                              paperId: r.semanticScholarId!,
-                              title: r.title,
-                              externalIds: r.doi ? { DOI: r.doi } : {},
-                            });
-                          }}
-                          className="hover:text-[var(--color-primary)] hover:underline"
-                        >
-                          {r.title}
-                        </Link>
+                    <span className="inline-flex items-center gap-2">
+                      <Link
+                        href={`/paper/${encodeURIComponent(r.semanticScholarId || r.doi || r.title)}`}
+                        onClick={() => {
+                          preCachePaper({
+                            paperId: r.semanticScholarId || r.doi || r.title,
+                            title: r.title,
+                            externalIds: r.doi ? { DOI: r.doi } : {},
+                          });
+                        }}
+                        className="hover:text-[var(--color-primary)] hover:underline"
+                      >
+                        {r.title}
+                      </Link>
+                      {r.semanticScholarId ? (
                         <a
                           href={`https://www.semanticscholar.org/paper/${encodeURIComponent(r.semanticScholarId)}`}
                           target="_blank"
@@ -189,19 +189,19 @@ export default function ArchivePage() {
                         >
                           ↗
                         </a>
-                      </span>
-                    ) : r.doi ? (
-                      <a
-                        href={`https://doi.org/${r.doi}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[var(--color-primary)] hover:underline"
-                      >
-                        {r.title}
-                      </a>
-                    ) : (
-                      r.title
-                    )}
+                      ) : r.doi ? (
+                        <a
+                          href={`https://doi.org/${r.doi}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Open in DOI"
+                          title="Open in DOI"
+                          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                        >
+                          ↗
+                        </a>
+                      ) : null}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     {r.doi ? (
