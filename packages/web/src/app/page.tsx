@@ -9,6 +9,13 @@ const cards = [
     icon: "🔍",
   },
   {
+    title: "Author Profiler",
+    description:
+      "著者名/IDから h-index・共著ネットワーク・代表論文・トピック推移を可視化します。",
+    href: "/authors",
+    icon: "👤",
+  },
+  {
     title: "Citation Graph",
     description:
       "DOI から引用ネットワークを構築し、Cytoscape.js で可視化します。",

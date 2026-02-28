@@ -16,7 +16,7 @@ export { RateLimiter, fetchWithRetry } from "./rate-limiter.js";
 export {
     searchPublications,
     searchVenuePublications,
-    searchAuthors,
+    searchAuthors as searchDblpAuthors,
 } from "./dblp-client.js";
 
 export { getWorkByDoi, searchWorks } from "./crossref-client.js";
@@ -29,10 +29,17 @@ export {
     getRecommendations,
     getPaper,
     searchPapers,
+    searchAuthors,
+    getAuthor,
+    getAuthorPapers,
 } from "./semantic-scholar-client.js";
 
 export type {
     S2Author,
+    S2AuthorSummary,
+    S2AuthorSearchResponse,
+    S2AuthorDetail,
+    S2AuthorPapersResponse,
     S2ExternalIds,
     S2OpenAccessPdf,
     S2Paper,
@@ -40,3 +47,22 @@ export type {
     S2RecommendationOptions,
     S2SearchResponse,
 } from "./semantic-scholar-client.js";
+
+export {
+    getOpenAlexAuthor,
+    resolveOpenAlexAuthorId,
+} from "./openalex-client.js";
+
+export type {
+    OpenAlexAuthor,
+    OpenAlexConcept,
+    OpenAlexAffiliation,
+    OpenAlexCountByYear,
+} from "./openalex-client.js";
+
+export type {
+    AuthorProfile,
+    Affiliation,
+    CoauthorInfo,
+    TopicTimelineEntry,
+} from "./author-types.js";

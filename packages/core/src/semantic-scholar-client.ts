@@ -40,6 +40,7 @@ export interface S2OpenAccessPdf {
 export interface S2Paper {
     paperId: string;
     title: string;
+    url?: string;
     abstract?: string;
     year?: number;
     authors?: S2Author[];
@@ -63,6 +64,45 @@ export interface S2RecommendationOptions {
 }
 
 export interface S2SearchResponse {
+    total: number;
+    offset: number;
+    next?: number;
+    data: S2Paper[];
+}
+
+export interface S2AuthorAffiliation {
+    name: string;
+    year?: number;
+}
+
+export interface S2AuthorSummary {
+    authorId?: string;
+    name: string;
+    affiliations?: string[];
+    paperCount?: number;
+    citationCount?: number;
+    hIndex?: number;
+    homepage?: string;
+    externalIds?: {
+        ORCID?: string;
+        [key: string]: string | undefined;
+    };
+}
+
+export interface S2AuthorSearchResponse {
+    total: number;
+    offset: number;
+    next?: number;
+    data: S2AuthorSummary[];
+}
+
+export interface S2AuthorDetail extends S2AuthorSummary {
+    aliases?: string[];
+    influentialCitationCount?: number;
+    papers?: S2Paper[];
+}
+
+export interface S2AuthorPapersResponse {
     total: number;
     offset: number;
     next?: number;
@@ -178,4 +218,71 @@ export async function searchPapers(
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/paper/search?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
     return await parseResponse<S2SearchResponse>(response);
+}
+
+export async function searchAuthors(
+    query: string,
+    options: { limit?: number } = {},
+): Promise<S2AuthorSearchResponse> {
+    await getRateLimiter().acquire();
+
+    const params = new URLSearchParams({
+        query,
+        limit: String(options.limit ?? 10),
+        fields: "authorId,name,affiliations,paperCount,citationCount,hIndex,homepage,externalIds",
+    });
+    const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/search?${params}`;
+    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    return await parseResponse<S2AuthorSearchResponse>(response);
+}
+
+export async function getAuthor(
+    authorId: string,
+    fields: string[] = [
+        "authorId",
+        "name",
+        "aliases",
+        "affiliations",
+        "homepage",
+        "paperCount",
+        "citationCount",
+        "hIndex",
+        "influentialCitationCount",
+        "externalIds",
+        "papers.paperId",
+        "papers.title",
+        "papers.year",
+        "papers.venue",
+        "papers.citationCount",
+        "papers.authors",
+        "papers.fieldsOfStudy",
+        "papers.externalIds",
+        "papers.url",
+    ],
+): Promise<S2AuthorDetail> {
+    await getRateLimiter().acquire();
+
+    const params = new URLSearchParams({ fields: fields.join(",") });
+    const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/${encodeURIComponent(authorId)}?${params}`;
+    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    return await parseResponse<S2AuthorDetail>(response);
+}
+
+export async function getAuthorPapers(
+    authorId: string,
+    options: { limit?: number; sort?: string } = {},
+): Promise<S2AuthorPapersResponse> {
+    await getRateLimiter().acquire();
+
+    const params = new URLSearchParams({
+        limit: String(options.limit ?? 100),
+        fields: "paperId,title,year,venue,citationCount,authors,fieldsOfStudy,externalIds,url",
+    });
+    if (options.sort) {
+        params.set("sort", options.sort);
+    }
+
+    const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/${encodeURIComponent(authorId)}/papers?${params}`;
+    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    return await parseResponse<S2AuthorPapersResponse>(response);
 }

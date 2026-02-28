@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   Search,
+  UserRoundSearch,
   Network,
   Lightbulb,
   Archive,
@@ -21,6 +22,7 @@ import { clsx } from "clsx";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/search", label: "Search", icon: Search },
+  { href: "/authors", label: "Author Profiler", icon: UserRoundSearch },
   { href: "/graph", label: "Graph", icon: Network },
   { href: "/recommend", label: "Recommend", icon: Lightbulb },
   { href: "/archive", label: "Archive", icon: Archive },

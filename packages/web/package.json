@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@notionhq/client": "^5.9.0",
+    "@paper-tools/author-profiler": "workspace:*",
     "@paper-tools/bibtex": "workspace:*",
     "@paper-tools/core": "workspace:*",
     "@paper-tools/drilldown": "workspace:*",

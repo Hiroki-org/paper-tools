@@ -44,7 +44,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [core, scraper, drilldown, visualizer, recommender, bibtex]
+        package:
+          [
+            core,
+            scraper,
+            drilldown,
+            visualizer,
+            recommender,
+            bibtex,
+            author-profiler,
+          ]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
