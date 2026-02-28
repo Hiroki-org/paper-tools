@@ -44,7 +44,7 @@ export default function PaperCard({
             >
               {paper.title}
             </Link>
-            {paper.url && (
+            {paper.url ? (
               <a
                 href={paper.url}
                 target="_blank"
@@ -56,11 +56,36 @@ export default function PaperCard({
               >
                 ↗
               </a>
-            )}
+            ) : paper.doi ? (
+              <a
+                href={`https://doi.org/${paper.doi}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open in DOI"
+                title="Open in DOI"
+                onClick={(e) => e.stopPropagation()}
+                className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+              >
+                ↗
+              </a>
+            ) : null}
           </span>
         ) : paper.url ? (
           <a
             href={paper.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[var(--color-primary)] transition-colors flex items-start gap-2"
+          >
+            {paper.title}
+            <ExternalLink
+              size={16}
+              className="mt-1 opacity-40 group-hover:opacity-100 transition-opacity"
+            />
+          </a>
+        ) : paper.doi ? (
+          <a
+            href={`https://doi.org/${paper.doi}`}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[var(--color-primary)] transition-colors flex items-start gap-2"

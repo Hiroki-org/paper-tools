@@ -164,13 +164,13 @@ export default function ArchivePage() {
                   </td>
                   <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                   <td className="max-w-xs truncate px-4 py-3 font-medium">
-                    {r.semanticScholarId ? (
+                    {r.semanticScholarId || r.doi ? (
                       <span className="inline-flex items-center gap-2">
                         <Link
-                          href={`/paper/${encodeURIComponent(r.semanticScholarId)}`}
+                          href={`/paper/${encodeURIComponent((r.semanticScholarId || r.doi)!)}`}
                           onClick={() => {
                             preCachePaper({
-                              paperId: r.semanticScholarId!,
+                              paperId: (r.semanticScholarId || r.doi)!,
                               title: r.title,
                               externalIds: r.doi ? { DOI: r.doi } : {},
                             });
@@ -179,28 +179,32 @@ export default function ArchivePage() {
                         >
                           {r.title}
                         </Link>
-                        <a
-                          href={`https://www.semanticscholar.org/paper/${encodeURIComponent(r.semanticScholarId)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="Open in Semantic Scholar"
-                          title="Open in Semantic Scholar"
-                          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
-                        >
-                          ↗
-                        </a>
+                        {r.semanticScholarId ? (
+                          <a
+                            href={`https://www.semanticscholar.org/paper/${encodeURIComponent(r.semanticScholarId)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Open in Semantic Scholar"
+                            title="Open in Semantic Scholar"
+                            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                          >
+                            ↗
+                          </a>
+                        ) : r.doi ? (
+                          <a
+                            href={`https://doi.org/${r.doi}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Open in DOI"
+                            title="Open in DOI"
+                            className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+                          >
+                            ↗
+                          </a>
+                        ) : null}
                       </span>
-                    ) : r.doi ? (
-                      <a
-                        href={`https://doi.org/${r.doi}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[var(--color-primary)] hover:underline"
-                      >
-                        {r.title}
-                      </a>
                     ) : (
-                      r.title
+                      <span className="text-[var(--color-text)]">{r.title}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
