@@ -139,9 +139,9 @@ node packages/bibtex/dist/index.js validate papers.bib
 cat papers.bib | node packages/bibtex/dist/index.js validate -
 ```
 
-- `get` は取得優先順位として Crossref (DOI) → DBLP (title) → Semantic Scholar (title→DOI→Crossref) を使用します。
-- `export` は `NOTION_DATABASE_ID` で指定した Notion DB を読み取り、DOI 優先で BibTeX を生成します。
-- `validate` は必須フィールド不足、重複キー、重複 DOI を検出します。
+- `get` uses the priority order: Crossref (DOI) → DBLP (title) → Semantic Scholar (title→DOI→Crossref).
+- `export` reads the Notion DB specified by `NOTION_DATABASE_ID` and generates BibTeX entries, prioritizing DOIs.
+- `validate` detects missing required fields, duplicate keys, and duplicate DOIs.
 
 ### Author Profiler CLI
 
@@ -162,8 +162,8 @@ node packages/author-profiler/dist/cli.js coauthors "Yann LeCun" --depth 1
 node packages/author-profiler/dist/cli.js save "Geoffrey Hinton" --dry-run
 ```
 
-- `save` は `NOTION_API_KEY` と `NOTION_AUTHOR_DATABASE_ID` を利用します。
-- Notion 著者 DB 推奨プロパティ:
+- `save` utilizes `NOTION_API_KEY` and `NOTION_AUTHOR_DATABASE_ID`.
+- Recommended properties for the Notion Author DB:
   - `Name` (title)
   - `Semantic Scholar ID` (text)
   - `H-Index` (number)
@@ -210,12 +210,12 @@ node packages/visualizer/dist/cli.js multi \
 
 **Optional Properties:**
 
-- `著者` / `Authors` (Rich text)
-- `年` / `Year` (Number)
-- `会議/ジャーナル` / `Venue` (Rich text)
-- `被引用数` / `Citation Count` (Number)
-- `分野` / `Fields` (Multi-select)
-- `ソース` / `Source` (Select)
+- `Authors` (Rich text)
+- `Year` (Number)
+- `Venue` (Rich text)
+- `Citation Count` (Number)
+- `Fields` (Multi-select)
+- `Source` (Select)
 - `Open Access PDF` (URL)
 - `Semantic Scholar ID` (Rich text)
-- `要約` / `Summary` (Rich text)
+- `Summary` (Rich text)
