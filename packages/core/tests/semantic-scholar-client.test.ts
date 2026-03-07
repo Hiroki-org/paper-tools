@@ -71,6 +71,16 @@ describe("Semantic Scholar Client", () => {
         expect(paper.externalIds?.DOI).toBe("10.1000/abc");
     });
 
+    it("getPaper should throw formatted error on API failure", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+            statusText: "Not Found",
+        });
+
+        await expect(getPaper("bad-id")).rejects.toThrow("HTTP 404: Not Found for");
+    });
+
     it("should attach x-api-key header when S2_API_KEY is set", async () => {
         const previous = process.env["S2_API_KEY"];
         process.env["S2_API_KEY"] = "dummy-key";
