@@ -14,15 +14,21 @@ function getPlainText(items: Array<{ plain_text?: string }> | undefined) {
 }
 
 function findTitleProperty(properties: Record<string, NotionProperty>) {
-    const entry = Object.entries(properties).find(([, prop]) => prop.type === "title");
-    return entry?.[0] ?? "Name";
+    for (const name in properties) {
+        if (properties[name].type === "title") return name;
+    }
+    return "Name";
 }
 
 function findPropertyByKeyword(properties: Record<string, NotionProperty>, keyword: string) {
     const lower = keyword.toLowerCase();
-    const entry = Object.entries(properties).find(([name]) => name.toLowerCase() === lower)
-        ?? Object.entries(properties).find(([name]) => name.toLowerCase().includes(lower));
-    return entry?.[0] ?? null;
+    let partialMatch: string | null = null;
+    for (const name in properties) {
+        const nameLower = name.toLowerCase();
+        if (nameLower === lower) return name;
+        if (!partialMatch && nameLower.includes(lower)) partialMatch = name;
+    }
+    return partialMatch;
 }
 
 function mapPageRecord(page: {
