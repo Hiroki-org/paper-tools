@@ -117,11 +117,9 @@ program
             if (!["json", "dot", "mermaid"].includes(opts.format)) {
                 throw new Error(`Invalid format: ${opts.format}. Must be one of: json, dot, mermaid`);
             }
-            const graphs: CitationGraph[] = [];
-            for (const doi of dois) {
-                const graph = await buildCitationGraph(doi, opts.depth, opts.direction as Direction);
-                graphs.push(graph);
-            }
+            const graphs = await Promise.all(
+                dois.map(doi => buildCitationGraph(doi, opts.depth, opts.direction as Direction))
+            );
             const merged = mergeGraphs(...graphs);
             const content = formatGraph(merged, opts.format as Format);
             outputResult(content, opts.output);
