@@ -92,15 +92,13 @@ function extractTracks($: cheerio.CheerioAPI, conferenceSlug: string): Conferenc
 
     // トラックが見つからなかった場合、セクション見出しから探す
     if (tracks.length === 0) {
+        const trackKeywordsRegex = /track|workshop|tutorial|symposium/i;
         $("h2, h3, h4").each((_i, el) => {
             const text = $(el).text().trim();
             if (
                 text &&
                 !seen.has(text) &&
-                (text.toLowerCase().includes("track") ||
-                    text.toLowerCase().includes("workshop") ||
-                    text.toLowerCase().includes("tutorial") ||
-                    text.toLowerCase().includes("symposium"))
+                trackKeywordsRegex.test(text)
             ) {
                 seen.add(text);
                 tracks.push({ name: text });
