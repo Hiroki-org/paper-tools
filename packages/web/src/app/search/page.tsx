@@ -4,16 +4,17 @@ import { useState, useCallback, useEffect } from "react";
 import type { Paper } from "@paper-tools/core";
 import type { DrilldownResult } from "@paper-tools/drilldown";
 import SearchForm from "@/components/SearchForm";
-import PaperCard from "@/components/PaperCard";
-import SaveToNotionButton from "@/components/SaveToNotionButton";
 import { preCachePaper } from "@/components/paper/usePaperDetail";
+import { useSavedPapers } from "./hooks/useSavedPapers";
+import SearchPaperList from "./components/SearchPaperList";
+
 
 type SearchPaper = Paper & {
   paperId?: string;
 };
 
 export default function SearchPage() {
-  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const { isSaved, markSaved } = useSavedPapers();
   const [papers, setPapers] = useState<Paper[]>([]);
   const [drilldownResults, setDrilldownResults] = useState<DrilldownResult[]>(
     [],
@@ -25,57 +26,6 @@ export default function SearchPage() {
   const [drilldownDepth, setDrilldownDepth] = useState(1);
   const [maxPerLevel, setMaxPerLevel] = useState(10);
   const [enrich, setEnrich] = useState(false);
-
-  const makeKeys = useCallback((doi?: string, title?: string) => {
-    const keys: string[] = [];
-    if (doi?.trim()) keys.push(`doi:${doi.trim().toLowerCase()}`);
-    if (title?.trim()) keys.push(`title:${title.trim().toLowerCase()}`);
-    return keys;
-  }, []);
-
-  const isSaved = useCallback(
-    (paper: Paper) =>
-      makeKeys(paper.doi, paper.title).some((k) => savedKeys.has(k)),
-    [makeKeys, savedKeys],
-  );
-
-  const markSaved = useCallback(
-    (paper: Paper) => {
-      const keys = makeKeys(paper.doi, paper.title);
-      if (keys.length === 0) return;
-      setSavedKeys((prev) => {
-        const next = new Set(prev);
-        keys.forEach((k) => next.add(k));
-        return next;
-      });
-    },
-    [makeKeys],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    const fetchArchive = async () => {
-      try {
-        const res = await fetch("/api/archive");
-        const data = await res.json();
-        if (!res.ok || cancelled) return;
-        const next = new Set<string>();
-        for (const record of data.records ?? []) {
-          if (record.doi)
-            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
-          if (record.title)
-            next.add(`title:${String(record.title).trim().toLowerCase()}`);
-        }
-        setSavedKeys(next);
-      } catch (err) {
-        console.warn("Failed to fetch archive:", err);
-      }
-    };
-    void fetchArchive();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleSearch = useCallback(
     async (query: string, maxResults: number) => {
@@ -325,104 +275,30 @@ export default function SearchPage() {
                         {levelDescription(dr.level)}
                       </p>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {dr.papers.map((p, i) => {
-                        const paper = p as SearchPaper;
-                        const paperId = getPaperId(paper);
-                        return (
-                          <PaperCard
-                            key={i}
-                            paper={paper}
-                            detailHref={
-                              paperId
-                                ? `/paper/${encodeURIComponent(paperId)}`
-                                : undefined
-                            }
-                            onDetailNavigate={
-                              paperId
-                                ? () => {
-                                    preCacheFromPaper(paper, paperId);
-                                  }
-                                : undefined
-                            }
-                            actions={
-                              <>
-                                <SaveToNotionButton
-                                  doi={paper.doi}
-                                  title={paper.title}
-                                  saved={isSaved(paper)}
-                                  onSaved={() => markSaved(paper)}
-                                />
-                                <a
-                                  href={getGraphHref(paper)}
-                                  className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                                >
-                                  🕸️ グラフ
-                                </a>
-                                <a
-                                  href={getRecommendHref(paper)}
-                                  className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                                >
-                                  ✨ おすすめ
-                                </a>
-                              </>
-                            }
-                          />
-                        );
-                      })}
-                    </div>
+                    <SearchPaperList
+                      papers={dr.papers}
+                      isSaved={isSaved}
+                      markSaved={markSaved}
+                      getGraphHref={getGraphHref}
+                      getRecommendHref={getRecommendHref}
+                      getPaperId={getPaperId}
+                      preCacheFromPaper={preCacheFromPaper}
+                    />
                   </div>
                 ))}
               </section>
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {papers.map((p, i) => {
-              const paper = p as SearchPaper;
-              const paperId = getPaperId(paper);
-              return (
-                <PaperCard
-                  key={i}
-                  paper={paper}
-                  detailHref={
-                    paperId
-                      ? `/paper/${encodeURIComponent(paperId)}`
-                      : undefined
-                  }
-                  onDetailNavigate={
-                    paperId
-                      ? () => {
-                          preCacheFromPaper(paper, paperId);
-                        }
-                      : undefined
-                  }
-                  actions={
-                    <>
-                      <SaveToNotionButton
-                        doi={paper.doi}
-                        title={paper.title}
-                        saved={isSaved(paper)}
-                        onSaved={() => markSaved(paper)}
-                      />
-                      <a
-                        href={getGraphHref(paper)}
-                        className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                      >
-                        🕸️ グラフを見る
-                      </a>
-                      <a
-                        href={getRecommendHref(paper)}
-                        className="rounded border border-[var(--color-border)] px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50"
-                      >
-                        ✨ おすすめ
-                      </a>
-                    </>
-                  }
-                />
-              );
-            })}
-          </div>
+          <SearchPaperList
+            papers={papers}
+            isSaved={isSaved}
+            markSaved={markSaved}
+            getGraphHref={getGraphHref}
+            getRecommendHref={getRecommendHref}
+            getPaperId={getPaperId}
+            preCacheFromPaper={preCacheFromPaper}
+          />
         </section>
       )}
     </div>
