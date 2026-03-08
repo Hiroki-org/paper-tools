@@ -113,8 +113,7 @@ program
 
             const result = await fetchBibtex(lookup);
             if (!result) {
-                console.error("BibTeX を取得できませんでした");
-                process.exit(1);
+                throw new Error("BibTeX を取得できませんでした");
             }
 
             const customKey = deriveCustomKey(result.bibtex, keyFormat);
