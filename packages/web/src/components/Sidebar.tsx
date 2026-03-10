@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Search,
@@ -28,54 +28,74 @@ const navItems = [
   { href: "/archive", label: "Archive", icon: Archive },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  hidden?: boolean;
+}
+
+export default function Sidebar({ hidden = false }: SidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  const hideSidebar =
-    pathname === "/login" ||
-    pathname === "/setup" ||
-    pathname === "/privacy" ||
-    pathname === "/terms";
+  useEffect(() => {
+    document.body.classList.toggle("sidebar-open", open);
+    return () => {
+      document.body.classList.remove("sidebar-open");
+    };
+  }, [open]);
 
-  if (hideSidebar) {
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  if (hidden) {
     return null;
   }
 
   return (
     <>
-      {/* Mobile hamburger */}
       <button
-        className="fixed top-4 left-4 z-50 rounded-md bg-[var(--color-sidebar)] p-2 text-white shadow-lg md:hidden hover:bg-[var(--color-sidebar-hover)] transition-colors"
-        onClick={() => setOpen(!open)}
+        type="button"
+        className="fixed left-4 top-4 z-50 rounded-xl border border-slate-200 bg-white/90 p-2.5 text-slate-700 shadow-lg backdrop-blur md:hidden"
+        onClick={() => setOpen((prev) => !prev)}
         aria-label="Toggle menu"
+        aria-expanded={open}
+        aria-controls="app-sidebar"
       >
-        {open ? <X size={24} /> : <Menu size={24} />}
+        {open ? <X size={22} /> : <Menu size={22} />}
       </button>
 
-      {/* Overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm md:hidden transition-opacity"
-          onClick={() => setOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
+      <div
         className={clsx(
-          "fixed top-0 left-0 z-40 flex h-full w-64 flex-col",
-          "bg-[var(--color-sidebar)] text-white shadow-xl transition-transform duration-300 ease-in-out",
-          "md:translate-x-0 border-r border-slate-700/50",
+          "fixed inset-0 z-30 bg-slate-950/35 backdrop-blur-sm transition-opacity md:hidden",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        onClick={() => setOpen(false)}
+        aria-hidden={!open}
+      />
+
+      <aside
+        id="app-sidebar"
+        className={clsx(
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/10 bg-slate-950/95 text-white shadow-2xl shadow-slate-950/20 backdrop-blur-xl transition-transform duration-300 ease-out",
+          "md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-white/10 px-6">
-          <LibraryBig className="text-[var(--color-primary)]" size={28} />
-          <span className="text-lg font-bold tracking-tight">Paper Tools</span>
+        <div className="border-b border-white/10 px-5 py-6">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-blue-500/10 p-2.5 ring-1 ring-white/10">
+              <LibraryBig className="text-blue-300" size={24} />
+            </div>
+            <div>
+              <p className="text-lg font-semibold tracking-tight text-white">
+                Paper Tools
+              </p>
+              <p className="text-xs text-slate-400">Research workspace</p>
+            </div>
+          </div>
         </div>
 
-        <nav className="mt-6 flex-1 space-y-1 px-3">
+        <nav className="flex-1 space-y-1.5 px-3 py-5">
           {navItems.map((item) => {
             const active =
               item.href === "/"
@@ -90,59 +110,69 @@ export default function Sidebar() {
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={clsx(
-                  "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                  "group flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-colors",
                   active
-                    ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-900/20"
-                    : "text-slate-400 hover:bg-[var(--color-sidebar-hover)] hover:text-white hover:pl-4",
+                    ? "bg-white/10 text-white ring-1 ring-white/10"
+                    : "text-slate-300 hover:bg-white/5 hover:text-white",
                 )}
               >
                 <Icon
-                  size={20}
+                  size={18}
                   className={clsx(
                     "transition-colors",
                     active
-                      ? "text-white"
-                      : "text-slate-500 group-hover:text-white",
+                      ? "text-blue-200"
+                      : "text-slate-400 group-hover:text-white",
                   )}
                 />
-                {item.label}
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-white/10 px-6 py-4">
-          <div className="mb-3 space-y-2">
-            <Link
-              href="/setup"
-              className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
-            >
-              <Settings size={14} />
-              DB を変更
-            </Link>
-            <a
-              href="https://www.notion.so/my-connections"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
-            >
-              <Shield size={14} />
-              アクセスを管理
-            </a>
-            <form action="/api/auth/logout" method="post">
-              <button
-                type="submit"
-                className="flex w-full items-center gap-2 rounded-md border border-white/10 px-2 py-1.5 text-xs text-slate-300 transition-colors hover:bg-[var(--color-sidebar-hover)] hover:text-white"
+        <div className="border-t border-white/10 px-4 py-4">
+          <div className="rounded-2xl bg-white/5 p-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Workspace
+            </p>
+
+            <div className="mt-3 space-y-2">
+              <Link
+                href="/setup"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-white/10"
               >
-                <LogOut size={14} />
-                ログアウト
-              </button>
-            </form>
+                <Settings size={14} />
+                DB を変更
+              </Link>
+
+              <a
+                href="https://www.notion.so/my-connections"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-white/10"
+              >
+                <Shield size={14} />
+                アクセスを管理
+              </a>
+
+              <form action="/api/auth/logout" method="post">
+                <button
+                  type="submit"
+                  className="flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-white/10"
+                >
+                  <LogOut size={14} />
+                  ログアウト
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-4 border-t border-white/10 pt-3 text-xs text-slate-400">
+              <div className="font-medium text-slate-300">paper-tools web</div>
+              <div className="mt-1">Version 0.1.0</div>
+            </div>
           </div>
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
-            Project
-          </div>
-          <div className="text-xs text-slate-400">paper-tools web v0.1.0</div>
         </div>
       </aside>
     </>

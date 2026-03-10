@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type cytoscape from "cytoscape";
-import { Network, Maximize } from "lucide-react";
+import { Maximize, Network } from "lucide-react";
 
 /** Minimal node / edge shapes matching visualizer output */
 interface GraphNode {
   doi: string;
   title?: string;
 }
+
 interface GraphEdge {
   source: string;
   target: string;
   creationDate?: string;
 }
+
 export interface CitationGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -38,33 +40,31 @@ export default function GraphViewer({
   const initGraph = useCallback(async () => {
     if (!containerRef.current) return;
 
-    // Dynamic import so cytoscape is only loaded on the client
     const cytoscape = (await import("cytoscape")).default;
 
-    // Destroy previous instance
     if (cyRef.current) {
       cyRef.current.destroy();
     }
 
     const elements: cytoscape.ElementDefinition[] = [
-      ...graph.nodes.map((n) => ({
+      ...graph.nodes.map((node) => ({
         data: {
-          id: n.doi,
-          doi: n.doi,
-          title: n.title,
-          label: n.title
-            ? Array.from(n.title).length > 20
-              ? Array.from(n.title).slice(0, 20).join("") + "…"
-              : n.title
-            : n.doi,
-          fullTitle: n.title ?? n.doi,
+          id: node.doi,
+          doi: node.doi,
+          title: node.title,
+          label: node.title
+            ? Array.from(node.title).length > 22
+              ? `${Array.from(node.title).slice(0, 22).join("")}…`
+              : node.title
+            : node.doi,
+          fullTitle: node.title ?? node.doi,
         },
       })),
-      ...graph.edges.map((e, i) => ({
+      ...graph.edges.map((edge, index) => ({
         data: {
-          id: `e${i}`,
-          source: e.source,
-          target: e.target,
+          id: `e${index}`,
+          source: edge.source,
+          target: edge.target,
         },
       })),
     ];
@@ -77,83 +77,82 @@ export default function GraphViewer({
           selector: "node",
           style: {
             label: "data(label)",
-            "background-color": "#3b82f6", // var(--color-primary)
-            color: "#64748b", // var(--color-text-muted)
+            "background-color": "#2563eb",
+            color: "#475569",
             "font-size": "11px",
-            "font-weight": "bold",
+            "font-weight": 600,
             "text-valign": "bottom",
-            "text-margin-y": 6,
+            "text-margin-y": 8,
             "text-wrap": "wrap" as unknown as "wrap",
-            "text-max-width": "120px",
-            width: 32,
-            height: 32,
+            "text-max-width": "132px",
+            width: 34,
+            height: 34,
             "border-width": 2,
             "border-color": "#ffffff",
+            "overlay-padding": 6,
           },
         },
         {
           selector: "edge",
           style: {
             width: 1.5,
-            "line-color": "#cbd5e1", // slate-300
+            "line-color": "#cbd5e1",
             "target-arrow-color": "#cbd5e1",
             "target-arrow-shape": "triangle",
             "curve-style": "bezier",
-            "arrow-scale": 0.8,
+            opacity: 0.9,
           },
         },
         {
           selector: "node:selected",
           style: {
-            "background-color": "#2563eb", // primary-hover
-            "border-width": 3,
-            "border-color": "#bfdbfe", // blue-200
-            width: 40,
-            height: 40,
+            "background-color": "#1d4ed8",
+            "border-width": 4,
+            "border-color": "#bfdbfe",
+            width: 42,
+            height: 42,
             "font-size": "12px",
-            color: "#0f172a", // text-main
-          },
-        },
-        {
-          selector: "node:active",
-          style: {
-            "overlay-opacity": 0.1,
-            "overlay-color": "#3b82f6",
+            color: "#0f172a",
           },
         },
       ],
       layout: {
         name: "cose",
         animate: true,
-        animationDuration: 800,
+        animationDuration: 700,
         padding: 50,
         componentSpacing: 100,
-        nodeRepulsion: (node: cytoscape.NodeSingular) => 400000,
+        nodeRepulsion: () => 400000,
       } satisfies cytoscape.LayoutOptions,
       minZoom: 0.2,
       maxZoom: 3,
       wheelSensitivity: 0.2,
     });
 
-    cy.on("tap", "node", (evt) => {
-      const data = evt.target.data() as { doi?: string; title?: string };
-      const doi = data.doi ?? evt.target.id();
+    cy.on("tap", "node", (event) => {
+      const data = event.target.data() as { doi?: string; title?: string };
+      const doi = data.doi ?? event.target.id();
       onNodeTap?.({ doi, title: data.title });
     });
 
-    // Add hover effect (guard containerRef)
-    cy.on("mouseover", "node", (evt) => {
-      if (containerRef.current) containerRef.current.style.cursor = "pointer";
+    cy.on("mouseover", "node", () => {
+      if (containerRef.current) {
+        containerRef.current.style.cursor = "pointer";
+      }
     });
 
-    cy.on("mouseout", "node", (evt) => {
-      if (containerRef.current) containerRef.current.style.cursor = "default";
+    cy.on("mouseout", "node", () => {
+      if (containerRef.current) {
+        containerRef.current.style.cursor = "default";
+      }
     });
 
     cyRef.current = cy;
   }, [graph, onNodeTap]);
+
   useEffect(() => {
-    initGraph();
+    void initGraph();
+
     return () => {
       cyRef.current?.destroy();
       cyRef.current = null;
@@ -163,15 +162,18 @@ export default function GraphViewer({
   if (graph.nodes.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500"
+        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/90 px-6 text-center text-sm text-slate-500"
         style={{ height }}
       >
-        <div className="rounded-full bg-white p-4 shadow-sm mb-3">
+        <div className="mb-4 rounded-full border border-slate-200 bg-white p-4 shadow-sm">
           <Network className="text-slate-400" size={32} />
         </div>
-        <p className="font-medium">No graph data</p>
-        <p className="mt-1 text-xs text-slate-400">
-          Enter a DOI or search term to build a citation graph.
+        <p className="text-base font-semibold text-slate-700">
+          No graph data yet
+        </p>
+        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+          Enter a DOI, title, or Semantic Scholar ID to build a citation graph
+          and explore how papers connect.
         </p>
       </div>
     );
@@ -179,19 +181,35 @@ export default function GraphViewer({
 
   return (
     <div
-      ref={containerRef}
-      className="relative rounded-xl border border-[var(--color-border)] bg-white shadow-sm overflow-hidden"
+      className="relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-white shadow-sm"
       style={{ height }}
     >
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.14) 1px, transparent 0)",
+          backgroundSize: "24px 24px",
+        }}
+      />
+
+      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-xs text-slate-500 shadow-sm backdrop-blur">
+        Click a node to inspect its DOI and save it to Notion.
+      </div>
+
+      <div className="absolute right-4 top-4 z-10 flex gap-2">
         <button
-          className="rounded bg-white p-2 shadow-md hover:bg-slate-50 text-slate-600 border border-slate-100 transition-colors"
+          type="button"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           onClick={() => cyRef.current?.fit()}
           title="Fit to screen"
         >
-          <Maximize size={18} />
+          <Maximize size={14} />
+          Fit
         </button>
       </div>
+
+      <div ref={containerRef} className="h-full w-full" />
     </div>
   );
 }
