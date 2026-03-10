@@ -1,3 +1,5 @@
+"use client";
+
 import { type FormEvent, useEffect, useState } from "react";
 import { Database, CheckCircle2, AlertCircle, ExternalLink, RefreshCw, LayoutGrid, Info } from "lucide-react";
 
