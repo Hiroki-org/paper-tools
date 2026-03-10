@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { Network, Sparkles } from "lucide-react";
 import type { Paper } from "@paper-tools/core";
 import type { DrilldownResult } from "@paper-tools/drilldown";
 import SearchForm from "@/components/SearchForm";
@@ -16,7 +17,7 @@ const fieldClassName =
   "w-full rounded-xl border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-text)] shadow-sm outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10";
 
 const actionLinkClassName =
-  "inline-flex items-center rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-[var(--color-text)] shadow-sm transition-colors hover:bg-slate-50";
+  "inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white/50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-white hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 backdrop-blur-sm";
 
 export default function SearchPage() {
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
@@ -264,10 +265,12 @@ export default function SearchPage() {
           onSaved={() => markSaved(paper)}
         />
         <a href={getGraphHref(paper)} className={actionLinkClassName}>
-          🕸️ グラフ
+          <Network size={14} />
+          Graph
         </a>
         <a href={getRecommendHref(paper)} className={actionLinkClassName}>
-          ✨ おすすめ
+          <Sparkles size={14} />
+          Recommend
         </a>
       </>
     ),
