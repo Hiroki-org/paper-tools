@@ -73,6 +73,15 @@ describe("Semantic Scholar Client", () => {
         expect(paper.externalIds?.DOI).toBe("10.1000/abc");
     });
 
+    it("getPaper should throw formatted error on API failure", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+            statusText: "Not Found",
+        });
+
+        await expect(getPaper("bad-id")).rejects.toThrow("HTTP 404: Not Found for");
+    });
 
     it("getAuthor should parse author details", async () => {
         mockFetch.mockResolvedValueOnce({
