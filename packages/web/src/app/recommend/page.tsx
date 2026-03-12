@@ -129,7 +129,7 @@ function RecommendPageClient() {
         }
         setSavedKeys(next);
       } catch (err) {
-        console.warn("Failed to fetch archive:", err);
+        // Silently ignore background failures
       }
     };
 
