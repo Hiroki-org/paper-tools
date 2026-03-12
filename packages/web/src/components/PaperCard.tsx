@@ -41,7 +41,7 @@ export default function PaperCard({
     >
       {paper.title}
     </Link>
-  ) : paper.url ? (
+  ) : paper.url && paper.url.startsWith("http") ? (
     <a
       href={paper.url}
       target="_blank"
@@ -63,7 +63,7 @@ export default function PaperCard({
     <span>{paper.title}</span>
   );
 
-  const ExternalAnchor = paper.url ? (
+  const ExternalAnchor = paper.url && paper.url.startsWith("http") ? (
     <a
       href={paper.url}
       target="_blank"

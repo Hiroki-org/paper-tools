@@ -16,16 +16,18 @@ export function ExternalLinkButtons({ paper }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <a
-        href={s2Url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={buttonClass}
-      >
-        <Globe size={14} className="text-blue-500" />
-        Semantic Scholar
-        <ExternalLink size={12} className="opacity-40" />
-      </a>
+      {s2Url.startsWith("http") && (
+        <a
+          href={s2Url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={buttonClass}
+        >
+          <Globe size={14} className="text-blue-500" />
+          Semantic Scholar
+          <ExternalLink size={12} className="opacity-40" />
+        </a>
+      )}
       {arxivId && (
         <a
           href={`https://arxiv.org/abs/${encodeURIComponent(arxivId)}`}
