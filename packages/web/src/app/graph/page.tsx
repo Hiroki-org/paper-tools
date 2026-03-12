@@ -27,22 +27,10 @@ const secondaryButtonClassName =
 const primaryButtonClassName =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300";
 
-function GraphPageClient() {
-  const searchParams = useSearchParams();
+function useArchiveSavedKeys(
+  selectedNode: { doi: string; title?: string } | null,
+) {
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
-  const [mode, setMode] = useState<InputMode>("doi");
-  const [identifier, setIdentifier] = useState("");
-  const [depth, setDepth] = useState(1);
-  const [direction, setDirection] = useState<Direction>("both");
-  const [graph, setGraph] = useState<CitationGraph | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
-  const [resolvedDoi, setResolvedDoi] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<{
-    doi: string;
-    title?: string;
-  } | null>(null);
 
   const makeKeys = useCallback((doi?: string, title?: string) => {
     const keys: string[] = [];
@@ -89,7 +77,7 @@ function GraphPageClient() {
         }
         setSavedKeys(next);
       } catch (err) {
-        console.warn("Failed to fetch archive:", err);
+        // Silently ignore background failures
       }
     };
 
@@ -98,6 +86,19 @@ function GraphPageClient() {
       cancelled = true;
     };
   }, []);
+
+  return { savedKeys, selectedSaved, markSelectedSaved };
+}
+
+function useGraphData() {
+  const [graph, setGraph] = useState<CitationGraph | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resolvedDoi, setResolvedDoi] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<{
+    doi: string;
+    title?: string;
+  } | null>(null);
 
   const resolveToDoi = useCallback(
     async (nextMode: InputMode, value: string) => {
@@ -142,6 +143,7 @@ function GraphPageClient() {
       nextDepth: number,
       nextDirection: Direction,
     ) => {
+      if (!value.trim()) return;
       setLoading(true);
       setError(null);
       setSelectedNode(null);
@@ -172,26 +174,23 @@ function GraphPageClient() {
     [resolveToDoi],
   );
 
-  const handleBuild = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      await buildGraph(mode, identifier, depth, direction);
-    },
-    [mode, identifier, depth, direction, buildGraph],
-  );
+  return {
+    graph,
+    loading,
+    error,
+    setError,
+    resolvedDoi,
+    selectedNode,
+    setSelectedNode,
+    buildGraph,
+  };
+}
 
-  useEffect(() => {
-    const doi = searchParams.get("doi")?.trim();
-    const title = searchParams.get("title")?.trim();
-    const s2id = searchParams.get("s2id")?.trim();
-    if (!doi && !title && !s2id) return;
-
-    const nextMode: InputMode = doi ? "doi" : title ? "title" : "s2id";
-    const nextIdentifier = doi ?? title ?? s2id ?? "";
-    setMode(nextMode);
-    setIdentifier(nextIdentifier);
-    void buildGraph(nextMode, nextIdentifier, depth, direction);
-  }, [searchParams, buildGraph, depth, direction]);
+function useGraphExport(
+  graph: CitationGraph | null,
+  setError: (err: string | null) => void,
+) {
+  const [exporting, setExporting] = useState(false);
 
   const handleExport = useCallback(
     async (format: "json" | "dot" | "mermaid") => {
@@ -222,8 +221,53 @@ function GraphPageClient() {
         setExporting(false);
       }
     },
-    [graph],
+    [graph, setError],
   );
+
+  return { exporting, handleExport };
+}
+
+function GraphPageClient() {
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<InputMode>("doi");
+  const [identifier, setIdentifier] = useState("");
+  const [depth, setDepth] = useState(1);
+  const [direction, setDirection] = useState<Direction>("both");
+
+  const {
+    graph,
+    loading,
+    error,
+    setError,
+    resolvedDoi,
+    selectedNode,
+    setSelectedNode,
+    buildGraph,
+  } = useGraphData();
+  const { exporting, handleExport } = useGraphExport(graph, setError);
+  const { selectedSaved, markSelectedSaved } =
+    useArchiveSavedKeys(selectedNode);
+
+  const handleBuild = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      await buildGraph(mode, identifier, depth, direction);
+    },
+    [mode, identifier, depth, direction, buildGraph],
+  );
+
+  useEffect(() => {
+    const doi = searchParams.get("doi")?.trim();
+    const title = searchParams.get("title")?.trim();
+    const s2id = searchParams.get("s2id")?.trim();
+    if (!doi && !title && !s2id) return;
+
+    const nextMode: InputMode = doi ? "doi" : title ? "title" : "s2id";
+    const nextIdentifier = doi ?? title ?? s2id ?? "";
+    setMode(nextMode);
+    setIdentifier(nextIdentifier);
+    void buildGraph(nextMode, nextIdentifier, depth, direction);
+  }, [searchParams, buildGraph, depth, direction]);
 
   const inputLabel = useMemo(() => {
     if (mode === "doi") return "DOI";
