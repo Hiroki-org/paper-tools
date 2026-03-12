@@ -129,7 +129,9 @@ function RecommendPageClient() {
         }
         setSavedKeys(next);
       } catch (err) {
-        // Silently ignore background failures
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Failed to fetch archive:", err);
+        }
       }
     };
 

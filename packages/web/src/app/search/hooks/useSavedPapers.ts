@@ -46,7 +46,9 @@ export function useSavedPapers() {
         }
         setSavedKeys(next);
       } catch (err) {
-        console.warn("Failed to fetch archive:", err);
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Failed to fetch archive:", err);
+        }
       }
     };
     void fetchArchive();
