@@ -1,5 +1,4 @@
-"use client";
-
+import { Check, Copy, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useBibtex } from "./useBibtex";
 
@@ -11,51 +10,37 @@ type Props = {
 export function BibtexButton({ doi, title }: Props) {
   const { getSingleBibtex } = useBibtex();
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-
-  const showToast = (type: "success" | "error", message: string) => {
-    setToast({ type, message });
-    window.setTimeout(() => setToast(null), 2000);
-  };
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
       setLoading(true);
       const result = await getSingleBibtex({ doi, title });
       await navigator.clipboard.writeText(result.bibtex);
-      showToast("success", "✓ Copied");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      showToast(
-        "error",
-        error instanceof Error ? error.message : "BibTeX コピーに失敗しました",
-      );
+      console.error("Failed to copy BibTeX:", error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative inline-flex items-center">
-      <button
-        type="button"
-        onClick={handleCopy}
-        disabled={loading}
-        className="rounded border border-[var(--color-border)] px-2 py-0.5 text-xs transition-colors hover:bg-gray-100 disabled:opacity-60"
-      >
-        {loading ? "Copying..." : "BibTeX"}
-      </button>
-      {toast && (
-        <span
-          className={`absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs text-white ${
-            toast.type === "success" ? "bg-emerald-600" : "bg-red-600"
-          }`}
-        >
-          {toast.message}
-        </span>
+    <button
+      type="button"
+      onClick={handleCopy}
+      disabled={loading}
+      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {loading ? (
+        <Loader2 size={14} className="animate-spin text-slate-400" />
+      ) : copied ? (
+        <Check size={14} className="text-emerald-500" />
+      ) : (
+        <Copy size={14} className="text-slate-400" />
       )}
-    </div>
+      <span>{copied ? "Copied" : "BibTeX"}</span>
+    </button>
   );
 }
