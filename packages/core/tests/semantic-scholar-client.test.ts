@@ -99,6 +99,7 @@ describe("Semantic Scholar Client", () => {
         expect(author.authorId).toBe("author-1");
         expect(author.name).toBe("Alice Smith");
         expect(author.hIndex).toBe(42);
+        expect(author.paperCount).toBe(100);
     });
 
     it("searchAuthors should pass parameters and parse author search results", async () => {
@@ -114,7 +115,9 @@ describe("Semantic Scholar Client", () => {
 
         const response = await searchAuthors("Bob", { limit: 5 });
         expect(response.total).toBe(1);
+        expect(response.offset).toBe(0);
         expect(response.data[0]?.authorId).toBe("author-2");
+        expect(response.data[0]?.name).toBe("Bob Jones");
 
         const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
         expect(url).toContain("query=Bob");

@@ -1,0 +1,27 @@
+{
+  repository(owner: "Hiroki-org", name: "paper-tools") {
+    pullRequest(number: 42) {
+      reviewThreads(first: 100) {
+        edges {
+          node {
+            comments(first: 100) {
+              edges {
+                node {
+                  id
+                  body
+                  isResolved
+                  author {
+                    login
+                  }
+                }
+              }
+            }
+            path
+            line
+            isResolved
+          }
+        }
+      }
+    }
+  }
+}
