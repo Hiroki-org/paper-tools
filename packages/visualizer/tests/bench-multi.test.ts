@@ -3,6 +3,21 @@ import { buildCitationGraph } from "../src/graph.js";
 
 describe("Performance: multi command", () => {
     it("measures sequential vs concurrent", async () => {
+        const normalizeGraph = (graph: any) => {
+            const normalized = {
+                ...graph,
+                nodes: [...(graph.nodes || [])].sort((a: any, b: any) => 
+                    (a.doi || a.id || "").localeCompare(b.doi || b.id || "")
+                ),
+                edges: [...(graph.edges || [])].sort((a: any, b: any) => {
+                    const sourceCompare = (a.source || "").localeCompare(b.source || "");
+                    if (sourceCompare !== 0) return sourceCompare;
+                    return (a.target || "").localeCompare(b.target || "");
+                }),
+            };
+            return normalized;
+        };
+
         const dois = [
             "10.1145/3597503.3639187",
             "10.1145/3597503.3639188",
@@ -30,6 +45,12 @@ describe("Performance: multi command", () => {
         console.log(`Concurrent time: ${concTime.toFixed(2)}ms`);
         console.log(`Improvement: ${((seqTime - concTime) / seqTime * 100).toFixed(2)}%`);
 
-        expect(graphsSeq.length).toBe(graphsConc.length);
+        // Verify both implementations produce equivalent results by normalizing
+        // and deep comparing the graphs
+        const normalizedConc = JSON.parse(JSON.stringify(graphsConc)).map(normalizeGraph);
+        const normalizedSeq = JSON.parse(JSON.stringify(graphsSeq)).map(normalizeGraph);
+
+        expect(normalizedConc.length).toBe(normalizedSeq.length);
+        expect(normalizedConc).toEqual(normalizedSeq);
     }, 60000); // 60s timeout
 });
