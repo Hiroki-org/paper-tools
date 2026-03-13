@@ -8,6 +8,8 @@ const {
     getRecommendationsForPaper,
     getRecommendations,
     getPaper,
+    getAuthor,
+    searchAuthors,
 } = await import("../src/semantic-scholar-client.js");
 
 describe("Semantic Scholar Client", () => {
@@ -69,6 +71,57 @@ describe("Semantic Scholar Client", () => {
         const paper = await getPaper("paper-1");
         expect(paper.paperId).toBe("paper-1");
         expect(paper.externalIds?.DOI).toBe("10.1000/abc");
+    });
+
+    it("getPaper should throw formatted error on API failure", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+            statusText: "Not Found",
+        });
+
+        await expect(getPaper("bad-id")).rejects.toThrow("HTTP 404: Not Found for");
+    });
+
+    it("getAuthor should parse author details", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                authorId: "author-1",
+                name: "Alice Smith",
+                hIndex: 42,
+                paperCount: 100,
+            }),
+        });
+
+        const author = await getAuthor("author-1");
+        expect(author.authorId).toBe("author-1");
+        expect(author.name).toBe("Alice Smith");
+        expect(author.hIndex).toBe(42);
+        expect(author.paperCount).toBe(100);
+    });
+
+    it("searchAuthors should pass parameters and parse author search results", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                total: 1,
+                offset: 0,
+                data: [{ authorId: "author-2", name: "Bob Jones" }],
+            }),
+        });
+
+        const response = await searchAuthors("Bob", { limit: 5 });
+        expect(response.total).toBe(1);
+        expect(response.offset).toBe(0);
+        expect(response.data[0]?.authorId).toBe("author-2");
+        expect(response.data[0]?.name).toBe("Bob Jones");
+
+        const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+        expect(url).toContain("query=Bob");
+        expect(url).toContain("limit=5");
     });
 
     it("should attach x-api-key header when S2_API_KEY is set", async () => {
