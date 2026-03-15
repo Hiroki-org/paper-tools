@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { S2Paper } from "@paper-tools/core";
+import type { CreatePageParameters } from "@notionhq/client/build/src/api-endpoints";
 import { getAccessToken, getNotionClient, getSelectedDatabaseId, getUserInfo } from "@/lib/auth";
 
 type NotionProperty = {
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
         const doiKey = findPropertyByKeyword(props, "doi");
         const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");
 
-        const properties: Record<string, unknown> = {
+        const properties: NonNullable<CreatePageParameters["properties"]> = {
             [titleKey]: {
                 title: [{ text: { content: paper.title ?? "Untitled" } }],
             },
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
 
         await notion.pages.create({
             parent: { data_source_id: dataSource.id },
-            properties: properties as any,
+            properties,
         });
 
         return NextResponse.json({ success: true });
