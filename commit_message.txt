@@ -1,0 +1,8 @@
+🧪 [testing improvement] Add tests for preCachePaper in usePaperDetail
+
+🎯 **What:** The `preCachePaper` function inside `packages/web/src/components/paper/usePaperDetail.ts` was missing tests.
+📊 **Coverage:** The new tests cover:
+- Caching a new paper preview.
+- Updating an existing cached paper with new preview data.
+- LRU eviction when cache exceeds `MAX_CACHE_ENTRIES` (100).
+✨ **Result:** Increased test coverage and confidence in the caching logic of `usePaperDetail.ts`.

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { PaperDetail, PaperDetailPreview } from "@/types/paper";
 
 const MAX_CACHE_ENTRIES = 100;
-const paperCache = new Map<string, PaperDetail>();
+export const paperCache = new Map<string, PaperDetail>();
 
 function setCache(key: string, value: PaperDetail): void {
     if (!paperCache.has(key) && paperCache.size >= MAX_CACHE_ENTRIES) {
