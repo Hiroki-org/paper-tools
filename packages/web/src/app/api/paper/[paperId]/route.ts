@@ -45,13 +45,13 @@ function getStatusCodeFromError(error: unknown): number | null {
 function toPaperDetail(input: any): PaperDetail {
     const rawFields = Array.isArray(input?.fieldsOfStudy) ? input.fieldsOfStudy : null;
     const fieldsOfStudy = rawFields
-        ? rawFields.map((f: any) => {
+        ? rawFields.map((f: unknown) => {
             if (typeof f === "string") {
                 return { category: f, source: "unknown" };
             }
             return {
-                category: String(f?.category ?? "Unknown"),
-                source: String(f?.source ?? "unknown"),
+                category: String((f as Record<string, unknown>)?.category ?? "Unknown"),
+                source: String((f as Record<string, unknown>)?.source ?? "unknown"),
             };
         })
         : null;
@@ -69,9 +69,9 @@ function toPaperDetail(input: any): PaperDetail {
         title: String(input?.title ?? "Untitled"),
         abstract: input?.abstract ?? null,
         authors: Array.isArray(input?.authors)
-            ? input.authors.map((a: any) => ({
-                authorId: String(a?.authorId ?? ""),
-                name: String(a?.name ?? "Unknown"),
+            ? input.authors.map((a: unknown) => ({
+                authorId: String((a as Record<string, unknown>)?.authorId ?? ""),
+                name: String((a as Record<string, unknown>)?.name ?? "Unknown"),
             }))
             : [],
         year: typeof input?.year === "number" ? input.year : null,
