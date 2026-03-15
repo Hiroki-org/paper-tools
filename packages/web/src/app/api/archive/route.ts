@@ -9,6 +9,13 @@ type NotionProperty = {
     url?: string | null;
 };
 
+type NotionDataSource = {
+    id: string;
+    object: "data_source";
+    properties: Record<string, NotionProperty>;
+    title?: Array<{ plain_text?: string }>;
+};
+
 function getPlainText(items: Array<{ plain_text?: string }> | undefined) {
     return (items ?? []).map((item) => item.plain_text ?? "").join("").trim();
 }
@@ -66,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const notion = getNotionClient(auth.accessToken);
-        let dataSourceRes: any;
+        let dataSourceRes: unknown;
         try {
             dataSourceRes = await notion.dataSources.retrieve({ data_source_id: auth.dataSourceId });
         } catch {
@@ -74,19 +81,21 @@ export async function GET(request: NextRequest) {
             if (databaseRes.object !== "database") {
                 return NextResponse.json({ error: "Database not found" }, { status: 404 });
             }
-            const firstDataSourceId = (databaseRes as any).data_sources?.[0]?.id as string | undefined;
+            const firstDataSourceId = (databaseRes as unknown as { data_sources?: Array<{ id: string }> }).data_sources?.[0]?.id;
             if (!firstDataSourceId) {
                 return NextResponse.json({ error: "No data source found in database" }, { status: 400 });
             }
             dataSourceRes = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
         }
 
-        if (dataSourceRes.object !== "data_source") {
+        const dataSourceObj = dataSourceRes as Record<string, unknown>;
+        if (dataSourceObj.object !== "data_source") {
             return NextResponse.json({ error: "Database not found" }, { status: 404 });
         }
 
+        const dataSource = dataSourceObj as unknown as NotionDataSource;
         const recordsRes = await notion.dataSources.query({
-            data_source_id: dataSourceRes.id,
+            data_source_id: dataSource.id,
             page_size: 100,
         });
 
@@ -95,16 +104,14 @@ export async function GET(request: NextRequest) {
             .map((page) => mapPageRecord(page as { id: string; properties: Record<string, NotionProperty> }));
 
         const userInfo = getUserInfo(request.cookies);
-        const databaseTitle = "title" in dataSourceRes
-            ? (dataSourceRes.title as Array<{ plain_text?: string }>)
-            : [];
+        const databaseTitle = dataSource.title ?? [];
         const databaseName = getPlainText(databaseTitle) || "(untitled database)";
 
         return NextResponse.json({
             records,
             total: records.length,
             database: {
-                databaseId: dataSourceRes.id,
+                databaseId: dataSource.id,
                 databaseName,
                 workspaceName: userInfo?.workspaceName ?? "Notion Workspace",
             },
@@ -130,26 +137,28 @@ export async function POST(request: NextRequest) {
         }
 
         const notion = getNotionClient(auth.accessToken);
-        let dataSource: any;
+        let dataSourceRes: unknown;
         try {
-            dataSource = await notion.dataSources.retrieve({ data_source_id: auth.dataSourceId });
+            dataSourceRes = await notion.dataSources.retrieve({ data_source_id: auth.dataSourceId });
         } catch {
             const database = await notion.databases.retrieve({ database_id: auth.dataSourceId });
             if (database.object !== "database") {
                 return NextResponse.json({ error: "Database not found" }, { status: 404 });
             }
-            const firstDataSourceId = (database as any).data_sources?.[0]?.id as string | undefined;
+            const firstDataSourceId = (database as unknown as { data_sources?: Array<{ id: string }> }).data_sources?.[0]?.id;
             if (!firstDataSourceId) {
                 return NextResponse.json({ error: "No data source found in database" }, { status: 400 });
             }
-            dataSource = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
+            dataSourceRes = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
         }
 
-        if (dataSource.object !== "data_source") {
+        const dataSourceObj = dataSourceRes as Record<string, unknown>;
+        if (dataSourceObj.object !== "data_source") {
             return NextResponse.json({ error: "Data source not found" }, { status: 404 });
         }
 
-        const props = (dataSource as any).properties as Record<string, NotionProperty>;
+        const dataSource = dataSourceObj as unknown as NotionDataSource;
+        const props = dataSource.properties;
         const titleKey = findTitleProperty(props);
         const doiKey = findPropertyByKeyword(props, "doi");
         const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");
