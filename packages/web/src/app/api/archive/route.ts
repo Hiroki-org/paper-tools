@@ -9,6 +9,11 @@ type NotionProperty = {
     url?: string | null;
 };
 
+function isDatabaseWithDataSources(db: unknown): db is { data_sources: Array<{ id: string }> } {
+    if (typeof db !== "object" || db === null) return false;
+    return "data_sources" in db && Array.isArray((db as Record<string, unknown>).data_sources);
+}
+
 function getPlainText(items: Array<{ plain_text?: string }> | undefined) {
     return (items ?? []).map((item) => item.plain_text ?? "").join("").trim();
 }
@@ -74,7 +79,7 @@ export async function GET(request: NextRequest) {
             if (databaseRes.object !== "database") {
                 return NextResponse.json({ error: "Database not found" }, { status: 404 });
             }
-            const firstDataSourceId = (databaseRes as any).data_sources?.[0]?.id as string | undefined;
+            const firstDataSourceId = isDatabaseWithDataSources(databaseRes) ? databaseRes.data_sources[0]?.id : undefined;
             if (!firstDataSourceId) {
                 return NextResponse.json({ error: "No data source found in database" }, { status: 400 });
             }
@@ -138,7 +143,7 @@ export async function POST(request: NextRequest) {
             if (database.object !== "database") {
                 return NextResponse.json({ error: "Database not found" }, { status: 404 });
             }
-            const firstDataSourceId = (database as any).data_sources?.[0]?.id as string | undefined;
+            const firstDataSourceId = isDatabaseWithDataSources(database) ? database.data_sources[0]?.id : undefined;
             if (!firstDataSourceId) {
                 return NextResponse.json({ error: "No data source found in database" }, { status: 400 });
             }
