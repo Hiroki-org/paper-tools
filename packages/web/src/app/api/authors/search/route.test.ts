@@ -42,4 +42,26 @@ describe("/api/authors/search GET", () => {
         const res = await GET(req);
         expect(res.status).toBe(400);
     });
+
+    it("returns 502 when searchAuthors throws an Error", async () => {
+        vi.mocked(core.searchAuthors).mockRejectedValueOnce(new Error("External API Error"));
+
+        const req = new NextRequest("http://localhost/api/authors/search?q=alice");
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(502);
+        expect(data.error).toBe("External API Error");
+    });
+
+    it("returns 502 with 'Unknown error' when searchAuthors throws a non-Error", async () => {
+        vi.mocked(core.searchAuthors).mockRejectedValueOnce("String error");
+
+        const req = new NextRequest("http://localhost/api/authors/search?q=alice");
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(502);
+        expect(data.error).toBe("Unknown error");
+    });
 });
