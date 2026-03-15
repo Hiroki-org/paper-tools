@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+    images: {
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "**",
+            },
+        ],
+    },
     /** workspace パッケージをトランスパイル対象にする */
     transpilePackages: [
         "@paper-tools/core",
