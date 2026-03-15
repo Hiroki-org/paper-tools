@@ -55,16 +55,15 @@ export async function getWorkByDoi(doi: string): Promise<Paper | null> {
     await rateLimiter.acquire();
 
     const url = `${CROSSREF_API_BASE}/works/${encodeURIComponent(doi)}`;
-    try {
-        const response = await fetchWithRetry(url, { headers: buildHeaders() });
-        const data = await response.json() as { message: CrossrefWork };
-        return mapCrossrefWorkToPaper(data.message);
-    } catch (error) {
-        if (error instanceof Error && error.message.includes("HTTP 404")) {
-            return null;
-        }
-        throw error;
+    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    if (response.status === 404) {
+        return null;
     }
+    if (!response.ok) {
+        throw new Error(`Crossref API error: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json() as { message: CrossrefWork };
+    return mapCrossrefWorkToPaper(data.message);
 }
 
 /**

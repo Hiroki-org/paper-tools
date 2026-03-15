@@ -86,7 +86,7 @@ describe("Author API clients", () => {
             url: "https://api.openalex.org/authors/A999?mailto=muika0923@gmail.com"
         });
 
-        await expect(getOpenAlexAuthor("A999")).rejects.toThrowError("OpenAlex API error: 404 Not Found - Author not found");
+        await expect(getOpenAlexAuthor("A999")).rejects.toThrowError("HTTP 404: Not Found for");
     });
 
     it("resolveOpenAlexAuthorId selects best match", async () => {
