@@ -47,7 +47,7 @@ async function outputJson(data: unknown, output?: string): Promise<void> {
         console.error(`Output written to: ${output}`);
         return;
     }
-    process.stdout.write(json + "\n");
+    console.log(json);
 }
 
 /**
