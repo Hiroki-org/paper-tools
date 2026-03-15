@@ -65,6 +65,7 @@ export async function drilldown(
     }
 
     let currentPapers = seedPapers;
+    const enrichPromises: Promise<void>[] = [];
 
     for (let d = 1; d <= depth; d++) {
         const keywords = extractKeywords(currentPapers, 5);
@@ -89,14 +90,24 @@ export async function drilldown(
 
         found = found.slice(0, maxPerLevel);
 
-        if (enrich) {
-            found = await enrichAllWithCrossref(found);
-        }
-
         if (found.length === 0) break;
 
-        results.push({ level: d, papers: found });
+        const resultEntry: DrilldownResult = { level: d, papers: found };
+        results.push(resultEntry);
+
+        if (enrich) {
+            // Background enrichment allows parallel fetch
+            enrichPromises.push(
+                enrichAllWithCrossref(found).then((enriched) => {
+                    resultEntry.papers = enriched;
+                })
+            );
+        }
         currentPapers = found;
+    }
+
+    if (enrichPromises.length > 0) {
+        await Promise.all(enrichPromises);
     }
 
     return results;
