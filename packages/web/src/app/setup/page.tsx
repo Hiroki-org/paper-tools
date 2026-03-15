@@ -11,23 +11,6 @@ type DatabaseItem = {
   description: string;
 };
 
-const NOTION_ICON_HOSTS = new Set([
-  "www.notion.so",
-  "notion.so",
-  "secure.notion-static.com",
-  "prod-files-secure.s3.us-west-2.amazonaws.com",
-  "s3.us-west-2.amazonaws.com",
-]);
-
-function canUseNextImageForIcon(iconUrl: string): boolean {
-  try {
-    const parsed = new URL(iconUrl);
-    return parsed.protocol === "https:" && NOTION_ICON_HOSTS.has(parsed.hostname);
-  } catch {
-    return false;
-  }
-}
-
 export default function SetupPage() {
   const [items, setItems] = useState<DatabaseItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -255,12 +238,7 @@ export default function SetupPage() {
                     {item.icon &&
                     typeof item.icon === "string" &&
                     item.icon.startsWith("http") ? (
-                      canUseNextImageForIcon(item.icon) ? (
-                        <Image src={item.icon} alt={item.title} width={24} height={24} className="h-6 w-6 rounded" />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.icon} alt={item.title} className="h-6 w-6 rounded" />
-                      )
+                      <Image src={item.icon} alt={item.title} width={24} height={24} className="h-6 w-6 rounded" />
                     ) : item.icon ? (
                       item.icon
                     ) : (
