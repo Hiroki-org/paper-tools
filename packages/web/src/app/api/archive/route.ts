@@ -19,18 +19,6 @@ type NotionDataSource = {
 type NotionClient = ReturnType<typeof getNotionClient>;
 type NotionPageCreateProperties = Parameters<NotionClient["pages"]["create"]>[0]["properties"];
 
-type NotionTextValue = {
-    text: {
-        content: string;
-    };
-};
-
-type NotionPropertyInput = {
-    title?: NotionTextValue[];
-    rich_text?: NotionTextValue[];
-    url?: string;
-};
-
 function getPlainText(items: Array<{ plain_text?: string }> | undefined) {
     return (items ?? []).map((item) => item.plain_text ?? "").join("").trim();
 }
@@ -221,7 +209,7 @@ export async function POST(request: NextRequest) {
         const doiKey = findPropertyByKeyword(props, "doi");
         const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");
 
-        const properties: Record<string, NotionPropertyInput> = {
+        const properties: NotionPageCreateProperties = {
             [titleKey]: {
                 title: [{ text: { content: paper.title ?? "Untitled" } }],
             },
@@ -245,7 +233,7 @@ export async function POST(request: NextRequest) {
 
         await notion.pages.create({
             parent: { data_source_id: dataSource.id },
-            properties: properties as unknown as NotionPageCreateProperties,
+            properties,
         });
 
         return NextResponse.json({ success: true });
