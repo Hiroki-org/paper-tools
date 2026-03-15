@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { S2Paper } from "@paper-tools/core";
 import { getAccessToken, getNotionClient, getSelectedDatabaseId, getUserInfo } from "@/lib/auth";
+import { resolveNotionDataSource, type NotionDataSource } from "@/lib/notion-data-source";
 
 type NotionProperty = {
     type?: string;
@@ -9,12 +10,7 @@ type NotionProperty = {
     url?: string | null;
 };
 
-type NotionDataSource = {
-    object: "data_source";
-    id: string;
-    properties: Record<string, NotionProperty>;
-    title?: Array<{ plain_text?: string }>;
-};
+type ArchiveNotionDataSource = NotionDataSource<NotionProperty>;
 
 type NotionClient = ReturnType<typeof getNotionClient>;
 type NotionPageCreateProperties = Parameters<NotionClient["pages"]["create"]>[0]["properties"];
@@ -68,89 +64,6 @@ function parseAuth(request: NextRequest) {
     return { ok: true as const, accessToken, dataSourceId };
 }
 
-function getStatusCodeFromError(error: unknown): number | null {
-    if (!(error instanceof Error)) {
-        return null;
-    }
-
-    const match = error.message.match(/\b(\d{3})\b/);
-    if (!match?.[1]) {
-        return null;
-    }
-
-    const status = Number(match[1]);
-    return Number.isInteger(status) ? status : null;
-}
-
-function isNotionDataSource(value: unknown): value is NotionDataSource {
-    if (typeof value !== "object" || value === null) {
-        return false;
-    }
-
-    const candidate = value as Record<string, unknown>;
-    if (candidate.object !== "data_source" || typeof candidate.id !== "string") {
-        return false;
-    }
-
-    return typeof candidate.properties === "object" && candidate.properties !== null;
-}
-
-function getFirstDataSourceIdFromDatabase(value: unknown): string | null {
-    if (typeof value !== "object" || value === null) {
-        return null;
-    }
-
-    const candidate = value as Record<string, unknown>;
-    if (candidate.object !== "database") {
-        return null;
-    }
-
-    const dataSources = candidate.data_sources;
-    if (!Array.isArray(dataSources)) {
-        return null;
-    }
-
-    const first = dataSources[0];
-    if (typeof first !== "object" || first === null) {
-        return null;
-    }
-
-    const id = (first as Record<string, unknown>).id;
-    return typeof id === "string" ? id : null;
-}
-
-async function resolveDataSource(
-    notion: NotionClient,
-    dataSourceOrDatabaseId: string,
-): Promise<NotionDataSource> {
-    try {
-        const response = await notion.dataSources.retrieve({ data_source_id: dataSourceOrDatabaseId });
-        if (isNotionDataSource(response)) {
-            return response;
-        }
-
-        throw new Error("Retrieved object is not a data source");
-    } catch (error) {
-        const status = getStatusCodeFromError(error);
-        if (status !== null && status !== 400 && status !== 404) {
-            throw error;
-        }
-    }
-
-    const databaseRes = await notion.databases.retrieve({ database_id: dataSourceOrDatabaseId });
-    const firstDataSourceId = getFirstDataSourceIdFromDatabase(databaseRes);
-    if (!firstDataSourceId) {
-        throw new Error("No data source found in database");
-    }
-
-    const fallbackResponse = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
-    if (!isNotionDataSource(fallbackResponse)) {
-        throw new Error("Retrieved fallback object is not a data source");
-    }
-
-    return fallbackResponse;
-}
-
 export async function GET(request: NextRequest) {
     const auth = parseAuth(request);
     if (!auth.ok) {
@@ -159,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const notion = getNotionClient(auth.accessToken);
-        const dataSource = await resolveDataSource(notion, auth.dataSourceId);
+        const dataSource: ArchiveNotionDataSource = await resolveNotionDataSource<NotionProperty>(notion, auth.dataSourceId);
         const recordsRes = await notion.dataSources.query({
             data_source_id: dataSource.id,
             page_size: 100,
@@ -203,7 +116,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notion = getNotionClient(auth.accessToken);
-        const dataSource = await resolveDataSource(notion, auth.dataSourceId);
+        const dataSource: ArchiveNotionDataSource = await resolveNotionDataSource<NotionProperty>(notion, auth.dataSourceId);
         const props = dataSource.properties;
         const titleKey = findTitleProperty(props);
         const doiKey = findPropertyByKeyword(props, "doi");

@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAccessToken, getNotionClient, setDatabaseCookie } from "@/lib/auth";
+import { resolveNotionDataSource } from "@/lib/notion-data-source";
 
 type SelectBody = {
     databaseId?: string;
 };
-
-interface NotionDataSource {
-    object: string;
-    id: string;
-    properties: Record<string, { type?: string }>;
-}
-
-type NotionClient = ReturnType<typeof getNotionClient>;
 
 function validateDatabaseProperties(properties: Record<string, { type?: string }>) {
     const entries = Object.entries(properties);
@@ -28,71 +21,6 @@ function validateDatabaseProperties(properties: Record<string, { type?: string }
     return warnings;
 }
 
-function getStatusCodeFromError(error: unknown): number | null {
-    if (!(error instanceof Error)) {
-        return null;
-    }
-    const match = error.message.match(/\b(\d{3})\b/);
-    if (!match?.[1]) {
-        return null;
-    }
-    const status = Number(match[1]);
-    return Number.isInteger(status) ? status : null;
-}
-
-function isNotionDataSource(value: unknown): value is NotionDataSource {
-    if (typeof value !== "object" || value === null) {
-        return false;
-    }
-    const candidate = value as Record<string, unknown>;
-    return candidate.object === "data_source"
-        && typeof candidate.id === "string"
-        && typeof candidate.properties === "object"
-        && candidate.properties !== null;
-}
-
-function getFirstDataSourceIdFromDatabase(value: unknown): string | null {
-    if (typeof value !== "object" || value === null) {
-        return null;
-    }
-    const candidate = value as Record<string, unknown>;
-    if (candidate.object !== "database" || !Array.isArray(candidate.data_sources)) {
-        return null;
-    }
-    const first = candidate.data_sources[0];
-    if (typeof first !== "object" || first === null) {
-        return null;
-    }
-    const id = (first as Record<string, unknown>).id;
-    return typeof id === "string" ? id : null;
-}
-
-async function resolveDataSource(notion: NotionClient, databaseId: string): Promise<NotionDataSource> {
-    try {
-        const dataSource = await notion.dataSources.retrieve({ data_source_id: databaseId });
-        if (isNotionDataSource(dataSource)) {
-            return dataSource;
-        }
-    } catch (error) {
-        const status = getStatusCodeFromError(error);
-        if (status !== null && status !== 400 && status !== 404) {
-            throw error;
-        }
-    }
-
-    const database = await notion.databases.retrieve({ database_id: databaseId });
-    const firstDataSourceId = getFirstDataSourceIdFromDatabase(database);
-    if (!firstDataSourceId) {
-        throw new Error("No data source found in selected database");
-    }
-
-    const dataSource = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
-    if (!isNotionDataSource(dataSource)) {
-        throw new Error("Data source not found");
-    }
-    return dataSource;
-}
-
 export async function POST(request: NextRequest) {
     const accessToken = getAccessToken(request.cookies);
     if (!accessToken) {
@@ -107,7 +35,7 @@ export async function POST(request: NextRequest) {
         }
 
         const notion = getNotionClient(accessToken);
-        const dataSource = await resolveDataSource(notion, databaseId);
+        const dataSource = await resolveNotionDataSource<{ type?: string }>(notion, databaseId);
         const warnings = validateDatabaseProperties(dataSource.properties);
 
         const response = NextResponse.json({ success: true, warnings });
