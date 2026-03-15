@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RateLimiter, getPaper } from "@paper-tools/core";
 import type { PaperDetail } from "@/types/paper";
+import type { S2Paper, S2Author } from "@paper-tools/core";
 
 export const runtime = "nodejs";
 
@@ -42,16 +43,28 @@ function getStatusCodeFromError(error: unknown): number | null {
     return Number.isInteger(status) ? status : null;
 }
 
-function toPaperDetail(input: any): PaperDetail {
+type ExtendedS2Paper = Omit<S2Paper, "fieldsOfStudy"> & {
+    influentialCitationCount?: number;
+    tldr?: { model?: string; text?: string };
+    fieldsOfStudy?: Array<string | { category?: string; source?: string }>;
+    publicationDate?: string;
+    journal?: {
+        name?: string;
+        volume?: string | number;
+        pages?: string | number;
+    };
+};
+
+function toPaperDetail(input: ExtendedS2Paper): PaperDetail {
     const rawFields = Array.isArray(input?.fieldsOfStudy) ? input.fieldsOfStudy : null;
     const fieldsOfStudy = rawFields
-        ? rawFields.map((f: any) => {
+        ? rawFields.map((f: string | { category?: string; source?: string }) => {
             if (typeof f === "string") {
                 return { category: f, source: "unknown" };
             }
             return {
-                category: String(f?.category ?? "Unknown"),
-                source: String(f?.source ?? "unknown"),
+                category: String((f as Record<string, unknown>)?.category ?? "Unknown"),
+                source: String((f as Record<string, unknown>)?.source ?? "unknown"),
             };
         })
         : null;
@@ -69,7 +82,7 @@ function toPaperDetail(input: any): PaperDetail {
         title: String(input?.title ?? "Untitled"),
         abstract: input?.abstract ?? null,
         authors: Array.isArray(input?.authors)
-            ? input.authors.map((a: any) => ({
+            ? input.authors.map((a: S2Author) => ({
                 authorId: String(a?.authorId ?? ""),
                 name: String(a?.name ?? "Unknown"),
             }))
@@ -113,7 +126,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     try {
         await detailLimiter.acquire();
         const paper = await getPaper(paperId, SEMANTIC_SCHOLAR_FIELDS);
-        const normalized = toPaperDetail(paper);
+        const normalized = toPaperDetail(paper as ExtendedS2Paper);
 
         if (!normalized.paperId) {
             return NextResponse.json({ error: "Paper not found" }, { status: 404 });
