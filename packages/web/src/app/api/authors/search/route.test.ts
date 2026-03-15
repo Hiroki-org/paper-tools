@@ -27,7 +27,7 @@ describe("/api/authors/search GET", () => {
                     hIndex: 8,
                 },
             ],
-        } as any);
+        });
 
         const req = new NextRequest("http://localhost/api/authors/search?q=alice&limit=10");
         const res = await GET(req);
