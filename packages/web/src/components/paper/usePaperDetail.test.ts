@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// We need to reset modules to clear the module-level paperCache Map between tests
 describe("usePaperDetail cache mechanism", () => {
     let usePaperDetailModule: typeof import("./usePaperDetail");
 
@@ -37,29 +36,26 @@ describe("usePaperDetail cache mechanism", () => {
         const { preCachePaper } = usePaperDetailModule;
         const setSpy = vi.spyOn(Map.prototype, "set");
 
-        // First cache
         preCachePaper({
             paperId: "test-paper-2",
             title: "Original Title",
             abstract: "Original Abstract",
         });
 
-        // Clear spy to only track the second call
         setSpy.mockClear();
 
-        // Second cache (patch)
         preCachePaper({
             paperId: "test-paper-2",
-            title: "Updated Title", // updating title
-            year: 2024, // adding year
+            title: "Updated Title",
+            year: 2024,
         });
 
         expect(setSpy).toHaveBeenCalledTimes(1);
         expect(setSpy).toHaveBeenCalledWith("test-paper-2", expect.objectContaining({
             paperId: "test-paper-2",
-            title: "Updated Title", // should be updated
-            abstract: "Original Abstract", // should be kept
-            year: 2024, // should be added
+            title: "Updated Title",
+            abstract: "Original Abstract",
+            year: 2024,
         }));
     });
 
@@ -67,7 +63,6 @@ describe("usePaperDetail cache mechanism", () => {
         const { preCachePaper } = usePaperDetailModule;
         const deleteSpy = vi.spyOn(Map.prototype, "delete");
 
-        // MAX_CACHE_ENTRIES is 100, let's insert 105
         for (let i = 0; i < 105; i++) {
             preCachePaper({
                 paperId: `paper-${i}`,
@@ -75,13 +70,38 @@ describe("usePaperDetail cache mechanism", () => {
             });
         }
 
-        // It should delete 5 entries
         expect(deleteSpy).toHaveBeenCalledTimes(5);
-        // Map iterators maintain insertion order, so the oldest entries are the first ones inserted
         expect(deleteSpy).toHaveBeenNthCalledWith(1, "paper-0");
         expect(deleteSpy).toHaveBeenNthCalledWith(2, "paper-1");
         expect(deleteSpy).toHaveBeenNthCalledWith(3, "paper-2");
         expect(deleteSpy).toHaveBeenNthCalledWith(4, "paper-3");
         expect(deleteSpy).toHaveBeenNthCalledWith(5, "paper-4");
+    });
+
+    it("preCachePaper should not evict when updating an existing entry at full capacity", () => {
+        const { preCachePaper } = usePaperDetailModule;
+        const deleteSpy = vi.spyOn(Map.prototype, "delete");
+        const setSpy = vi.spyOn(Map.prototype, "set");
+
+        for (let i = 0; i < 100; i++) {
+            preCachePaper({
+                paperId: `paper-${i}`,
+                title: `Title ${i}`,
+            });
+        }
+
+        deleteSpy.mockClear();
+        setSpy.mockClear();
+
+        preCachePaper({
+            paperId: "paper-0",
+            title: "Updated Title 0",
+        });
+
+        expect(deleteSpy).not.toHaveBeenCalled();
+        expect(setSpy).toHaveBeenCalledWith("paper-0", expect.objectContaining({
+            paperId: "paper-0",
+            title: "Updated Title 0",
+        }));
     });
 });
