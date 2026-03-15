@@ -133,6 +133,12 @@ describe("author-resolver", () => {
             { authorId: "id2", name: "John Doe 2", hIndex: 5, paperCount: 20, affiliations: ["Univ B"] }
         ];
 
+        it("should throw error if search returns undefined data", async () => {
+            vi.mocked(searchAuthors).mockResolvedValueOnce({ data: undefined } as any);
+
+            await expect(resolveAuthorId("Ghost Author")).rejects.toThrow("著者が見つかりませんでした: Ghost Author");
+        });
+
         it("should throw error if search returns no candidates", async () => {
             mockSearchResponse([]);
 
