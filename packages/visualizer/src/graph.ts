@@ -49,10 +49,11 @@ export async function buildCitationGraph(
     const edges: GraphEdge[] = [];
 
     // 起点ノードを追加
-    nodeSet.add(doi.toLowerCase());
-    nodes.push({ doi: doi.toLowerCase() });
+    const startDoi = doi.toLowerCase();
+    nodeSet.add(startDoi);
+    nodes.push({ doi: startDoi });
 
-    let frontier = [doi.toLowerCase()];
+    let frontier = [startDoi];
 
     for (let d = 0; d < depth; d++) {
         const nextFrontier: string[] = [];
@@ -123,7 +124,7 @@ export async function buildCitationGraph(
  * 複数のグラフをマージする。
  */
 export function mergeGraphs(...graphs: CitationGraph[]): CitationGraph {
-    const nodeMap = new Map<string, GraphNode>();
+    const nodeIndexMap = new Map<string, number>();
     const nodes: GraphNode[] = [];
     const edgeSet = new Set<string>();
     const edges: GraphEdge[] = [];
@@ -131,13 +132,12 @@ export function mergeGraphs(...graphs: CitationGraph[]): CitationGraph {
     for (const g of graphs) {
         for (const node of g.nodes) {
             const key = node.doi.toLowerCase();
-            const existing = nodeMap.get(key);
-            if (!existing) {
-                const newNode = { ...node, doi: key };
-                nodeMap.set(key, newNode);
-                nodes.push(newNode);
-            } else if (!existing.title && node.title) {
-                existing.title = node.title;
+            const existingIndex = nodeIndexMap.get(key);
+            if (existingIndex === undefined) {
+                nodeIndexMap.set(key, nodes.length);
+                nodes.push({ ...node, doi: key });
+            } else if (!nodes[existingIndex].title && node.title) {
+                nodes[existingIndex].title = node.title;
             }
         }
         for (const edge of g.edges) {
