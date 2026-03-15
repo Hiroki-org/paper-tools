@@ -133,7 +133,6 @@ program
                 database,
             );
 
-            console.log(JSON.stringify({ added, skipped, errors, dryRun }, null, 2));
         } catch (error) {
             console.error("Error:", error instanceof Error ? error.message : error);
             process.exit(1);
