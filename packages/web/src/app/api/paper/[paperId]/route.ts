@@ -63,8 +63,8 @@ function toPaperDetail(input: ExtendedS2Paper): PaperDetail {
                 return { category: f, source: "unknown" };
             }
             return {
-                category: String(f?.category ?? "Unknown"),
-                source: String(f?.source ?? "unknown"),
+                category: String((f as Record<string, unknown>)?.category ?? "Unknown"),
+                source: String((f as Record<string, unknown>)?.source ?? "unknown"),
             };
         })
         : null;
