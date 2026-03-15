@@ -5,6 +5,17 @@ type SelectBody = {
     databaseId?: string;
 };
 
+interface NotionDataSource {
+    object: string;
+    id: string;
+    properties: Record<string, { type?: string }>;
+}
+
+interface NotionDatabase {
+    object: string;
+    data_sources?: Array<{ id: string }>;
+}
+
 function validateDatabaseProperties(properties: Record<string, { type?: string }>) {
     const entries = Object.entries(properties);
     const hasTitle = entries.some(([, v]) => v?.type === "title");
@@ -39,26 +50,26 @@ export async function POST(request: NextRequest) {
         let properties: Record<string, { type?: string }> | null = null;
 
         try {
-            const dataSource = await notion.dataSources.retrieve({ data_source_id: databaseId });
+            const dataSource = await notion.dataSources.retrieve({ data_source_id: databaseId }) as unknown as NotionDataSource;
             if (dataSource.object === "data_source") {
                 selectedDataSourceId = dataSource.id;
-                properties = (dataSource as any).properties as Record<string, { type?: string }>;
+                properties = dataSource.properties;
             }
         } catch {
-            const database = await notion.databases.retrieve({ database_id: databaseId });
+            const database = await notion.databases.retrieve({ database_id: databaseId }) as unknown as NotionDatabase;
             if (database.object !== "database") {
                 return NextResponse.json({ error: "Database not found" }, { status: 404 });
             }
-            const firstDataSourceId = (database as any).data_sources?.[0]?.id as string | undefined;
+            const firstDataSourceId = database.data_sources?.[0]?.id;
             if (!firstDataSourceId) {
                 return NextResponse.json({ error: "No data source found in selected database" }, { status: 400 });
             }
-            const dataSource = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId });
+            const dataSource = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId }) as unknown as NotionDataSource;
             if (dataSource.object !== "data_source") {
                 return NextResponse.json({ error: "Data source not found" }, { status: 404 });
             }
             selectedDataSourceId = dataSource.id;
-            properties = (dataSource as any).properties as Record<string, { type?: string }>;
+            properties = dataSource.properties;
         }
 
         const warnings = validateDatabaseProperties(properties ?? {});
