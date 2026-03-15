@@ -1,5 +1,129 @@
-import { describe, expect, it } from "vitest";
-import { scoreCandidate, OpenAlexAuthor } from "../src/openalex-client.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as rateLimiter from "../src/rate-limiter.js";
+import {
+    getOpenAlexAuthor,
+    resolveOpenAlexAuthorId,
+    scoreCandidate,
+    type OpenAlexAuthor,
+} from "../src/openalex-client.js";
+
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
+describe("OpenAlex Client", () => {
+    beforeEach(() => {
+        mockFetch.mockReset();
+    });
+
+    describe("getOpenAlexAuthor", () => {
+        it("fetches author and parses correctly", async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    id: "https://openalex.org/A123",
+                    display_name: "Alice",
+                    works_count: 42,
+                }),
+            });
+
+            const res = await getOpenAlexAuthor("A123");
+            expect(res.id).toBe("https://openalex.org/A123");
+            expect(res.display_name).toBe("Alice");
+            expect(res.works_count).toBe(42);
+
+            const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+            expect(url).toContain("https://api.openalex.org/authors/A123");
+            expect(url).toContain("mailto=");
+        });
+
+        it("normalizes author ID from full URL", async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    id: "https://openalex.org/A999",
+                }),
+            });
+
+            await getOpenAlexAuthor("https://openalex.org/A999");
+            const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+            expect(url).toContain("https://api.openalex.org/authors/A999");
+        });
+
+        it("normalizes author ID from lowercase", async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    id: "https://openalex.org/A111",
+                }),
+            });
+
+            await getOpenAlexAuthor("a111");
+            const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+            expect(url).toContain("https://api.openalex.org/authors/A111");
+        });
+
+        it("throws an error with response text on API failure", async () => {
+            const spy = vi.spyOn(rateLimiter, "fetchWithRetry").mockResolvedValueOnce({
+                ok: false,
+                status: 404,
+                statusText: "Not Found",
+                text: async () => "Author not found",
+            } as unknown as Response);
+
+            await expect(getOpenAlexAuthor("A000")).rejects.toThrow("OpenAlex API error: 404 Not Found - Author not found");
+
+            spy.mockRestore();
+        });
+    });
+
+    describe("resolveOpenAlexAuthorId", () => {
+        it("selects best match", async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    results: [
+                        { id: "https://openalex.org/A1", display_name: "Alice", works_count: 10 },
+                        {
+                            id: "https://openalex.org/A2",
+                            display_name: "Alice Johnson",
+                            works_count: 200,
+                            last_known_institutions: [{ display_name: "Example University" }],
+                        },
+                    ],
+                }),
+            });
+
+            const id = await resolveOpenAlexAuthorId({
+                name: "Alice Johnson",
+                affiliation: "Example University",
+            });
+            expect(id).toBe("https://openalex.org/A2");
+        });
+
+        it("returns null if query is empty", async () => {
+            const id = await resolveOpenAlexAuthorId({ name: "   " });
+            expect(id).toBeNull();
+            expect(mockFetch).not.toHaveBeenCalled();
+        });
+
+        it("throws an error on API failure", async () => {
+            const spy = vi.spyOn(rateLimiter, "fetchWithRetry").mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                statusText: "Internal Server Error",
+                text: async () => "Something went wrong",
+            } as unknown as Response);
+
+            await expect(resolveOpenAlexAuthorId({ name: "Alice" })).rejects.toThrow("OpenAlex API error: 500 Internal Server Error - Something went wrong");
+
+            spy.mockRestore();
+        });
+    });
+});
 
 describe("scoreCandidate", () => {
     it("returns 0 for non-matching empty candidate", () => {
@@ -56,7 +180,6 @@ describe("scoreCandidate", () => {
             last_known_institutions: [{ display_name: "Example University" }],
         };
         const score = scoreCandidate(candidate, "Alice", "Example");
-        // 40 for name match + 15 for affiliation = 55
         expect(score).toBe(55);
     });
 
@@ -67,7 +190,6 @@ describe("scoreCandidate", () => {
             affiliations: [{ institution: { display_name: "Tech Institute" } }],
         };
         const score = scoreCandidate(candidate, "Alice", "Tech");
-        // 40 for name match + 15 for affiliation = 55
         expect(score).toBe(55);
     });
 
@@ -75,10 +197,9 @@ describe("scoreCandidate", () => {
         const candidate: OpenAlexAuthor = {
             id: "A123",
             display_name: "Alice",
-            works_count: 750, // 750 / 50 = 15
+            works_count: 750,
         };
         const score = scoreCandidate(candidate, "Alice");
-        // 40 for name match + 15 for works_count = 55
         expect(score).toBe(55);
     });
 
@@ -86,10 +207,9 @@ describe("scoreCandidate", () => {
         const candidate: OpenAlexAuthor = {
             id: "A123",
             display_name: "Alice",
-            works_count: 5000, // 5000 / 50 = 100
+            works_count: 5000,
         };
         const score = scoreCandidate(candidate, "Alice");
-        // 40 for name match + 15 (max) for works_count = 55
         expect(score).toBe(55);
     });
 
@@ -97,10 +217,9 @@ describe("scoreCandidate", () => {
         const candidate: OpenAlexAuthor = {
             id: "A123",
             display_name: "Alice",
-            works_count: 120, // Math.floor(120 / 50) = 2
+            works_count: 120,
         };
         const score = scoreCandidate(candidate, "Alice");
-        // 40 for name match + 2 for works_count = 42
         expect(score).toBe(42);
     });
 
@@ -110,10 +229,9 @@ describe("scoreCandidate", () => {
             display_name: "Alice Smith",
             orcid: "0000-0000-0000-0001",
             last_known_institutions: [{ display_name: "Example University" }],
-            works_count: 250, // 5 points
+            works_count: 250,
         };
         const score = scoreCandidate(candidate, "Alice Smith", "Example Univ", "0000-0000-0000-0001");
-        // 100 (orcid) + 40 (exact name) + 15 (affiliation) + 5 (works) = 160
         expect(score).toBe(160);
     });
 
@@ -123,7 +241,6 @@ describe("scoreCandidate", () => {
             display_name: "Alice",
         };
         const score = scoreCandidate(candidate);
-        // Returns 0 since works_count is undefined (0/50 = 0) and no target fields were passed
         expect(score).toBe(0);
     });
 });
