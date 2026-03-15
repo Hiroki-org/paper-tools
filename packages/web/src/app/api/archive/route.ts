@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { S2Paper } from "@paper-tools/core";
 import { getAccessToken, getNotionClient, getSelectedDatabaseId, getUserInfo } from "@/lib/auth";
+import type { GetDataSourceResponse, GetDatabaseResponse } from "@notionhq/client/build/src/api-endpoints";
 
 type NotionProperty = {
     type?: string;
@@ -66,11 +67,11 @@ export async function GET(request: NextRequest) {
 
     try {
         const notion = getNotionClient(auth.accessToken);
-        let dataSourceRes: any;
+        let dataSourceRes: GetDataSourceResponse;
         try {
             dataSourceRes = await notion.dataSources.retrieve({ data_source_id: auth.dataSourceId });
         } catch {
-            const databaseRes = await notion.databases.retrieve({ database_id: auth.dataSourceId });
+            const databaseRes: GetDatabaseResponse = await notion.databases.retrieve({ database_id: auth.dataSourceId });
             if (databaseRes.object !== "database") {
                 return NextResponse.json({ error: "Database not found" }, { status: 404 });
             }
@@ -130,11 +131,11 @@ export async function POST(request: NextRequest) {
         }
 
         const notion = getNotionClient(auth.accessToken);
-        let dataSource: any;
+        let dataSource: GetDataSourceResponse;
         try {
             dataSource = await notion.dataSources.retrieve({ data_source_id: auth.dataSourceId });
         } catch {
-            const database = await notion.databases.retrieve({ database_id: auth.dataSourceId });
+            const database: GetDatabaseResponse = await notion.databases.retrieve({ database_id: auth.dataSourceId });
             if (database.object !== "database") {
                 return NextResponse.json({ error: "Database not found" }, { status: 404 });
             }
