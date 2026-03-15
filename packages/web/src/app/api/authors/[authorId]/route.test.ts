@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { type AuthorProfile } from "@paper-tools/core";
 
 vi.mock("@paper-tools/author-profiler", () => ({
     buildAuthorProfile: vi.fn(),
@@ -25,7 +26,7 @@ describe("/api/authors/[authorId] GET", () => {
             topPapers: [],
             coauthors: [],
             topicTimeline: [],
-        } as any);
+        } as Partial<AuthorProfile> as AuthorProfile);
 
         const req = new NextRequest("http://localhost/api/authors/123");
         const res = await GET(req, { params: { authorId: "123" } });
