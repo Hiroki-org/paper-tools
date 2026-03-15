@@ -74,6 +74,7 @@ async function outputJson(data: unknown, output?: string): Promise<void> {
         console.error(`Output written to: ${output}`);
         return;
     }
+    process.stdout.write(json + "\n");
 }
 
 function requireDatabaseId(): string {
@@ -132,6 +133,7 @@ program
                 dryRun,
                 database,
             );
+            await outputJson({ added, skipped, errors, dryRun });
 
         } catch (error) {
             console.error("Error:", error instanceof Error ? error.message : error);
@@ -168,6 +170,7 @@ program
                 dryRun,
                 database,
             );
+            await outputJson({ input: positiveIds.length, added, skipped, errors, dryRun });
 
         } catch (error) {
             console.error("Error:", error instanceof Error ? error.message : error);
