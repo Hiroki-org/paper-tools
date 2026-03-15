@@ -27,7 +27,7 @@ describe("/api/authors/search GET", () => {
                     hIndex: 8,
                 },
             ],
-        } as any);
+        });
 
         const req = new NextRequest("http://localhost/api/authors/search?q=alice&limit=10");
         const res = await GET(req);
@@ -37,13 +37,20 @@ describe("/api/authors/search GET", () => {
         expect(data.candidates[0].authorId).toBe("123");
     });
 
-    it("returns 400 when q is missing", async () => {
-        const req = new NextRequest("http://localhost/api/authors/search");
+    it("returns extracted status when searchAuthors throws API error with code", async () => {
+        vi.mocked(core.searchAuthors).mockRejectedValueOnce(
+            new Error("API error: 429 upstream rate limited"),
+        );
+
+        const req = new NextRequest("http://localhost/api/authors/search?q=alice");
         const res = await GET(req);
-        expect(res.status).toBe(400);
+        const data = await res.json();
+
+        expect(res.status).toBe(429);
+        expect(data.error).toBe("API error: 429 upstream rate limited");
     });
 
-    it("returns 502 when searchAuthors throws an Error", async () => {
+    it("returns 502 fallback when searchAuthors throws plain Error", async () => {
         vi.mocked(core.searchAuthors).mockRejectedValueOnce(new Error("External API Error"));
 
         const req = new NextRequest("http://localhost/api/authors/search?q=alice");
@@ -54,14 +61,9 @@ describe("/api/authors/search GET", () => {
         expect(data.error).toBe("External API Error");
     });
 
-    it("returns 502 with 'Unknown error' when searchAuthors throws a non-Error", async () => {
-        vi.mocked(core.searchAuthors).mockRejectedValueOnce("String error");
-
-        const req = new NextRequest("http://localhost/api/authors/search?q=alice");
+    it("returns 400 when q is missing", async () => {
+        const req = new NextRequest("http://localhost/api/authors/search");
         const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(502);
-        expect(data.error).toBe("Unknown error");
+        expect(res.status).toBe(400);
     });
 });

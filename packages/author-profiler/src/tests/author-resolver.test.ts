@@ -36,16 +36,21 @@ describe("author-resolver", () => {
         vi.restoreAllMocks();
     });
 
-    const mockSearchResponse = (data: any[]) => {
-        vi.mocked(searchAuthors).mockResolvedValueOnce({ data } as any);
+    const mockSearchResponse = (data: Awaited<ReturnType<typeof searchAuthors>>["data"]) => {
+        const response = {
+            total: data.length,
+            offset: 0,
+            data,
+        } as Awaited<ReturnType<typeof searchAuthors>>;
+        vi.mocked(searchAuthors).mockResolvedValueOnce(response);
     };
 
-    const mockGetAuthorResponse = (author: any) => {
-        vi.mocked(getAuthor).mockResolvedValueOnce(author as any);
+    const mockGetAuthorResponse = (author: Partial<Awaited<ReturnType<typeof getAuthor>>>) => {
+        vi.mocked(getAuthor).mockResolvedValueOnce(author as Awaited<ReturnType<typeof getAuthor>>);
     };
 
     const mockPromptsResponse = (authorId?: string) => {
-        vi.mocked(prompts).mockResolvedValueOnce({ authorId } as any);
+        vi.mocked(prompts).mockResolvedValueOnce({ authorId } as Awaited<ReturnType<typeof prompts>>);
     };
 
     describe("looksLikeAuthorId", () => {
@@ -134,7 +139,7 @@ describe("author-resolver", () => {
         ];
 
         it("should throw error if search returns undefined data", async () => {
-            vi.mocked(searchAuthors).mockResolvedValueOnce({ data: undefined } as any);
+            vi.mocked(searchAuthors).mockResolvedValueOnce({ data: undefined } as unknown as Awaited<ReturnType<typeof searchAuthors>>);
 
             await expect(resolveAuthorId("Ghost Author")).rejects.toThrow("著者が見つかりませんでした: Ghost Author");
         });

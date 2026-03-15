@@ -258,7 +258,6 @@ describe("additional edge cases", () => {
         searchPublications.mockRejectedValueOnce("String error dblp");
         searchPapers.mockRejectedValueOnce("String error semanticscholar");
 
-        const { fetchBibtex } = await import("../src/bibtex-fetcher.js");
         const result = await fetchBibtex({ doi: "10.1000/xyz", title: "Fuzzing" });
         expect(result).toBeNull();
         expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Crossref fetch failed"), "String error crossref");
@@ -269,7 +268,6 @@ describe("additional edge cases", () => {
 
 describe("more edge cases", () => {
     it("handles DBLP candidate missing match", async () => {
-        const { fetchBibtex } = await import("../src/bibtex-fetcher.js");
         searchPublications.mockResolvedValueOnce([{ url: "invalid-url" }]);
         searchPapers.mockResolvedValueOnce({ data: [] });
         const result = await fetchBibtex({ title: "Fuzzing" });
@@ -277,7 +275,6 @@ describe("more edge cases", () => {
     });
 
     it("handles Semantic Scholar without papers data", async () => {
-        const { fetchBibtex } = await import("../src/bibtex-fetcher.js");
         searchPublications.mockResolvedValueOnce([]);
         searchPapers.mockResolvedValueOnce({}); // no data array
         const result = await fetchBibtex({ title: "Fuzzing" });

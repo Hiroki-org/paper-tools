@@ -51,6 +51,7 @@ export type {
 export {
     getOpenAlexAuthor,
     resolveOpenAlexAuthorId,
+    scoreCandidate,
 } from "./openalex-client.js";
 
 export type {

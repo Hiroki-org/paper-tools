@@ -9,7 +9,7 @@ vi.mock("@paper-tools/core", () => ({
 
 import { searchVenuePublications } from "@paper-tools/core";
 
-const mockSearchVenuePublications = searchVenuePublications as ReturnType<typeof vi.fn>;
+const mockSearchVenuePublications = vi.mocked(searchVenuePublications);
 
 describe("DBLP Integration", () => {
     beforeEach(() => {
