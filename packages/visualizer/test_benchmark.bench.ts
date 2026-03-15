@@ -6,6 +6,8 @@ const generateMockGraph = (size: number, startNode: string): CitationGraph => {
     const edges = [];
     for (let i = 0; i < size; i++) {
         nodes.push({ doi: `doi-${startNode}-${i}` });
+    }
+    for (let i = 0; i < size - 1; i++) {
         edges.push({ source: `doi-${startNode}-${i}`, target: `doi-${startNode}-${i + 1}` });
     }
     return { nodes, edges };
