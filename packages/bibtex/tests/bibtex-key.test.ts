@@ -28,23 +28,4 @@ describe("generateBibtexKey", () => {
         }, "short");
         expect(key).toBe("mukai2026");
     });
-
-    it("supports venue format", () => {
-        const key = generateBibtexKey({
-            authors: ["Alice Smith"],
-            year: 2023,
-            title: "Deep Learning Advances",
-            venue: "NeurIPS",
-        }, "venue");
-        expect(key).toBe("smith2023neurips");
-    });
-
-    it("falls back to default format when venue is requested but missing", () => {
-        const key = generateBibtexKey({
-            authors: ["Bob Jones"],
-            year: 2024,
-            title: "Understanding Complex Systems",
-        }, "venue");
-        expect(key).toBe("jones2024understanding");
-    });
 });

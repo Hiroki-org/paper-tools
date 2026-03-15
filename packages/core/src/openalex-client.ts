@@ -89,7 +89,7 @@ export async function getOpenAlexAuthor(authorId: string): Promise<OpenAlexAutho
     return await response.json() as OpenAlexAuthor;
 }
 
-export function scoreCandidate(candidate: OpenAlexAuthor, name?: string, affiliation?: string, orcid?: string): number {
+function scoreCandidate(candidate: OpenAlexAuthor, name?: string, affiliation?: string, orcid?: string): number {
     let score = 0;
     const candidateName = candidate.display_name?.toLowerCase() ?? "";
     const targetName = name?.toLowerCase() ?? "";

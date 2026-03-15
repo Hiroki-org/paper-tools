@@ -28,8 +28,6 @@ export async function GET(request: NextRequest) {
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        const statusMatch = /API error:\s*(\d{3})\b/i.exec(message);
-        const status = statusMatch ? Number(statusMatch[1]) : 502;
-        return NextResponse.json({ error: message }, { status });
+        return NextResponse.json({ error: message }, { status: 502 });
     }
 }
