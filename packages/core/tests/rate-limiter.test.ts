@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { RateLimiter } from "../src/rate-limiter.js";
+import { RateLimiter, fetchWithRetry } from "../src/rate-limiter.js";
 
 describe("RateLimiter", () => {
     beforeEach(() => {
@@ -40,5 +40,37 @@ describe("RateLimiter", () => {
         await vi.advanceTimersByTimeAsync(110); // Total > 200ms to be sure
 
         await expect(p2).resolves.toBeUndefined();
+    });
+});
+
+describe("fetchWithRetry", () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("returns the final 429 response after exhausting retries", async () => {
+        const response = new Response("slow down", {
+            status: 429,
+            statusText: "Too Many Requests",
+        });
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
+
+        const result = await fetchWithRetry("https://example.com", {}, 2, 1);
+
+        expect(result).toBe(response);
+        expect(fetchSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it("returns the final 5xx response after exhausting retries", async () => {
+        const response = new Response("server error", {
+            status: 503,
+            statusText: "Service Unavailable",
+        });
+        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
+
+        const result = await fetchWithRetry("https://example.com", {}, 2, 1);
+
+        expect(result).toBe(response);
+        expect(fetchSpy).toHaveBeenCalledTimes(3);
     });
 });

@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const fetchWithRetry = vi.fn();
 const searchPublications = vi.fn();
 const searchPapers = vi.fn();
+let warnSpy: ReturnType<typeof vi.spyOn>;
 
 vi.mock("@paper-tools/core", () => ({
     fetchWithRetry,
@@ -12,14 +13,19 @@ vi.mock("@paper-tools/core", () => ({
 
 const { fetchBibtex } = await import("../src/bibtex-fetcher.js");
 
+beforeEach(() => {
+    fetchWithRetry.mockReset();
+    searchPublications.mockReset();
+    searchPapers.mockReset();
+    // Suppress console.warn to keep test output clean
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+afterEach(() => {
+    warnSpy.mockRestore();
+});
+
 describe("fetchBibtex", () => {
-    beforeEach(() => {
-        fetchWithRetry.mockReset();
-        searchPublications.mockReset();
-        searchPapers.mockReset();
-        // Suppress console.warn to keep test output clean
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
-    });
 
     it("returns null if neither doi nor title is provided", async () => {
         const result = await fetchBibtex({});
@@ -124,7 +130,7 @@ describe("fetchBibtex", () => {
     it("falls back to Semantic Scholar when DBLP candidates lack URLs", async () => {
         // DBLP candidate missing url
         searchPublications.mockResolvedValueOnce([
-            { title: "No URL" }
+            { title: "No URL" },
         ]);
 
         // Semantic Scholar succeeds
