@@ -96,7 +96,7 @@ export default function CoauthorNetworkGraph({
           nodeRepulsion: () => 50000,
           idealEdgeLength: () => 140,
           padding: 25,
-        } as import("cytoscape").CoseLayoutOptions,
+        },
       });
     };
 
