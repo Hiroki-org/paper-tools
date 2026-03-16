@@ -98,9 +98,14 @@ export async function drilldown(
         if (enrich) {
             // Background enrichment allows parallel fetch
             enrichPromises.push(
-                enrichAllWithCrossref(found).then((enriched) => {
-                    resultEntry.papers = enriched;
-                })
+                enrichAllWithCrossref(found)
+                    .then((enriched) => {
+                        resultEntry.papers = enriched;
+                    })
+                    .catch((error) => {
+                        const message = error instanceof Error ? error.message : String(error);
+                        console.error(`[drilldown] Enrichment failed at level ${d}: ${message}`);
+                    })
             );
         }
         currentPapers = found;

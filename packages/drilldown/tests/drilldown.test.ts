@@ -173,4 +173,51 @@ describe("drilldown", () => {
         const hasDuplicate = level1Papers.some((p) => p.doi?.toLowerCase() === "10.1234/seed");
         expect(hasDuplicate).toBe(false);
     });
+
+    it("should keep original results when background enrichment fails", async () => {
+        const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        mockFetch.mockImplementationOnce(async () => ({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    title: "Level 1 Paper",
+                                    authors: { author: [{ text: "Bob" }] },
+                                    doi: "10.5678/level1",
+                                    year: "2024",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        }));
+        mockFetch.mockImplementation(async () => {
+            throw new Error("Crossref unavailable");
+        });
+
+        const seedPapers = [
+            { title: "Software Testing with AI", authors: [{ name: "Alice" }], doi: "10.1234/seed" },
+        ];
+
+        const results = await drilldown(seedPapers, 1, 10, true);
+
+        expect(results[1].papers).toEqual([
+            {
+                title: "Level 1 Paper",
+                authors: [{ name: "Bob" }],
+                doi: "10.5678/level1",
+                year: 2024,
+            },
+        ]);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[drilldown] Enrichment failed at level 1:"));
+        expect(errorSpy.mock.calls[0]?.[0]).toContain("Crossref unavailable");
+
+        errorSpy.mockRestore();
+    }, 15000);
 });
