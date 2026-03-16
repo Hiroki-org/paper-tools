@@ -44,7 +44,12 @@ describe("RateLimiter", () => {
 });
 
 describe("fetchWithRetry", () => {
+    beforeEach(() => {
+        vi.stubGlobal("fetch", vi.fn());
+    });
+
     afterEach(() => {
+        vi.unstubAllGlobals();
         vi.restoreAllMocks();
     });
 
@@ -53,12 +58,13 @@ describe("fetchWithRetry", () => {
             status: 429,
             statusText: "Too Many Requests",
         });
-        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValue(response);
 
         const result = await fetchWithRetry("https://example.com", {}, 2, 1);
 
         expect(result).toBe(response);
-        expect(fetchSpy).toHaveBeenCalledTimes(3);
+        expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
     it("returns the final 5xx response after exhausting retries", async () => {
@@ -66,11 +72,12 @@ describe("fetchWithRetry", () => {
             status: 503,
             statusText: "Service Unavailable",
         });
-        const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValue(response);
 
         const result = await fetchWithRetry("https://example.com", {}, 2, 1);
 
         expect(result).toBe(response);
-        expect(fetchSpy).toHaveBeenCalledTimes(3);
+        expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 });
