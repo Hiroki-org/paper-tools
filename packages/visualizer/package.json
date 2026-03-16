@@ -2,6 +2,7 @@
   "name": "@paper-tools/visualizer",
   "version": "0.1.0",
   "description": "OpenCitations 引用グラフ可視化CLI（DOT / Mermaid / JSON）",
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

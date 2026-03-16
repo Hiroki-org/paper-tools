@@ -2,6 +2,7 @@
   "name": "@paper-tools/scraper",
   "version": "0.1.0",
   "description": "Conference scraper for conf.researchr.org with DBLP integration",
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.18.3",
   "description": "論文関連ツール群のモノレポ",
+  "license": "MIT",
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
