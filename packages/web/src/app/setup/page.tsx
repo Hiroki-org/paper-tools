@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { Database, CheckCircle2, AlertCircle, ExternalLink, RefreshCw, LayoutGrid, Info } from "lucide-react";
+import Image from "next/image";
 
 type DatabaseItem = {
   id: string;
@@ -237,8 +238,7 @@ export default function SetupPage() {
                     {item.icon &&
                     typeof item.icon === "string" &&
                     item.icon.startsWith("http") ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.icon} alt={item.title} className="h-6 w-6 rounded" />
+                      <Image src={item.icon} alt={item.title} width={24} height={24} className="h-6 w-6 rounded" />
                     ) : item.icon ? (
                       item.icon
                     ) : (
