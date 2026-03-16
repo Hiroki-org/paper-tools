@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAccessToken, getNotionClient, setDatabaseCookie } from "@/lib/auth";
-import { resolveNotionDataSource } from "@/lib/notion-data-source";
+import { isNotionClientError, APIErrorCode } from "@notionhq/client";
 
 type SelectBody = {
     databaseId?: string;
 };
+
+interface NotionDataSource {
+    object: string;
+    id: string;
+    properties: Record<string, { type?: string }>;
+}
+
+interface NotionDatabase {
+    object: string;
+    data_sources?: Array<{ id: string }>;
+}
 
 function validateDatabaseProperties(properties: Record<string, { type?: string }>) {
     const entries = Object.entries(properties);
@@ -35,11 +46,41 @@ export async function POST(request: NextRequest) {
         }
 
         const notion = getNotionClient(accessToken);
-        const dataSource = await resolveNotionDataSource<{ type?: string }>(notion, databaseId);
-        const warnings = validateDatabaseProperties(dataSource.properties);
+
+        let selectedDataSourceId: string | null = null;
+        let properties: Record<string, { type?: string }> | null = null;
+
+        try {
+            const dataSource = await notion.dataSources.retrieve({ data_source_id: databaseId }) as unknown as NotionDataSource;
+            if (dataSource.object === "data_source") {
+                selectedDataSourceId = dataSource.id;
+                properties = dataSource.properties;
+            }
+        } catch (error) {
+            if (isNotionClientError(error) && (error.code === APIErrorCode.ObjectNotFound || error.code === APIErrorCode.ValidationError)) {
+                const database = await notion.databases.retrieve({ database_id: databaseId }) as unknown as NotionDatabase;
+                if (database.object !== "database") {
+                    return NextResponse.json({ error: "Database not found" }, { status: 404 });
+                }
+                const firstDataSourceId = database.data_sources?.[0]?.id;
+                if (!firstDataSourceId) {
+                    return NextResponse.json({ error: "No data source found in selected database" }, { status: 400 });
+                }
+                const dataSource = await notion.dataSources.retrieve({ data_source_id: firstDataSourceId }) as unknown as NotionDataSource;
+                if (dataSource.object !== "data_source") {
+                    return NextResponse.json({ error: "Data source not found" }, { status: 404 });
+                }
+                selectedDataSourceId = dataSource.id;
+                properties = dataSource.properties;
+            } else {
+                throw error;
+            }
+        }
+
+        const warnings = validateDatabaseProperties(properties ?? {});
 
         const response = NextResponse.json({ success: true, warnings });
-        setDatabaseCookie(response, dataSource.id, request);
+        setDatabaseCookie(response, selectedDataSourceId ?? databaseId, request);
         return response;
     } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to select database";
