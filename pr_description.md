@@ -1,11 +1,11 @@
 💡 **What:**
-The `multi` command action handler in `packages/visualizer/src/cli.ts` was refactored to replace the sequential iteration over DOIs (`for (const doi of dois)`) with a concurrent approach using `Promise.all` and `Array.map`.
+`packages/visualizer/src/cli.ts` の `multi` コマンドのアクションハンドラをリファクタリングし、DOI の逐次的な反復処理 (`for (const doi of dois)`) を `Promise.all` と `Array.map` を使用した並行アプローチに置き換えました。
 
 🎯 **Why:**
-Previously, when the `multi` command was called with several DOIs to visualize and merge their citation graphs, the process fetched the graph for each DOI one after another. Since each graph build relies on I/O-bound operations (fetching citation data from external APIs via `@paper-tools/core`), doing this sequentially resulted in unnecessary wait times. By using `Promise.all`, we can trigger the fetching for all DOIs at once and wait for them to resolve concurrently, drastically speeding up the overall processing time when dealing with multiple input DOIs.
+以前は、複数の DOI を指定して `multi` コマンドを呼び出し、それらの引用グラフを可視化してマージする際、各 DOI のグラフを1つずつ順番にフェッチしていました。各グラフの構築は I/O バウンドの操作 (`@paper-tools/core` 経由での外部 API からの引用データのフェッチ) に依存しているため、これを逐次的に行うと不要な待ち時間が発生していました。`Promise.all` を使用することで、すべての DOI に対するフェッチを同時にトリガーし、それらが並行して解決されるのを待つことができるようになり、複数の DOI が入力された場合の全体的な処理時間を大幅に短縮できます。
 
 📊 **Measured Improvement:**
-A benchmark (`tests/bench-multi.test.ts`) was created mimicking the `multi` command behavior by processing three DOI strings. Results observed directly in the monorepo via `bun test`:
-*   **Sequential Baseline:** ~1323ms (and ~1741ms in initial runs without cache warmup)
-*   **Concurrent (Promise.all):** ~1195ms (and ~946ms in initial runs)
-*   **Improvement:** An average speedup between **~9.6%** to **~45%** depending on network conditions/local API limits at the time. This improvement will scale positively for users passing more DOIs into the CLI.
+3つの DOI 文字列を処理することで `multi` コマンドの動作を模倣するベンチマーク (`tests/bench-multi.test.ts`) を作成しました。モノレポ内で `bun test` を使用して直接観察された結果は以下の通りです。
+*   **逐次的 (ベースライン):** 約 1323ms (キャッシュのウォームアップなしの初回実行時は約 1741ms)
+*   **並行的 (Promise.all):** 約 1195ms (初回実行時は約 946ms)
+*   **改善:** 当時のネットワーク条件やローカルAPIの制限に応じて、平均して **約 9.6%** から **約 45%** の高速化。この改善は、ユーザーが CLI に渡す DOI の数が増えるほど、さらに効果を発揮します。
