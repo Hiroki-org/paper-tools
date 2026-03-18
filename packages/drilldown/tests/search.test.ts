@@ -94,6 +94,43 @@ describe("search", () => {
         expect(mockFetch).not.toHaveBeenCalled();
     });
 
+    it("enrichAllWithCrossref should honor the requested concurrency", async () => {
+        let activeRequests = 0;
+        let peakConcurrency = 0;
+
+        mockFetch.mockImplementation(async () => {
+            activeRequests += 1;
+            peakConcurrency = Math.max(peakConcurrency, activeRequests);
+            await new Promise((resolve) => setTimeout(resolve, 5));
+            activeRequests -= 1;
+
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    status: "ok",
+                    message: {
+                        title: ["Enriched Title"],
+                        author: [{ given: "Bob", family: "Smith" }],
+                        DOI: "10.1234/test",
+                    },
+                }),
+            };
+        });
+
+        const papers = [
+            { title: "Paper 1", authors: [{ name: "Alice" }], doi: "10.1234/test-1" },
+            { title: "Paper 2", authors: [{ name: "Alice" }], doi: "10.1234/test-2" },
+            { title: "Paper 3", authors: [{ name: "Alice" }], doi: "10.1234/test-3" },
+        ];
+
+        const enriched = await enrichAllWithCrossref(papers, 2);
+
+        expect(enriched).toHaveLength(3);
+        expect(peakConcurrency).toBeLessThanOrEqual(2);
+        expect(mockFetch).toHaveBeenCalledTimes(3);
+    });
+
     it("searchCrossref should call Crossref API and return papers", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,

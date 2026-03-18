@@ -56,14 +56,32 @@ export async function enrichWithCrossref(paper: Paper): Promise<Paper> {
 /**
  * 複数論文を一括で Crossref 情報で補完する（最大 concurrency 数で並列化）
  */
-export async function enrichAllWithCrossref(papers: Paper[], concurrency = 3): Promise<Paper[]> {
-    const results: Paper[] = [];
-    for (let i = 0; i < papers.length; i += concurrency) {
-        const batch = papers.slice(i, i + concurrency);
-        const enriched = await Promise.all(batch.map((p) => enrichWithCrossref(p)));
-        results.push(...enriched);
+export async function enrichAllWithCrossref(
+    papers: Paper[],
+    concurrency = 3,
+): Promise<Paper[]> {
+    if (papers.length === 0) {
+        return [];
     }
-    return results;
+
+    const workerCount = Math.max(1, Math.min(papers.length, Math.floor(concurrency)));
+    const enrichedPapers = [...papers];
+    let cursor = 0;
+
+    const workers = Array.from({ length: workerCount }, () => (async () => {
+        while (true) {
+            const current = cursor;
+            cursor += 1;
+            if (current >= papers.length) {
+                return;
+            }
+
+            enrichedPapers[current] = await enrichWithCrossref(papers[current]);
+        }
+    })());
+
+    await Promise.all(workers);
+    return enrichedPapers;
 }
 
 /**

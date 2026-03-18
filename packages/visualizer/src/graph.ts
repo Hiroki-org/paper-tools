@@ -43,12 +43,14 @@ export async function buildCitationGraph(
     depth = 1,
     direction: Direction = "both",
 ): Promise<CitationGraph> {
-    const nodeMap = new Map<string, GraphNode>();
+    const nodeSet = new Set<string>();
+    const nodes: GraphNode[] = [];
     const edgeSet = new Set<string>();
     const edges: GraphEdge[] = [];
 
     // 起点ノードを追加
-    nodeMap.set(doi.toLowerCase(), { doi: doi.toLowerCase() });
+    nodeSet.add(doi.toLowerCase());
+    nodes.push({ doi: doi.toLowerCase() });
 
     let frontier = [doi.toLowerCase()];
 
@@ -101,8 +103,9 @@ export async function buildCitationGraph(
 
                 // 新しいノードをフロンティアへ
                 for (const nodeDoi of [c.source, c.target]) {
-                    if (!nodeMap.has(nodeDoi)) {
-                        nodeMap.set(nodeDoi, { doi: nodeDoi });
+                    if (!nodeSet.has(nodeDoi)) {
+                        nodeSet.add(nodeDoi);
+                        nodes.push({ doi: nodeDoi });
                         nextFrontier.push(nodeDoi);
                     }
                 }
@@ -113,7 +116,7 @@ export async function buildCitationGraph(
         if (frontier.length === 0) break;
     }
 
-    return { nodes: Array.from(nodeMap.values()), edges };
+    return { nodes, edges };
 }
 
 /**
@@ -121,6 +124,7 @@ export async function buildCitationGraph(
  */
 export function mergeGraphs(...graphs: CitationGraph[]): CitationGraph {
     const nodeMap = new Map<string, GraphNode>();
+    const nodes: GraphNode[] = [];
     const edgeSet = new Set<string>();
     const edges: GraphEdge[] = [];
 
@@ -129,7 +133,9 @@ export function mergeGraphs(...graphs: CitationGraph[]): CitationGraph {
             const key = node.doi.toLowerCase();
             const existing = nodeMap.get(key);
             if (!existing) {
-                nodeMap.set(key, { ...node, doi: key });
+                const newNode = { ...node, doi: key };
+                nodeMap.set(key, newNode);
+                nodes.push(newNode);
             } else if (!existing.title && node.title) {
                 existing.title = node.title;
             }
@@ -149,5 +155,5 @@ export function mergeGraphs(...graphs: CitationGraph[]): CitationGraph {
         }
     }
 
-    return { nodes: Array.from(nodeMap.values()), edges };
+    return { nodes, edges };
 }
