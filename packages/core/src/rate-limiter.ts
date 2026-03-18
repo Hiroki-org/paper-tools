@@ -85,25 +85,18 @@ export async function fetchWithRetry(
         if (response.ok) {
             return response;
         }
-        // 429 Too Many Requests — back off and retry
-        if (response.status === 429) {
+        // 429 / 5xx — retry, but return the final response when retries are exhausted
+        if (response.status === 429 || response.status >= 500) {
             lastError = new Error(`HTTP ${response.status}: ${response.statusText} for ${url}`);
             if (attempt < maxRetries) {
                 const delay = baseDelayMs * Math.pow(2, attempt);
                 await new Promise((resolve) => setTimeout(resolve, delay));
+                continue;
             }
-            continue;
+            return response;
         }
-        // Other client errors — not retryable
-        if (response.status >= 400 && response.status < 500) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText} for ${url}`);
-        }
-        // Server errors — retry
-        lastError = new Error(`HTTP ${response.status}: ${response.statusText} for ${url}`);
-        if (attempt < maxRetries) {
-            const delay = baseDelayMs * Math.pow(2, attempt);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-        }
+        // Other client errors — return response instead of throwing so clients can handle it
+        return response;
     }
-    throw lastError ?? new Error(`Failed to fetch ${url}`);
+    throw lastError ?? new Error(`fetchWithRetry failed without response: ${url}`);
 }

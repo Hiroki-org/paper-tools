@@ -78,9 +78,10 @@ describe("Semantic Scholar Client", () => {
             ok: false,
             status: 404,
             statusText: "Not Found",
+            text: async () => "Not Found"
         });
 
-        await expect(getPaper("bad-id")).rejects.toThrow("HTTP 404: Not Found for");
+        await expect(getPaper("bad-id")).rejects.toThrow("Semantic Scholar API error: 404 Not Found - Not Found");
     });
 
     it("getAuthor should parse author details", async () => {

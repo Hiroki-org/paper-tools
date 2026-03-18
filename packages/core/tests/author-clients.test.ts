@@ -77,6 +77,18 @@ describe("Author API clients", () => {
         expect(res.id).toContain("A123");
     });
 
+    it("getOpenAlexAuthor throws error on API failure", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+            statusText: "Not Found",
+            text: async () => "Author not found",
+            url: "https://api.openalex.org/authors/A999?mailto=test@example.com",
+        });
+
+        await expect(getOpenAlexAuthor("A999")).rejects.toThrowError("OpenAlex API error: 404 Not Found - Author not found");
+    });
+
     it("resolveOpenAlexAuthorId selects best match", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,

@@ -18,6 +18,9 @@ async function fetchByEndpoint(endpoint: "citations" | "references", doi: string
     const url = `${OPENCITATIONS_API_BASE}/${endpoint}/${encodeURIComponent(doi)}`;
     try {
         const response = await fetchWithRetry(url);
+        if (!response.ok) {
+            throw new Error(`OpenCitations API error: ${response.status} ${response.statusText}`);
+        }
         const data = await response.json() as OpenCitationEntry[];
 
         return data.map((entry) => ({
