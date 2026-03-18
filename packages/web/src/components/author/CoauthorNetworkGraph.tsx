@@ -93,10 +93,10 @@ export default function CoauthorNetworkGraph({
         layout: {
           name: "cose",
           animate: false,
-          nodeRepulsion: 50000,
-          idealEdgeLength: 140,
+          nodeRepulsion: () => 50000,
+          idealEdgeLength: () => 140,
           padding: 25,
-        } as any,
+        } as import("cytoscape").CoseLayoutOptions,
       });
     };
 
