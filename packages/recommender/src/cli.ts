@@ -15,16 +15,10 @@ import {
     recommendFromSingle,
 } from "./recommend.js";
 import type { S2Paper } from "@paper-tools/core";
+import { parsePositiveInt } from "@paper-tools/core";
 
 const program = new Command();
 
-function parsePositiveInt(value: string, optionName: string): number {
-    const parsed = Number.parseInt(value, 10);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-        throw new Error(`${optionName} には正の整数を指定してください: ${value}`);
-    }
-    return parsed;
-}
 
 async function syncPapers(
     databaseId: string,
