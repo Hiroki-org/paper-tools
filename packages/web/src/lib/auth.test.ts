@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { sealCookieValue, unsealCookieValue } from "./auth";
+import { sealCookieValue, unsealCookieValue, getAccessToken, ACCESS_TOKEN_COOKIE } from "./auth";
 
 describe("auth", () => {
     describe("sealCookieValue and unsealCookieValue", () => {
@@ -78,6 +78,50 @@ describe("auth", () => {
             const sealed = sealCookieValue(data);
             const unsealed = unsealCookieValue(sealed);
             expect(unsealed).toEqual(data);
+        });
+
+    });
+
+    describe("getAccessToken", () => {
+        beforeEach(() => {
+            vi.stubEnv("COOKIE_SECRET", "super-secret-key-12345");
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+        });
+
+        it("should return null if cookie is not present", () => {
+            const cookieStore = {
+                get: vi.fn().mockReturnValue(undefined)
+            };
+            expect(getAccessToken(cookieStore)).toBeNull();
+            expect(cookieStore.get).toHaveBeenCalledWith(ACCESS_TOKEN_COOKIE);
+        });
+
+        it("should return the token when valid cookie is present", () => {
+            const token = "valid-token-123";
+            const sealed = sealCookieValue({ token });
+            const cookieStore = {
+                get: vi.fn().mockReturnValue({ value: sealed })
+            };
+
+            expect(getAccessToken(cookieStore)).toBe(token);
+        });
+
+        it("should return null when the cookie is malformed or invalid", () => {
+            const cookieStore = {
+                get: vi.fn().mockReturnValue({ value: "invalid.cookie.value" })
+            };
+            expect(getAccessToken(cookieStore)).toBeNull();
+        });
+
+        it("should return null when the cookie is valid but contains no token", () => {
+            const sealed = sealCookieValue({ notToken: "abc" });
+            const cookieStore = {
+                get: vi.fn().mockReturnValue({ value: sealed })
+            };
+            expect(getAccessToken(cookieStore)).toBeNull();
         });
     });
 });
