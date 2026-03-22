@@ -37,7 +37,7 @@ async function syncPapers(
     let skipped = 0;
     let errors = 0;
 
-    for (const paper of papers) {
+    const toProcess = papers.filter(paper => {
         const doi = paper.externalIds?.DOI;
         const titleKey = (paper.title ?? "").trim().toLowerCase();
         const isDuplicate = (doi && duplicates.duplicateDois.has(doi))
@@ -45,22 +45,30 @@ async function syncPapers(
 
         if (isDuplicate) {
             skipped++;
-            continue;
+            return false;
         }
+        return true;
+    });
 
-        if (dryRun) {
-            added++;
-            continue;
-        }
+    if (dryRun) {
+        added = toProcess.length;
+        return { added, skipped, errors };
+    }
 
-        try {
-            await createPaperPage(databaseId, paper, undefined, validation);
-            added++;
-        } catch (err) {
-            const id = doi || paper.title || paper.paperId;
-            console.error(`Failed to add paper ${id}:`, err instanceof Error ? err.message : err);
-            errors++;
-        }
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
+        const batch = toProcess.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (paper) => {
+            try {
+                await createPaperPage(databaseId, paper, undefined, validation);
+                added++;
+            } catch (err) {
+                const doi = paper.externalIds?.DOI;
+                const id = doi || paper.title || paper.paperId;
+                console.error(`Failed to add paper ${id}:`, err instanceof Error ? err.message : err);
+                errors++;
+            }
+        }));
     }
 
     return { added, skipped, errors };
