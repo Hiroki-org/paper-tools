@@ -1,13 +1,6 @@
-import { fetchWithRetry, searchPapers, searchPublications } from "@paper-tools/core";
+import { fetchWithRetry, searchPapers, searchPublications, normalizeDoi } from "@paper-tools/core";
 import type { BibtexIdentifier, FetchBibtexResult } from "./types.js";
 
-function normalizeDoi(doi: string): string {
-    return doi
-        .trim()
-        .replace(/^https?:\/\/doi\.org\//i, "")
-        .replace(/^doi:/i, "")
-        .trim();
-}
 
 function extractDblpKeyFromUrl(url?: string): string | null {
     if (!url) return null;

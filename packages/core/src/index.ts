@@ -66,3 +66,6 @@ export type {
     CoauthorInfo,
     TopicTimelineEntry,
 } from "./author-types.js";
+
+// Utilities
+export { normalizeDoi } from "./utils/normalize-doi.js";

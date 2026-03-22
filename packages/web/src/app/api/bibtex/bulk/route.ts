@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeDoi } from "@paper-tools/core";
 import { RateLimiter } from "@paper-tools/core";
 import { deriveBibtexKey, fetchBibtex, formatBibtex } from "@paper-tools/bibtex/lib";
 
@@ -19,10 +20,6 @@ function parseKeyFormat(value: string | undefined): "default" | "short" | "venue
     return "default";
 }
 
-function normalizeDoi(value?: string): string | undefined {
-    if (!value?.trim()) return undefined;
-    return value.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:/i, "").trim();
-}
 
 export async function POST(request: NextRequest) {
     try {

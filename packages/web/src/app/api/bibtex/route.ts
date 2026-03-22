@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeDoi } from "@paper-tools/core";
 import { deriveBibtexKey, fetchBibtex, formatBibtex } from "@paper-tools/bibtex/lib";
 
 function parseFormat(value: string | null): "bibtex" | "biblatex" {
@@ -10,10 +11,6 @@ function parseKeyFormat(value: string | null): "default" | "short" | "venue" {
     return "default";
 }
 
-function normalizeDoi(value?: string): string | undefined {
-    if (!value?.trim()) return undefined;
-    return value.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:/i, "").trim();
-}
 
 export async function GET(request: NextRequest) {
     try {
