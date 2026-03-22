@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { sealCookieValue, unsealCookieValue } from "./auth";
+import { sealCookieValue, unsealCookieValue, clearAuthCookies } from "./auth";
+import {
+    ACCESS_TOKEN_COOKIE,
+    REFRESH_TOKEN_COOKIE,
+    USER_INFO_COOKIE,
+    DATABASE_ID_COOKIE,
+    OAUTH_STATE_COOKIE,
+} from "./auth-cookies";
+import { NextResponse } from "next/server";
 
 describe("auth", () => {
     describe("sealCookieValue and unsealCookieValue", () => {
@@ -80,4 +88,57 @@ describe("auth", () => {
             expect(unsealed).toEqual(data);
         });
     });
+    describe("clearAuthCookies", () => {
+        let mockResponse: any;
+
+        beforeEach(() => {
+            mockResponse = {
+                cookies: {
+                    set: vi.fn(),
+                },
+            };
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            vi.restoreAllMocks();
+        });
+
+        it("should clear all auth cookies with correct options in development", () => {
+            vi.stubEnv("NODE_ENV", "development");
+
+            clearAuthCookies(mockResponse as NextResponse);
+
+            const expectedCookies = [
+                ACCESS_TOKEN_COOKIE,
+                REFRESH_TOKEN_COOKIE,
+                USER_INFO_COOKIE,
+                DATABASE_ID_COOKIE,
+                OAUTH_STATE_COOKIE,
+            ];
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledTimes(5);
+
+            expectedCookies.forEach((cookieName) => {
+                expect(mockResponse.cookies.set).toHaveBeenCalledWith(cookieName, "", {
+                    httpOnly: true,
+                    secure: false,
+                    sameSite: "lax",
+                    path: "/",
+                    maxAge: 0,
+                });
+            });
+        });
+
+        it("should set secure flag to true in production", () => {
+            vi.stubEnv("NODE_ENV", "production");
+
+            clearAuthCookies(mockResponse as NextResponse);
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(ACCESS_TOKEN_COOKIE, "", expect.objectContaining({
+                secure: true,
+            }));
+        });
+    });
+
 });
