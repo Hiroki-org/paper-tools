@@ -993,9 +993,8 @@ import { fn } from "./module.js"
 
 ```typescript
 // Fix: Mock fetch in test setup
-beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn());
-});
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 ```
 
 **"Timeout: not all promises completed"**
