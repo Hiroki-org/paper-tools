@@ -192,8 +192,11 @@ describe("fetchBibtex", () => {
             "DBLP Error"
         );
         expect(console.warn).toHaveBeenCalledWith(
-            expect.stringContaining("[bibtex] Semantic Scholar fallback failed for title \"Fuzzing\":"),
-            "Semantic Scholar Error"
+            "[bibtex] Semantic Scholar fallback failed",
+            {
+                title: "Fuzzing",
+                error: "Semantic Scholar Error",
+            }
         );
     });
 
@@ -268,7 +271,13 @@ describe("additional edge cases", () => {
         expect(result).toBeNull();
         expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Crossref fetch failed"), "String error crossref");
         expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("DBLP fetch failed"), "String error dblp");
-        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Semantic Scholar fallback failed"), "String error semanticscholar");
+        expect(console.warn).toHaveBeenCalledWith(
+            "[bibtex] Semantic Scholar fallback failed",
+            {
+                title: "Fuzzing",
+                error: "String error semanticscholar",
+            }
+        );
     });
 });
 
