@@ -37,7 +37,8 @@ async function syncPapers(
     let skipped = 0;
     let errors = 0;
 
-    const toProcess = papers.filter(paper => {
+    const toProcess: S2Paper[] = [];
+    for (const paper of papers) {
         const doi = paper.externalIds?.DOI;
         const titleKey = (paper.title ?? "").trim().toLowerCase();
         const isDuplicate = (doi && duplicates.duplicateDois.has(doi))
@@ -45,10 +46,10 @@ async function syncPapers(
 
         if (isDuplicate) {
             skipped++;
-            return false;
+        } else {
+            toProcess.push(paper);
         }
-        return true;
-    });
+    }
 
     if (dryRun) {
         added = toProcess.length;
