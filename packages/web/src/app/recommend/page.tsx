@@ -3,7 +3,6 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  BookOpen,
   LayoutGrid,
   Lightbulb,
   Network,
