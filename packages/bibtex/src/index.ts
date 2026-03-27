@@ -156,28 +156,35 @@ program
                 console.error(`Warning: --tag はタイトル文字列ベースの簡易フィルタです (${targets.length}/${records.length})`);
             }
 
-            const results = await Promise.all(
-                targets.map(async (record) => {
-                    const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
-                    if (!fetched) {
-                        console.error(`Warning: BibTeX取得失敗: ${record.title}`);
-                        return null;
-                    }
+            const CONCURRENCY_LIMIT = 10;
+            const chunks: string[] = [];
 
-                    const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
-                    const formatted = formatBibtex(fetched.bibtex, {
-                        format,
-                        key: customKey,
-                        keyFormat,
-                    });
+            for (let i = 0; i < targets.length; i += CONCURRENCY_LIMIT) {
+                const batch = targets.slice(i, i + CONCURRENCY_LIMIT);
+                const results = await Promise.all(
+                    batch.map(async (record) => {
+                        const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
+                        if (!fetched) {
+                            console.error(`Warning: BibTeX取得失敗: ${record.title}`);
+                            return null;
+                        }
 
-                    if (formatted.warnings.length > 0) {
-                        console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
-                    }
-                    return formatted.formatted;
-                })
-            );
-            const chunks = results.filter((c): c is string => c !== null);
+                        const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
+                        const formatted = formatBibtex(fetched.bibtex, {
+                            format,
+                            key: customKey,
+                            keyFormat,
+                        });
+
+                        if (formatted.warnings.length > 0) {
+                            console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
+                        }
+                        return formatted.formatted;
+                    })
+                );
+
+                chunks.push(...results.filter((c): c is string => c !== null));
+            }
 
             const outputText = chunks.join("\n\n");
             if (options.output) {
