@@ -91,7 +91,7 @@ export default function AuthorDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {profile.homepage && (
+          {profile.homepage && (profile.homepage.startsWith("http://") || profile.homepage.startsWith("https://")) && (
             <a
               href={profile.homepage}
               target="_blank"
