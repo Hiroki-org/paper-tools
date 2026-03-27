@@ -82,7 +82,8 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
                 return { bibtex: dblpBibtex, source: "dblp" };
             }
         } catch (error) {
-            console.warn(`[bibtex] DBLP fetch failed for title \"${title}\":`, error instanceof Error ? error.message : error);
+            const errorDetail = error instanceof Error ? error.message : String(error);
+            console.warn("[bibtex] DBLP fetch failed", { title, error: errorDetail });
             // fall through to next method
         }
 
