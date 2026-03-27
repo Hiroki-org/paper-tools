@@ -995,6 +995,11 @@ import { fn } from "./module.js"
 // Fix: Mock fetch in test setup
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
+
+beforeEach(() => {
+  // Reset mock state before each test for proper isolation
+  mockFetch.mockReset();
+});
 ```
 
 **"Timeout: not all promises completed"**
