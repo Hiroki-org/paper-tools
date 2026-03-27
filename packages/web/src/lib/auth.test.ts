@@ -135,9 +135,25 @@ describe("auth", () => {
 
             clearAuthCookies(mockResponse as NextResponse);
 
-            expect(mockResponse.cookies.set).toHaveBeenCalledWith(ACCESS_TOKEN_COOKIE, "", expect.objectContaining({
-                secure: true,
-            }));
+            const expectedCookies = [
+                ACCESS_TOKEN_COOKIE,
+                REFRESH_TOKEN_COOKIE,
+                USER_INFO_COOKIE,
+                DATABASE_ID_COOKIE,
+                OAUTH_STATE_COOKIE,
+            ];
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledTimes(5);
+
+            expectedCookies.forEach((cookieName) => {
+                expect(mockResponse.cookies.set).toHaveBeenCalledWith(cookieName, "", {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "lax",
+                    path: "/",
+                    maxAge: 0,
+                });
+            });
         });
     });
 
