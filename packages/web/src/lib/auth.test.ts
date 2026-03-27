@@ -124,8 +124,8 @@ describe("auth", () => {
             expect(getAccessToken(cookieStore)).toBeNull();
         });
 
-        it("should return null if token in cookie is not a string", () => {
-            const sealed = sealCookieValue({ token: 123 });
+        it("should return null when the cookie is valid but contains a non-string token", () => {
+            const sealed = sealCookieValue({ token: 12345 });
             const cookieStore = {
                 get: vi.fn().mockReturnValue({ value: sealed })
             };
