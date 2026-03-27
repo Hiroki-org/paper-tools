@@ -123,5 +123,13 @@ describe("auth", () => {
             };
             expect(getAccessToken(cookieStore)).toBeNull();
         });
+
+        it("should return null if token in cookie is not a string", () => {
+            const sealed = sealCookieValue({ token: 123 });
+            const cookieStore = {
+                get: vi.fn().mockReturnValue({ value: sealed })
+            };
+            expect(getAccessToken(cookieStore)).toBeNull();
+        });
     });
 });
