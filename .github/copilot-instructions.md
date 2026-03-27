@@ -997,8 +997,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 beforeEach(() => {
-  // Reset mock state before each test for proper isolation
-  mockFetch.mockReset();
+    mockFetch.mockReset();
 });
 ```
 
