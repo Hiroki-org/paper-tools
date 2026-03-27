@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { aggregateCoauthorsFromPapers, buildCoauthorNetwork } from "../services/coauthor-network.js";
-import { getAuthorPapers, type S2AuthorPapersResponse, type S2Paper } from "@paper-tools/core";
+import { getAuthorPapers, type S2Paper, type S2AuthorPapersResponse } from "@paper-tools/core";
 
 vi.mock("@paper-tools/core", () => ({
     getAuthorPapers: vi.fn(),
@@ -28,7 +28,7 @@ describe("aggregateCoauthorsFromPapers", () => {
             },
         ];
 
-        const result = aggregateCoauthorsFromPapers("self", papers as unknown as S2Paper[]);
+        const result = aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[]);
         expect(result).toEqual([
             { authorId: "a1", name: "Alice", paperCount: 2 },
             { authorId: "a2", name: "Bob", paperCount: 1 },
@@ -63,7 +63,7 @@ describe("buildCoauthorNetwork", () => {
         ];
 
         vi.mocked(getAuthorPapers).mockResolvedValue({
-            data: mockPapers as unknown as S2Paper[],
+            data: mockPapers as Partial<S2Paper>[] as S2Paper[],
             total: 2,
             offset: 0,
             next: 0,
