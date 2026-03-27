@@ -156,12 +156,11 @@ program
                 console.error(`Warning: --tag はタイトル文字列ベースの簡易フィルタです (${targets.length}/${records.length})`);
             }
 
-            const CONCURRENCY_LIMIT = 10;
-            const chunks: string[] = [];
-
-            for (let i = 0; i < targets.length; i += CONCURRENCY_LIMIT) {
-                const batch = targets.slice(i, i + CONCURRENCY_LIMIT);
-                const results = await Promise.all(
+            const results: (string | null)[] = [];
+            const BATCH_SIZE = 10;
+            for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+                const batch = targets.slice(i, i + BATCH_SIZE);
+                const batchResults = await Promise.all(
                     batch.map(async (record) => {
                         const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
                         if (!fetched) {
@@ -182,9 +181,9 @@ program
                         return formatted.formatted;
                     })
                 );
-
-                chunks.push(...results.filter((c): c is string => c !== null));
+                results.push(...batchResults);
             }
+            const chunks = results.filter((c): c is string => c !== null);
 
             const outputText = chunks.join("\n\n");
             if (options.output) {
