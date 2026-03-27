@@ -116,7 +116,7 @@ export async function getDatabaseInfo(
         const me = await client.users.me({});
         workspaceName = (me as any)?.name?.trim() || workspaceName;
     } catch (e) {
-        console.warn("Failed to retrieve Notion workspace name. Falling back to default. Error:", e);
+        console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
     }
 
     return {
