@@ -69,8 +69,11 @@ describe("fetchBibtex", () => {
         expect(result?.source).toBe("dblp");
         // Warning should be logged
         expect(console.warn).toHaveBeenCalledWith(
-            expect.stringContaining("[bibtex] Crossref fetch failed for DOI 10.1000/xyz:"),
-            "Crossref returned non-BibTeX response"
+            "[bibtex] Crossref fetch failed",
+            {
+                doi: "10.1000/xyz",
+                error: "Crossref returned non-BibTeX response",
+            }
         );
     });
 
@@ -266,7 +269,13 @@ describe("additional edge cases", () => {
 
         const result = await fetchBibtex({ doi: "10.1000/xyz", title: "Fuzzing" });
         expect(result).toBeNull();
-        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Crossref fetch failed"), "String error crossref");
+        expect(console.warn).toHaveBeenCalledWith(
+            "[bibtex] Crossref fetch failed",
+            {
+                doi: "10.1000/xyz",
+                error: "String error crossref",
+            }
+        );
         expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("DBLP fetch failed"), "String error dblp");
         expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Semantic Scholar fallback failed"), "String error semanticscholar");
     });
