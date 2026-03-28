@@ -60,5 +60,10 @@ describe("bibtex-formatter", () => {
 }`);
         expect(parsed.fields.title).toBe("An article with {nested {curly braces}} in title");
     });
+
+    it("throws for malformed header patterns that used to trigger regex backtracking", () => {
+        const malicious = `@a{{${" ".repeat(5000)}}`;
+        expect(() => parseBibtexEntry(malicious)).toThrow("Invalid BibTeX entry format");
+    });
 }
 );
