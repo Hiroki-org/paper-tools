@@ -191,8 +191,11 @@ describe("fetchBibtex", () => {
         const result = await fetchBibtex({ title: "Fuzzing" });
         expect(result).toBeNull();
         expect(console.warn).toHaveBeenCalledWith(
-            expect.stringContaining("[bibtex] DBLP fetch failed for title \"Fuzzing\":"),
-            "DBLP Error"
+            "[bibtex] DBLP fetch failed",
+            {
+                title: "Fuzzing",
+                error: "DBLP Error",
+            }
         );
         expect(console.warn).toHaveBeenCalledWith(
             "[bibtex] Semantic Scholar fallback failed",
@@ -279,7 +282,13 @@ describe("additional edge cases", () => {
                 error: "String error crossref",
             }
         );
-        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("DBLP fetch failed"), "String error dblp");
+        expect(console.warn).toHaveBeenCalledWith(
+            "[bibtex] DBLP fetch failed",
+            {
+                title: "Fuzzing",
+                error: "String error dblp",
+            }
+        );
         expect(console.warn).toHaveBeenCalledWith(
             "[bibtex] Semantic Scholar fallback failed",
             {
