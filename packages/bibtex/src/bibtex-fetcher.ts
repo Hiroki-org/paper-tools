@@ -94,7 +94,8 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
                 return { bibtex, source: "semanticScholar" };
             }
         } catch (error) {
-            console.warn(`[bibtex] Semantic Scholar fallback failed for title \"${title}\":`, error instanceof Error ? error.message : error);
+            const errorDetail = error instanceof Error ? error.message : String(error);
+            console.warn("[bibtex] Semantic Scholar fallback failed", { title, error: errorDetail });
         }
     }
 
