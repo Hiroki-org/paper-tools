@@ -92,14 +92,34 @@ function parseFieldValue(body: string, start: number): { value: string; nextInde
 
 export function parseBibtexEntry(raw: string): ParsedBibtexEntry {
     const text = raw.trim();
-    const headerMatch = text.match(/^@(\w+)\s*\{\s*([^,]+)\s*,([\s\S]*)\}$/);
-    if (!headerMatch) {
+    if (!text.startsWith("@")) {
         throw new Error("Invalid BibTeX entry format");
     }
 
-    const entryType = (headerMatch[1] ?? "article").toLowerCase();
-    const key = (headerMatch[2] ?? "").trim();
-    const body = (headerMatch[3] ?? "").trim();
+    const braceIndex = text.indexOf("{");
+    if (braceIndex === -1) {
+        throw new Error("Invalid BibTeX entry format");
+    }
+
+    const entryTypeRaw = text.slice(1, braceIndex).trim();
+    if (!/^\w+$/.test(entryTypeRaw)) {
+        throw new Error("Invalid BibTeX entry format");
+    }
+
+    const payload = text.slice(braceIndex + 1).trim();
+    if (!payload.endsWith("}")) {
+        throw new Error("Invalid BibTeX entry format");
+    }
+
+    const content = payload.slice(0, -1);
+    const commaIndex = content.indexOf(",");
+    if (commaIndex === -1) {
+        throw new Error("Invalid BibTeX entry format");
+    }
+
+    const key = content.slice(0, commaIndex).trim();
+    const body = content.slice(commaIndex + 1).trim();
+    const entryType = entryTypeRaw.toLowerCase();
 
     const fields: Record<string, string> = {};
     let i = 0;
