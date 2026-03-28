@@ -50,21 +50,31 @@ async function syncPapers(
         return { added, skipped, errors };
     }
 
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
-        const batch = toProcess.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(async (paper) => {
+    const CONCURRENCY = 5;
+    let cursor = 0;
+
+    const workerCount = Math.max(1, Math.min(toProcess.length, Math.floor(CONCURRENCY)));
+    const workers = Array.from({ length: workerCount }, async () => {
+        while (true) {
+            const current = cursor++;
+            if (current >= toProcess.length) {
+                return;
+            }
+
+            const paper = toProcess[current];
             try {
                 await createPaperPage(databaseId, paper, undefined, validation);
                 added++;
             } catch (err) {
-                const doi = paper.externalIds?.DOI;
-                const id = doi || paper.title || paper.paperId;
+                const doi = paper?.externalIds?.DOI;
+                const id = doi || paper?.title || paper?.paperId;
                 console.error(`Failed to add paper ${id}:`, err instanceof Error ? err.message : err);
                 errors++;
             }
-        }));
-    }
+        }
+    });
+
+    await Promise.all(workers);
 
     return { added, skipped, errors };
 }
