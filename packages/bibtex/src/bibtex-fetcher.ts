@@ -70,7 +70,8 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
             const bibtex = await fetchCrossrefBibtexByDoi(doi);
             return { bibtex, source: "crossref" };
         } catch (error) {
-            console.warn(`[bibtex] Crossref fetch failed for DOI ${doi}:`, error instanceof Error ? error.message : error);
+            const errorDetail = error instanceof Error ? error.message : String(error);
+            console.warn("[bibtex] Crossref fetch failed", { doi, error: errorDetail });
             // fall through to title-based methods
         }
     }
@@ -82,7 +83,8 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
                 return { bibtex: dblpBibtex, source: "dblp" };
             }
         } catch (error) {
-            console.warn(`[bibtex] DBLP fetch failed for title \"${title}\":`, error instanceof Error ? error.message : error);
+            const errorDetail = error instanceof Error ? error.message : String(error);
+            console.warn("[bibtex] DBLP fetch failed", { title, error: errorDetail });
             // fall through to next method
         }
 
@@ -93,7 +95,8 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
                 return { bibtex, source: "semanticScholar" };
             }
         } catch (error) {
-            console.warn(`[bibtex] Semantic Scholar fallback failed for title \"${title}\":`, error instanceof Error ? error.message : error);
+            const errorDetail = error instanceof Error ? error.message : String(error);
+            console.warn("[bibtex] Semantic Scholar fallback failed", { title, error: errorDetail });
         }
     }
 
