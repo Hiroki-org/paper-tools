@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { findExistingAuthorPage, saveAuthorProfileToNotion } from "../notion/author-client";
-import { Client } from "@notionhq/client";
 import type { AuthorProfile } from "@paper-tools/core";
 
 const mockProfile: AuthorProfile = {
