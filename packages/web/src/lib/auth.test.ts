@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { sealCookieValue, unsealCookieValue, getAccessToken, ACCESS_TOKEN_COOKIE } from "./auth";
+import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken } from "./auth";
+import {
+    ACCESS_TOKEN_COOKIE,
+    REFRESH_TOKEN_COOKIE,
+    USER_INFO_COOKIE,
+    DATABASE_ID_COOKIE,
+    OAUTH_STATE_COOKIE,
+} from "./auth-cookies";
+import { NextResponse } from "next/server";
 
 describe("auth", () => {
     describe("sealCookieValue and unsealCookieValue", () => {
@@ -27,7 +35,7 @@ describe("auth", () => {
             const sealed = sealCookieValue(data);
 
             // Modify the signature part
-            const [payload, sig] = sealed.split(".");
+            const [payload] = sealed.split(".");
             const tampered = `${payload}.invalid-signature`;
 
             const unsealed = unsealCookieValue(tampered);
@@ -40,12 +48,7 @@ describe("auth", () => {
         });
 
         it("should return null if payload is valid base64url but invalid json", () => {
-            // Encode invalid JSON
             const invalidJsonPayload = Buffer.from("not json", "utf8").toString("base64url");
-
-            // We need to sign this invalid json payload so the signature check passes
-            // but the JSON.parse fails.
-            // Since we can't easily import the internal signPayload, we'll manually sign it.
             const crypto = require("crypto");
             const sig = crypto.createHmac("sha256", "super-secret-key-12345").update(invalidJsonPayload).digest("base64url");
 
@@ -56,10 +59,6 @@ describe("auth", () => {
 
         it("should throw error if secret is missing", () => {
             vi.unstubAllEnvs();
-            // Delete both secrets explicitly just in case stubEnv isn't enough when variable is empty string
-            // `??` checks for null/undefined, so if we mock as empty string, it might still evaluate to empty string.
-            // Wait, actually `??` only checks for null/undefined. If `process.env.COOKIE_SECRET` is `""`, `secret` is `""`.
-            // Then `!secret` is true, so it throws. That part works.
             vi.stubEnv("COOKIE_SECRET", "");
             vi.stubEnv("NEXTAUTH_SECRET", "");
 
@@ -68,9 +67,6 @@ describe("auth", () => {
 
         it("should use NEXTAUTH_SECRET if COOKIE_SECRET is missing", () => {
             vi.unstubAllEnvs();
-            // In Node, if process.env.COOKIE_SECRET doesn't exist, it's undefined.
-            // vi.stubEnv with undefined doesn't remove it in all versions of vitest,
-            // but using delete process.env works. Or just unstubbing and not setting it.
             delete process.env.COOKIE_SECRET;
             vi.stubEnv("NEXTAUTH_SECRET", "next-auth-secret-456");
 
@@ -79,7 +75,75 @@ describe("auth", () => {
             const unsealed = unsealCookieValue(sealed);
             expect(unsealed).toEqual(data);
         });
+    });
 
+    describe("clearAuthCookies", () => {
+        let mockResponse: any;
+
+        beforeEach(() => {
+            mockResponse = {
+                cookies: {
+                    set: vi.fn(),
+                },
+            };
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            vi.restoreAllMocks();
+        });
+
+        it("should clear all auth cookies with correct options in development", () => {
+            vi.stubEnv("NODE_ENV", "development");
+
+            clearAuthCookies(mockResponse as NextResponse);
+
+            const expectedCookies = [
+                ACCESS_TOKEN_COOKIE,
+                REFRESH_TOKEN_COOKIE,
+                USER_INFO_COOKIE,
+                DATABASE_ID_COOKIE,
+                OAUTH_STATE_COOKIE,
+            ];
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledTimes(5);
+
+            expectedCookies.forEach((cookieName) => {
+                expect(mockResponse.cookies.set).toHaveBeenCalledWith(cookieName, "", {
+                    httpOnly: true,
+                    secure: false,
+                    sameSite: "lax",
+                    path: "/",
+                    maxAge: 0,
+                });
+            });
+        });
+
+        it("should set secure flag to true in production", () => {
+            vi.stubEnv("NODE_ENV", "production");
+
+            clearAuthCookies(mockResponse as NextResponse);
+
+            const expectedCookies = [
+                ACCESS_TOKEN_COOKIE,
+                REFRESH_TOKEN_COOKIE,
+                USER_INFO_COOKIE,
+                DATABASE_ID_COOKIE,
+                OAUTH_STATE_COOKIE,
+            ];
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledTimes(5);
+
+            expectedCookies.forEach((cookieName) => {
+                expect(mockResponse.cookies.set).toHaveBeenCalledWith(cookieName, "", {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "lax",
+                    path: "/",
+                    maxAge: 0,
+                });
+            });
+        });
     });
 
     describe("getAccessToken", () => {
@@ -93,9 +157,9 @@ describe("auth", () => {
 
         it("should return null if cookie is not present", () => {
             const cookieStore = {
-                get: vi.fn().mockReturnValue(undefined)
+                get: vi.fn().mockReturnValue(undefined),
             };
-            expect(getAccessToken(cookieStore)).toBeNull();
+            expect(getAccessToken(cookieStore as any)).toBeNull();
             expect(cookieStore.get).toHaveBeenCalledWith(ACCESS_TOKEN_COOKIE);
         });
 
@@ -103,33 +167,33 @@ describe("auth", () => {
             const token = "valid-token-123";
             const sealed = sealCookieValue({ token });
             const cookieStore = {
-                get: vi.fn().mockReturnValue({ value: sealed })
+                get: vi.fn().mockReturnValue({ value: sealed }),
             };
 
-            expect(getAccessToken(cookieStore)).toBe(token);
+            expect(getAccessToken(cookieStore as any)).toBe(token);
         });
 
         it("should return null when the cookie is malformed or invalid", () => {
             const cookieStore = {
-                get: vi.fn().mockReturnValue({ value: "invalid.cookie.value" })
+                get: vi.fn().mockReturnValue({ value: "invalid.cookie.value" }),
             };
-            expect(getAccessToken(cookieStore)).toBeNull();
+            expect(getAccessToken(cookieStore as any)).toBeNull();
         });
 
         it("should return null when the cookie is valid but contains no token", () => {
-            const sealed = sealCookieValue({ notToken: "abc" });
+            const sealed = sealCookieValue({ notToken: "abc" } as any);
             const cookieStore = {
-                get: vi.fn().mockReturnValue({ value: sealed })
+                get: vi.fn().mockReturnValue({ value: sealed }),
             };
-            expect(getAccessToken(cookieStore)).toBeNull();
+            expect(getAccessToken(cookieStore as any)).toBeNull();
         });
 
         it("should return null when the cookie is valid but contains a non-string token", () => {
-            const sealed = sealCookieValue({ token: 12345 });
+            const sealed = sealCookieValue({ token: 12345 } as any);
             const cookieStore = {
-                get: vi.fn().mockReturnValue({ value: sealed })
+                get: vi.fn().mockReturnValue({ value: sealed }),
             };
-            expect(getAccessToken(cookieStore)).toBeNull();
+            expect(getAccessToken(cookieStore as any)).toBeNull();
         });
     });
 });
