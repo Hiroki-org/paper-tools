@@ -59,25 +59,7 @@ export interface NotionDatabaseInfo {
 }
 
 export interface NotionRichTextItem {
-    plain_text?: unknown;
-}
-
-function extractPlainText(items: unknown): string {
-    if (!Array.isArray(items)) {
-        return "";
-    }
-
-    return items
-        .map((item) => {
-            if (!item || typeof item !== "object") {
-                return "";
-            }
-
-            const plainText = (item as NotionRichTextItem).plain_text;
-            return typeof plainText === "string" ? plainText : "";
-        })
-        .join("")
-        .trim();
+    plain_text?: string;
 }
 
 function truncateRichTextContent(text: string, maxLength = 2000): string {
@@ -123,6 +105,17 @@ export async function getDatabase(
     };
 }
 
+function extractPlainText(items: unknown): string {
+    if (!Array.isArray(items)) {
+        return "";
+    }
+    return items
+        .filter((t): t is NotionRichTextItem => typeof t === "object" && t !== null && "plain_text" in t)
+        .map((t) => typeof t.plain_text === "string" ? t.plain_text : "")
+        .join("")
+        .trim();
+}
+
 export async function getDatabaseInfo(
     databaseId: string,
     client: Client = createNotionClient(),
@@ -155,7 +148,8 @@ function readTitle(page: NotionPage): string {
     if (!prop || prop.type !== "title") {
         return "";
     }
-    return extractPlainText(prop.title);
+    const text = extractPlainText(prop.title);
+    return text;
 }
 
 function readRichText(page: NotionPage, propertyName: string): string {

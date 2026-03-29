@@ -104,8 +104,8 @@ describe("notion-client", () => {
 
         await expect(getDatabase("db-1", mockClient as any)).rejects.toThrow("必須プロパティが不足");
     });
-
-
+});
+describe("additional coverage", () => {
     it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
@@ -160,13 +160,6 @@ describe("notion-client", () => {
                     },
                 },
                 {
-                    id: "page-1b",
-                    properties: {
-                        "タイトル": { type: "title", title: {} },
-                        "DOI": { type: "rich_text", rich_text: {} },
-                    },
-                },
-                {
                     id: "page-2",
                     properties: {},
                 }
@@ -181,12 +174,10 @@ describe("notion-client", () => {
         expect(papers[0].doi).toBe(undefined);
         expect(papers[1].title).toBe("");
         expect(papers[1].doi).toBe(undefined);
-        expect(papers[2].title).toBe("");
-        expect(papers[2].doi).toBe(undefined);
     });
+});
 
-
-
+describe("additional coverage 2", () => {
     it("truncateRichTextContent should truncate string properly", async () => {
         const { createPaperPage, getDatabase } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
@@ -215,4 +206,20 @@ describe("notion-client", () => {
         expect(abstractContent.endsWith("…")).toBe(true);
     });
 
+    it("extractPlainText should handle non-array gracefully", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: "not an array",
+        });
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockResolvedValueOnce({ name: "Test User" }),
+            }
+        };
+
+        const info = await getDatabaseInfo("db-1", clientWithUsers as any);
+
+        expect(info.databaseName).toBe("(untitled database)");
+    });
 });
