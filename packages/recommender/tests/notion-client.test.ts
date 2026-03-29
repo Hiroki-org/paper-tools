@@ -104,4 +104,38 @@ describe("notion-client", () => {
 
         await expect(getDatabase("db-1", mockClient as any)).rejects.toThrow("必須プロパティが不足");
     });
+
+    it("getDatabaseInfo should retrieve workspace and database name", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: "Test DB" }]
+        });
+        (mockClient as any).users = {
+            me: vi.fn().mockResolvedValueOnce({
+                name: "Test Workspace"
+            })
+        };
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", mockClient as any);
+        expect(info.databaseName).toBe("Test DB");
+        expect(info.workspaceName).toBe("Test Workspace");
+    });
+
+    it("getDatabaseInfo should fall back to default workspace name on error", async () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: []
+        });
+        (mockClient as any).users = {
+            me: vi.fn().mockRejectedValueOnce(new Error("Network Error"))
+        };
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", mockClient as any);
+        expect(info.databaseName).toBe("(untitled database)");
+        expect(info.workspaceName).toBe("Notion Workspace");
+        expect(warnSpy).toHaveBeenCalled();
+        warnSpy.mockRestore();
+    });
+
 });
