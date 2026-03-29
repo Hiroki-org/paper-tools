@@ -73,7 +73,9 @@ export async function saveAuthorProfileToNotion(
         throw new Error("NOTION_AUTHOR_DATABASE_ID が未設定です");
     }
 
-    const properties = {
+    type PageProperties = Parameters<Client["pages"]["create"]>[0]["properties"];
+
+    const properties: PageProperties = {
         "Name": {
             title: titleRichText(profile.name),
         },
