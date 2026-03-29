@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { S2Paper } from "@paper-tools/core";
 
 const mockClient = {
+    users: {
+        me: vi.fn(),
+    },
     databases: {
         retrieve: vi.fn(),
         query: vi.fn(),
@@ -41,6 +44,15 @@ describe("notion-client", () => {
         mockClient.pages.create.mockResolvedValueOnce({ id: "new-page" });
 
         const paper: S2Paper = {
+        abstract: "Short abstract",
+        externalIds: { DOI: "10.1234/567" },
+        authors: [{ name: "A" }],
+        venue: "V",
+        year: 2024,
+        citationCount: 1,
+        fieldsOfStudy: ["CS"],
+        openAccessPdf: { url: "url" },
+        paperId: "pid",
             paperId: "s2-1",
             title: "Test Paper",
             year: 2024,
@@ -103,5 +115,237 @@ describe("notion-client", () => {
         });
 
         await expect(getDatabase("db-1", mockClient as any)).rejects.toThrow("必須プロパティが不足");
+    });
+
+    it("getDatabaseInfo should fetch workspace name", async () => {
+        mockClient.users.me.mockResolvedValueOnce({
+            name: " Test Workspace "
+        });
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: " My Database " }]
+        });
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", mockClient as any);
+        expect(info.databaseId).toBe("db-1");
+        expect(info.databaseName).toBe("My Database");
+        expect(info.workspaceName).toBe("Test Workspace");
+    });
+
+    it("readTitle and readRichText should return empty when property is missing or wrong type", async () => {
+        mockClient.databases.query.mockResolvedValueOnce({
+            results: [
+                {
+                    id: "page-empty",
+                    properties: {
+                        "タイトル": { type: "rich_text", rich_text: [{ plain_text: "wrong-type" }] },
+                        "DOI": { type: "number", number: 123 },
+                        "Semantic Scholar ID": undefined,
+                    },
+                },
+            ],
+            has_more: false,
+            next_cursor: null,
+        });
+
+        const result = await findDuplicates(
+            "db-1",
+            [],
+            mockClient as any,
+        );
+        expect(result.duplicateTitles.size).toBe(0);
+        expect(result.duplicateDois.size).toBe(0);
+    });
+
+    it("createPaperPage should fallback if validation is not provided", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            properties: {
+                "タイトル": { type: "title" },
+                "DOI": { type: "rich_text" },
+            },
+        });
+        mockClient.pages.create.mockResolvedValueOnce({ id: "new-page" });
+
+        const paper: S2Paper = {
+            paperId: "s2-2",
+            title: "Fallback Paper",
+        };
+
+        await createPaperPage("db-1", paper, mockClient as any);
+
+        expect(mockClient.pages.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("getDatabaseInfo should fetch workspace name", async () => {
+        mockClient.users.me.mockResolvedValueOnce({
+            name: " Test Workspace "
+        });
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: " My Database " }]
+        });
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", mockClient as any);
+        expect(info.databaseId).toBe("db-1");
+        expect(info.databaseName).toBe("My Database");
+        expect(info.workspaceName).toBe("Test Workspace");
+    });
+
+    it("readTitle and readRichText should return empty when property is missing or wrong type", async () => {
+        mockClient.databases.query.mockResolvedValueOnce({
+            results: [
+                {
+                    id: "page-empty",
+                    properties: {
+                        "タイトル": { type: "rich_text", rich_text: [{ plain_text: "wrong-type" }] },
+                        "DOI": { type: "number", number: 123 },
+                        "Semantic Scholar ID": undefined,
+                    },
+                },
+            ],
+            has_more: false,
+            next_cursor: null,
+        });
+
+        const { findDuplicates } = await import("../src/notion-client.js");
+        const result = await findDuplicates(
+            "db-1",
+            [],
+            mockClient as any,
+        );
+        expect(result.duplicateTitles.size).toBe(0);
+        expect(result.duplicateDois.size).toBe(0);
+    });
+
+    it("createPaperPage should fallback if validation is not provided", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            properties: {
+                "タイトル": { type: "title" },
+                "DOI": { type: "rich_text" },
+            },
+        });
+        mockClient.pages.create.mockResolvedValueOnce({ id: "new-page" });
+
+        const paper: S2Paper = {
+            paperId: "s2-2",
+            title: "Fallback Paper",
+        };
+
+        const { createPaperPage } = await import("../src/notion-client.js");
+        await createPaperPage("db-1", paper, mockClient as any);
+
+        expect(mockClient.pages.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("createPaperPage should handle missing title and externalIds gracefully", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            properties: {
+                "タイトル": { type: "title" },
+                "DOI": { type: "rich_text" },
+            },
+        });
+        mockClient.pages.create.mockResolvedValueOnce({ id: "new-page2" });
+
+        const paper: S2Paper = {
+            paperId: "s2-3",
+        };
+
+        const { createPaperPage } = await import("../src/notion-client.js");
+        await createPaperPage("db-1", paper, mockClient as any);
+
+        expect(mockClient.pages.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("getDatabaseInfo should fetch workspace name", async () => {
+        mockClient.users.me.mockResolvedValueOnce({
+            name: " Test Workspace "
+        });
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: " My Database " }]
+        });
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", mockClient as any);
+        expect(info.databaseId).toBe("db-1");
+        expect(info.databaseName).toBe("My Database");
+        expect(info.workspaceName).toBe("Test Workspace");
+    });
+
+    it("readTitle and readRichText should return empty when property is missing or wrong type", async () => {
+        mockClient.databases.query.mockResolvedValueOnce({
+            results: [
+                {
+                    id: "page-empty",
+                    properties: {
+                        "タイトル": { type: "rich_text", rich_text: [{ plain_text: "wrong-type" }] },
+                        "DOI": { type: "number", number: 123 },
+                        "Semantic Scholar ID": undefined,
+                    },
+                },
+            ],
+            has_more: false,
+            next_cursor: null,
+        });
+
+        const { findDuplicates } = await import("../src/notion-client.js");
+        const result = await findDuplicates(
+            "db-1",
+            [],
+            mockClient as any,
+        );
+        expect(result.duplicateTitles.size).toBe(0);
+        expect(result.duplicateDois.size).toBe(0);
+    });
+
+    it("createPaperPage should handle missing fields gracefully", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            properties: {
+                "タイトル": { type: "title" },
+                "DOI": { type: "rich_text" },
+                "著者": { type: "rich_text" },
+                "年": { type: "number" },
+                "会議/ジャーナル": { type: "rich_text" },
+                "被引用数": { type: "number" },
+                "分野": { type: "multi_select" },
+                "ソース": { type: "select" },
+                "Open Access PDF": { type: "url" },
+                "Semantic Scholar ID": { type: "rich_text" },
+                "要約": { type: "rich_text" },
+            },
+        });
+        mockClient.pages.create.mockResolvedValueOnce({ id: "new-page" });
+
+        const paper: S2Paper = {
+            paperId: "s2-2",
+        };
+
+        const { createPaperPage } = await import("../src/notion-client.js");
+        await createPaperPage("db-1", paper, mockClient as any);
+
+        expect(mockClient.pages.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("getDatabaseInfo should handle errors when fetching workspace name", async () => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        mockClient.users.me.mockRejectedValueOnce(new Error("API Error"));
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: " My Database " }]
+        });
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", mockClient as any);
+        expect(info.databaseId).toBe("db-1");
+        expect(info.workspaceName).toBe("Notion Workspace");
+    });
+
+    it("getDatabase should throw when properties have incorrect type", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            properties: {
+                "タイトル": { type: "number" },
+            },
+        });
+
+        const { getDatabase } = await import("../src/notion-client.js");
+        await expect(getDatabase("db-1", mockClient as any)).rejects.toThrow("Notion DBプロパティ型が不正です");
     });
 });
