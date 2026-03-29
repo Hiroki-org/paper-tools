@@ -120,26 +120,15 @@ describe("notion-client", () => {
     it("createNotionClient should return a valid Client when API key is set", async () => {
         vi.stubEnv('NOTION_API_KEY', 'valid-key');
 
-        // This fails by timeout probably because Notion Client uses fetch/http internally without respecting mock Fetch,
-        // or uses a retry mechanism that hangs.
-        // We'll mock @notionhq/client so it doesn't do a real HTTP request.
-        // But doing so in the middle of a file where we import it dynamically is hard.
-        // Wait, `mockFetch` times out. So let's just assert that an error other than "NOTION_API_KEY" is thrown
-        // meaning it successfully created a Client and attempted a network request.
+        vi.mock('@notionhq/client', () => ({ Client: function(){ return { databases: { retrieve: vi.fn().mockRejectedValue(new Error("network failure")) } } } }));
 
-        const { getDatabaseInfo } = await import("../src/notion-client.js?v=" + Date.now());
-
-        // The real client will attempt a fetch and likely fail since there's no such db and key is fake.
-        // We can just wrap it in a short timeout or mock fetch using Undici interceptor if we were using it.
-        // Let's just mock console.warn since it might complain, but let it fail and catch the error.
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
 
         try {
-            await Promise.race([
-                getDatabaseInfo("db-1", undefined),
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout Expected")), 50))
-            ]);
-        } catch(e: any) {
-            expect(e.message).not.toBe("NOTION_API_KEY が未設定です");
+            await getDatabaseInfo("db-1", undefined);
+        } catch(e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            expect(msg).not.toBe("NOTION_API_KEY が未設定です");
         }
     });
 
@@ -444,7 +433,10 @@ describe("notion-client", () => {
         };
 
         const { queryPapers } = await import("../src/notion-client.js");
-        await queryPapers("db-1", cursorMockClient as any);
+        const result = await queryPapers("db-1", cursorMockClient as any);
+
+        expect(result).toEqual([]);
+        expect(cursorMockClient.databases.query).toHaveBeenCalledTimes(1);
     });
 
     it("createPaperPage should handle missing externalIds gracefully", async () => {
