@@ -154,26 +154,34 @@ program
                 console.error(`Warning: --tag はタイトル文字列ベースの簡易フィルタです (${targets.length}/${records.length})`);
             }
 
-            const chunks: string[] = [];
-            for (const record of targets) {
-                const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
-                if (!fetched) {
-                    console.error(`Warning: BibTeX取得失敗: ${record.title}`);
-                    continue;
-                }
+            const results: (string | null)[] = [];
+            const BATCH_SIZE = 10;
+            for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+                const batch = targets.slice(i, i + BATCH_SIZE);
+                const batchResults = await Promise.all(
+                    batch.map(async (record) => {
+                        const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
+                        if (!fetched) {
+                            console.error(`Warning: BibTeX取得失敗: ${record.title}`);
+                            return null;
+                        }
 
-                const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
-                const formatted = formatBibtex(fetched.bibtex, {
-                    format,
-                    key: customKey,
-                    keyFormat,
-                });
+                        const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
+                        const formatted = formatBibtex(fetched.bibtex, {
+                            format,
+                            key: customKey,
+                            keyFormat,
+                        });
 
-                if (formatted.warnings.length > 0) {
-                    console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
-                }
-                chunks.push(formatted.formatted);
+                        if (formatted.warnings.length > 0) {
+                            console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
+                        }
+                        return formatted.formatted;
+                    })
+                );
+                results.push(...batchResults);
             }
+            const chunks = results.filter((c): c is string => c !== null);
 
             const outputText = chunks.join("\n\n");
             if (options.output) {

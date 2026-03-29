@@ -11,6 +11,8 @@ jobs:
   build:
     name: Build All
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,6 +43,8 @@ jobs:
     name: Test ${{ matrix.package }}
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -68,3 +72,14 @@ jobs:
           path: packages
       - name: Test
         run: pnpm --filter @paper-tools/${{ matrix.package }} test
+
+      - name: Generate coverage (lcov)
+        run: pnpm --filter @paper-tools/${{ matrix.package }} exec vitest run --coverage.enabled --coverage.reporter=lcov
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: packages/${{ matrix.package }}/coverage/lcov.info
+          flags: ${{ matrix.package }}
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}

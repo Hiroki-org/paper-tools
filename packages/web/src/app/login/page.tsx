@@ -1,4 +1,4 @@
-import { LibraryBig, Lock, ArrowRight, ShieldCheck } from "lucide-react";
+import { LibraryBig, ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
   return (

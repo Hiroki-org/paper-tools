@@ -1,14 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@paper-tools/core", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("@paper-tools/core")>();
-    return {
-        ...actual,
-        getPaper: vi.fn(),
-        searchPapers: vi.fn(),
-    };
-});
+vi.mock("@paper-tools/core", () => ({
+    normalizeDoi: (d: string) => d,
+    getPaper: vi.fn(),
+    searchPapers: vi.fn(),
+}));
 
 const core = await import("@paper-tools/core");
 const { POST } = await import("./route");

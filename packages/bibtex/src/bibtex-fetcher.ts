@@ -1,13 +1,6 @@
-import { fetchWithRetry, searchPapers, searchPublications } from "@paper-tools/core";
+import { fetchWithRetry, searchPapers, searchPublications, normalizeDoi } from "@paper-tools/core";
 import type { BibtexIdentifier, FetchBibtexResult } from "./types.js";
 
-function normalizeDoi(doi: string): string {
-    return doi
-        .trim()
-        .replace(/^https?:\/\/doi\.org\//i, "")
-        .replace(/^doi:/i, "")
-        .trim();
-}
 
 function extractDblpKeyFromUrl(url?: string): string | null {
     if (!url) return null;
@@ -32,11 +25,8 @@ async function fetchCrossrefBibtexByDoi(doi: string): Promise<string> {
 
 async function fetchDblpBibtexByTitle(title: string): Promise<string | null> {
     const candidates = await searchPublications(title, 10);
-    let dblpKey: string | null = null;
-    for (const paper of candidates) {
-        dblpKey = extractDblpKeyFromUrl(paper.url);
-        if (dblpKey) break;
-    }
+    const candidate = candidates.find((paper) => extractDblpKeyFromUrl(paper.url));
+    const dblpKey = extractDblpKeyFromUrl(candidate?.url);
     if (!dblpKey) return null;
 
     const url = `https://dblp.org/rec/${dblpKey}.bib?param=1`;
@@ -74,7 +64,7 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
             return { bibtex, source: "crossref" };
         } catch (error) {
             const errorDetail = error instanceof Error ? error.message : String(error);
-            console.warn("[bibtex] Crossref fetch failed", { doi, error: errorDetail });
+            console.warn(`[bibtex] Crossref fetch failed for DOI ${doi}:`, errorDetail);
             // fall through to title-based methods
         }
     }
@@ -87,7 +77,7 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
             }
         } catch (error) {
             const errorDetail = error instanceof Error ? error.message : String(error);
-            console.warn("[bibtex] DBLP fetch failed", { title, error: errorDetail });
+            console.warn(`[bibtex] DBLP fetch failed for title ${title}:`, errorDetail);
             // fall through to next method
         }
 
@@ -99,7 +89,7 @@ export async function fetchBibtex(identifier: BibtexIdentifier): Promise<FetchBi
             }
         } catch (error) {
             const errorDetail = error instanceof Error ? error.message : String(error);
-            console.warn("[bibtex] Semantic Scholar fallback failed", { title, error: errorDetail });
+            console.warn(`[bibtex] Semantic Scholar fallback failed for title ${title}:`, errorDetail);
         }
     }
 

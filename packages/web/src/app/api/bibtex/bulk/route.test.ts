@@ -1,17 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@paper-tools/core", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("@paper-tools/core")>();
-    return {
-        ...actual,
-        RateLimiter: class {
-            async acquire() {
-                return;
-            }
-        },
-    };
-});
+vi.mock("@paper-tools/core", () => ({
+    normalizeDoi: (d: string) => d,
+    RateLimiter: class {
+        async acquire() {
+            return;
+        }
+    },
+}));
 
 vi.mock("@paper-tools/bibtex/lib", () => ({
     fetchBibtex: vi.fn(),
