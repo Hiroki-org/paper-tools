@@ -134,7 +134,7 @@ function buildHeaders(): Record<string, string> {
 
 async function parseResponse<T>(response: Response): Promise<T> {
     if (response.ok) {
-        return response.json();
+        return await response.json() as T;
     }
 
     const bodyText = await response.text();
