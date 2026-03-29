@@ -51,9 +51,6 @@ importers:
       '@types/prompts':
         specifier: ^2.4.9
         version: 2.4.9
-      '@vitest/coverage-v8':
-        specifier: 3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2))
       rimraf:
         specifier: ^6.1.2
         version: 6.1.2
@@ -104,9 +101,6 @@ importers:
       '@types/node':
         specifier: ^22.19.11
         version: 22.19.11
-      '@vitest/coverage-v8':
-        specifier: 3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2))
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -129,9 +123,6 @@ importers:
       '@types/node':
         specifier: ^22.19.11
         version: 22.19.11
-      '@vitest/coverage-v8':
-        specifier: 3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2))
       rimraf:
         specifier: ^6.0.1
         version: 6.1.2
@@ -160,9 +151,6 @@ importers:
       '@types/node':
         specifier: ^22.19.11
         version: 22.19.11
-      '@vitest/coverage-v8':
-        specifier: 3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2))
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
@@ -185,9 +173,6 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
-      '@vitest/coverage-v8':
-        specifier: 3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2))
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
@@ -210,9 +195,6 @@ importers:
       '@types/node':
         specifier: ^22.19.11
         version: 22.19.11
-      '@vitest/coverage-v8':
-        specifier: 3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2))
       rimraf:
         specifier: ^6.0.1
         version: 6.1.2
@@ -286,9 +268,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.14)
-      '@vitest/coverage-v8':
-        specifier: 3.2.4
-        version: 3.2.4(vitest@3.2.4(@types/node@22.19.11)(jiti@2.6.1)(lightningcss@1.30.2))
       rimraf:
         specifier: ^6.1.2
         version: 6.1.2
