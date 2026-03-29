@@ -119,8 +119,7 @@ describe("notion-client", () => {
 
     it("createNotionClient should return a valid Client when API key is set", async () => {
         vi.stubEnv('NOTION_API_KEY', 'valid-key');
-
-        vi.mock('@notionhq/client', () => ({ Client: function(){ return { databases: { retrieve: vi.fn().mockRejectedValue(new Error("network failure")) } } } }));
+        vi.doMock('@notionhq/client', () => ({ Client: function(){ return { databases: { retrieve: vi.fn().mockRejectedValue(new Error("network failure")) } } } }));
 
         const { getDatabaseInfo } = await import("../src/notion-client.js");
 
@@ -129,6 +128,8 @@ describe("notion-client", () => {
         } catch(e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
             expect(msg).not.toBe("NOTION_API_KEY が未設定です");
+        } finally {
+            vi.doUnmock('@notionhq/client');
         }
     });
 
@@ -169,7 +170,7 @@ describe("notion-client", () => {
     });
 
     it("getDatabaseInfo should handle errors when fetching workspace name", async () => {
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const mockErrorClient = {
             databases: {
                 retrieve: vi.fn().mockResolvedValueOnce({
@@ -185,6 +186,7 @@ describe("notion-client", () => {
         const info = await getDatabaseInfo("db-1", mockErrorClient as any);
         expect(info.databaseId).toBe("db-1");
         expect(info.workspaceName).toBe("Notion Workspace");
+        warnSpy.mockRestore();
     });
 
     it("getDatabase should throw when properties have incorrect type", async () => {
