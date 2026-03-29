@@ -73,7 +73,7 @@ export async function saveAuthorProfileToNotion(
         throw new Error("NOTION_AUTHOR_DATABASE_ID が未設定です");
     }
 
-    const properties: Record<string, unknown> = {
+    const properties = {
         "Name": {
             title: titleRichText(profile.name),
         },
@@ -106,7 +106,7 @@ export async function saveAuthorProfileToNotion(
 
     const existingPageId = await findExistingAuthorPage(profile, databaseId, client);
     if (existingPageId) {
-        await client.pages.update({ page_id: existingPageId, properties: properties as any });
+        await client.pages.update({ page_id: existingPageId, properties });
         return {
             action: "updated",
             pageId: existingPageId,
@@ -115,7 +115,7 @@ export async function saveAuthorProfileToNotion(
 
     const created = await client.pages.create({
         parent: { database_id: databaseId },
-        properties: properties as any,
+        properties,
     });
 
     return {
