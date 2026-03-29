@@ -109,7 +109,7 @@ describe("notion-client", () => {
     it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
-            title: [{ plain_text: "Test DB" }],
+            title: [{ plain_text: "Test" }, {}, { plain_text: " DB" }],
         });
         const clientWithUsers = {
             ...mockClient,
@@ -131,8 +131,8 @@ describe("notion-client", () => {
                 {
                     id: "page-1",
                     properties: {
-                        "タイトル": { type: "title", title: [{ plain_text: "Mapped Title" }] },
-                        "DOI": { type: "rich_text", rich_text: [{ plain_text: "10.1000/mapped" }] },
+                        "タイトル": { type: "title", title: [{ plain_text: "Mapped" }, {}, { plain_text: " Title" }] },
+                        "DOI": { type: "rich_text", rich_text: [{}, { plain_text: "10.1000/mapped" }] },
                         "Semantic Scholar ID": { type: "rich_text", rich_text: [] },
                     },
                 },
