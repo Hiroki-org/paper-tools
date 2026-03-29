@@ -123,7 +123,7 @@ export async function buildAuthorProfile(
     if (!options.forceRefresh) {
         const inFlight = inFlightProfiles.get(authorId);
         if (inFlight) {
-            return await inFlight;
+            return inFlight;
         }
     }
 
