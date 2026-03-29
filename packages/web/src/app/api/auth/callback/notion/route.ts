@@ -12,12 +12,7 @@ interface NotionTokenResponse {
     refresh_token?: string;
     workspace_name?: string | null;
     workspace_icon?: string | null;
-    owner?: {
-        type: string;
-        user?: {
-            name?: string;
-        };
-    };
+    owner?: { type: "user"; user: { name?: string } } | { type: "bot" };
 }
 
 export async function GET(request: NextRequest) {
@@ -48,7 +43,7 @@ export async function GET(request: NextRequest) {
         const tokenResponse = rawResponse as unknown as NotionTokenResponse;
 
         const owner = tokenResponse.owner;
-        const userName = owner?.type === "user" ? owner.user?.name : undefined;
+        const userName = owner?.type === "user" ? owner.user.name : undefined;
 
         const response = NextResponse.redirect(new URL("/setup", request.url));
         const refreshToken = tokenResponse.refresh_token;
