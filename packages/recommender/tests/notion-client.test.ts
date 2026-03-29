@@ -160,6 +160,13 @@ describe("notion-client", () => {
                     },
                 },
                 {
+                    id: "page-1b",
+                    properties: {
+                        "タイトル": { type: "title", title: {} },
+                        "DOI": { type: "rich_text", rich_text: {} },
+                    },
+                },
+                {
                     id: "page-2",
                     properties: {},
                 }
@@ -174,6 +181,8 @@ describe("notion-client", () => {
         expect(papers[0].doi).toBe(undefined);
         expect(papers[1].title).toBe("");
         expect(papers[1].doi).toBe(undefined);
+        expect(papers[2].title).toBe("");
+        expect(papers[2].doi).toBe(undefined);
     });
 
 
