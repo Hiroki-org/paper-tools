@@ -138,4 +138,19 @@ describe("notion-client", () => {
         warnSpy.mockRestore();
     });
 
+
+
+    it("getDatabaseInfo should fallback to default values when db title and user name are missing", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: null // simulate missing title
+        });
+        (mockClient as any).users = {
+            me: vi.fn().mockResolvedValueOnce({}) // simulate missing name
+        };
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", mockClient as any);
+        expect(info.databaseName).toBe("(untitled database)");
+        expect(info.workspaceName).toBe("Notion Workspace");
+    });
 });
