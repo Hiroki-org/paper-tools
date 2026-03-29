@@ -53,7 +53,7 @@ async function syncPapers(
     const CONCURRENCY = 5;
     let cursor = 0;
 
-    const workerCount = Math.min(toProcess.length, CONCURRENCY);
+    const workerCount = Math.min(toProcess.length, Math.floor(CONCURRENCY));
     const workers = Array.from({ length: workerCount }, async () => {
         while (true) {
             const current = cursor++;
