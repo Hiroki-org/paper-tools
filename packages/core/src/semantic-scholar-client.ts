@@ -159,7 +159,7 @@ export async function getRecommendationsForPaper(
 
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/recommendations/v1/papers/forpaper/${encodeURIComponent(paperId)}?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await parseResponse<S2RecommendationsResponse>(response);
+    return parseResponse<S2RecommendationsResponse>(response);
 }
 
 export async function getRecommendations(
