@@ -24,7 +24,7 @@ function makeRequest(body: unknown) {
 
 describe("/api/resolve POST", () => {
     beforeEach(() => {
-        vi.restoreAllMocks();
+        vi.resetAllMocks();
         vi.mocked(getAccessToken).mockReturnValue("fake-token");
     });
 
