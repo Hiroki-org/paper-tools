@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { findExistingAuthorPage, saveAuthorProfileToNotion } from "../notion/author-client";
+import { findExistingAuthorPage, saveAuthorProfileToNotion } from "../notion/author-client.js";
 import type { AuthorProfile } from "@paper-tools/core";
 
 const mockProfile: AuthorProfile = {
@@ -15,7 +15,14 @@ const mockProfile: AuthorProfile = {
 };
 
 describe("author-client", () => {
-    let mockClient: any;
+    type MockNotionClient = {
+        databases: { query: ReturnType<typeof vi.fn> };
+        pages: {
+            create: ReturnType<typeof vi.fn>;
+            update: ReturnType<typeof vi.fn>;
+        };
+    };
+    let mockClient: MockNotionClient;
 
     beforeEach(() => {
         mockClient = {
