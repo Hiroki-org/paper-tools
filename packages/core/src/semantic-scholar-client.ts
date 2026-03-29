@@ -134,7 +134,7 @@ function buildHeaders(): Record<string, string> {
 
 async function parseResponse<T>(response: Response): Promise<T> {
     if (response.ok) {
-        return await response.json() as T;
+        return response.json() as T;
     }
 
     const bodyText = await response.text();
@@ -159,7 +159,7 @@ export async function getRecommendationsForPaper(
 
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/recommendations/v1/papers/forpaper/${encodeURIComponent(paperId)}?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await parseResponse<S2RecommendationsResponse>(response);
+    return parseResponse<S2RecommendationsResponse>(response);
 }
 
 export async function getRecommendations(
@@ -183,7 +183,7 @@ export async function getRecommendations(
             negativePaperIds,
         }),
     });
-    return await parseResponse<S2RecommendationsResponse>(response);
+    return parseResponse<S2RecommendationsResponse>(response);
 }
 
 export async function getPaper(
@@ -195,7 +195,7 @@ export async function getPaper(
     const params = new URLSearchParams({ fields });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/paper/${encodeURIComponent(paperId)}?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await parseResponse<S2Paper>(response);
+    return parseResponse<S2Paper>(response);
 }
 
 export async function searchPapers(
@@ -212,7 +212,7 @@ export async function searchPapers(
     });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/paper/search?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await parseResponse<S2SearchResponse>(response);
+    return parseResponse<S2SearchResponse>(response);
 }
 
 export async function searchAuthors(
@@ -228,7 +228,7 @@ export async function searchAuthors(
     });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/search?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await parseResponse<S2AuthorSearchResponse>(response);
+    return parseResponse<S2AuthorSearchResponse>(response);
 }
 
 export async function getAuthor(
@@ -260,7 +260,7 @@ export async function getAuthor(
     const params = new URLSearchParams({ fields: fields.join(",") });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/${encodeURIComponent(authorId)}?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await parseResponse<S2AuthorDetail>(response);
+    return parseResponse<S2AuthorDetail>(response);
 }
 
 export async function getAuthorPapers(
@@ -279,5 +279,5 @@ export async function getAuthorPapers(
 
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/${encodeURIComponent(authorId)}/papers?${params}`;
     const response = await fetchWithRetry(url, { headers: buildHeaders() });
-    return await parseResponse<S2AuthorPapersResponse>(response);
+    return parseResponse<S2AuthorPapersResponse>(response);
 }
