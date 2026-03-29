@@ -35,7 +35,7 @@ const PROPERTY_SPECS: Record<string, PropertySpec> = {
     "要約": { type: "rich_text", required: false },
 };
 
-export function createNotionClient(): Client {
+function createNotionClient(): Client {
     const apiKey = process.env["NOTION_API_KEY"];
     if (!apiKey) {
         throw new Error("NOTION_API_KEY が未設定です");
@@ -59,7 +59,7 @@ export interface NotionDatabaseInfo {
     workspaceName: string;
 }
 
-export function truncateRichTextContent(text: string, maxLength = 2000): string {
+function truncateRichTextContent(text: string, maxLength = 2000): string {
     const chars = Array.from(text);
     if (chars.length <= maxLength) {
         return text;
