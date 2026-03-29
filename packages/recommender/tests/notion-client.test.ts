@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import type { S2Paper } from "@paper-tools/core";
 
 const mockClient = {
@@ -123,14 +123,9 @@ describe("notion-client", () => {
 
         const { getDatabaseInfo } = await import("../src/notion-client.js");
 
-        try {
-            await getDatabaseInfo("db-1", undefined);
-        } catch(e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
-            expect(msg).not.toBe("NOTION_API_KEY が未設定です");
-        } finally {
-            vi.doUnmock('@notionhq/client');
-        }
+        await expect(getDatabaseInfo("db-1", undefined)).rejects.not.toThrow("NOTION_API_KEY が未設定です");
+
+        vi.doUnmock('@notionhq/client');
     });
 
     it("truncateRichTextContent should slice text to max length and append ellipsis via createPaperPage", async () => {
