@@ -69,4 +69,3 @@ export type {
 
 // Utilities
 export { normalizeDoi } from "./utils/normalize-doi.js";
-export { parsePositiveInt } from "./utils.js";

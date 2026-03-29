@@ -1,11 +1,18 @@
 #!/usr/bin/env node
-import { parsePositiveInt } from "@paper-tools/core";
 
 import { Command } from "commander";
 import { scrapeConference, scrapeAcceptedPapers } from "./researchr-scraper.js";
 import { enrichWithDblp, searchConferencePapers } from "./dblp-integration.js";
 
 const program = new Command();
+
+function parsePositiveInt(value: string, optionName: string): number {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed <= 0) {
+        throw new Error(`${optionName} には正の整数を指定してください: ${value}`);
+    }
+    return parsed;
+}
 
 async function outputJson(data: unknown, output?: string): Promise<void> {
     const json = JSON.stringify(data, null, 2);

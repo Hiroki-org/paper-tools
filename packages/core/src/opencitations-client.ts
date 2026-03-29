@@ -29,12 +29,7 @@ async function fetchByEndpoint(endpoint: "citations" | "references", doi: string
             creationDate: entry.creation,
         }));
     } catch (error) {
-        const errorDetail = error instanceof Error ? error.message : String(error);
-        console.error("[opencitations] failed to fetch endpoint", {
-            endpoint,
-            doi,
-            error: errorDetail,
-        });
+        console.error(`[opencitations] failed to fetch ${endpoint} for DOI ${doi}:`, error);
         return [];
     }
 }

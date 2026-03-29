@@ -5,12 +5,15 @@ const searchPublications = vi.fn();
 const searchPapers = vi.fn();
 let warnSpy: ReturnType<typeof vi.spyOn>;
 
-vi.mock("@paper-tools/core", () => ({
+vi.mock("@paper-tools/core", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("@paper-tools/core")>();
+    return {
+        ...actual,
     fetchWithRetry,
     searchPublications,
     searchPapers,
-    normalizeDoi: (d: string) => d,
-}));
+    };
+});
 
 const { fetchBibtex } = await import("../src/bibtex-fetcher.js");
 
@@ -70,11 +73,8 @@ describe("fetchBibtex", () => {
         expect(result?.source).toBe("dblp");
         // Warning should be logged
         expect(console.warn).toHaveBeenCalledWith(
-            "[bibtex] Crossref fetch failed",
-            {
-                doi: "10.1000/xyz",
-                error: "Crossref returned non-BibTeX response",
-            }
+            expect.stringContaining("[bibtex] Crossref fetch failed for DOI 10.1000/xyz:"),
+            "Crossref returned non-BibTeX response"
         );
     });
 
@@ -192,18 +192,12 @@ describe("fetchBibtex", () => {
         const result = await fetchBibtex({ title: "Fuzzing" });
         expect(result).toBeNull();
         expect(console.warn).toHaveBeenCalledWith(
-            "[bibtex] DBLP fetch failed",
-            {
-                title: "Fuzzing",
-                error: "DBLP Error",
-            }
+            expect.stringContaining("[bibtex] DBLP fetch failed for title \"Fuzzing\":"),
+            "DBLP Error"
         );
         expect(console.warn).toHaveBeenCalledWith(
-            "[bibtex] Semantic Scholar fallback failed",
-            {
-                title: "Fuzzing",
-                error: "Semantic Scholar Error",
-            }
+            expect.stringContaining("[bibtex] Semantic Scholar fallback failed for title \"Fuzzing\":"),
+            "Semantic Scholar Error"
         );
     });
 
@@ -276,27 +270,9 @@ describe("additional edge cases", () => {
 
         const result = await fetchBibtex({ doi: "10.1000/xyz", title: "Fuzzing" });
         expect(result).toBeNull();
-        expect(console.warn).toHaveBeenCalledWith(
-            "[bibtex] Crossref fetch failed",
-            {
-                doi: "10.1000/xyz",
-                error: "String error crossref",
-            }
-        );
-        expect(console.warn).toHaveBeenCalledWith(
-            "[bibtex] DBLP fetch failed",
-            {
-                title: "Fuzzing",
-                error: "String error dblp",
-            }
-        );
-        expect(console.warn).toHaveBeenCalledWith(
-            "[bibtex] Semantic Scholar fallback failed",
-            {
-                title: "Fuzzing",
-                error: "String error semanticscholar",
-            }
-        );
+        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Crossref fetch failed"), "String error crossref");
+        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("DBLP fetch failed"), "String error dblp");
+        expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("Semantic Scholar fallback failed"), "String error semanticscholar");
     });
 });
 

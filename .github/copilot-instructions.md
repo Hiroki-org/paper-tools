@@ -993,11 +993,8 @@ import { fn } from "./module.js"
 
 ```typescript
 // Fix: Mock fetch in test setup
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
-
 beforeEach(() => {
-    mockFetch.mockReset();
+    vi.stubGlobal("fetch", vi.fn());
 });
 ```
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { parsePositiveInt } from "@paper-tools/core";
 
 import "dotenv/config";
 import { Command } from "commander";
@@ -18,6 +17,21 @@ const packageJson = JSON.parse(
     readFileSync(join(__dirname, "../package.json"), "utf-8")
 );
 const version = packageJson.version;
+
+/**
+ * オプション値として与えられた文字列を正の整数にパースする
+ * @param value - パース対象の文字列
+ * @param optionName - オプション名（エラーメッセージに含める）
+ * @returns パースされた正の整数
+ * @throws エラーが正の整数でない場合は Error をスロー
+ */
+function parsePositiveInt(value: string, optionName: string): number {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`${optionName} には正の整数を指定してください: ${value}`);
+    }
+    return parsed;
+}
 
 /**
  * データを JSON フォーマットで出力する

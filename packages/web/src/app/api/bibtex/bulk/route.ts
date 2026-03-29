@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeDoi } from "@paper-tools/core";
-import { RateLimiter } from "@paper-tools/core";
+import { normalizeDoi, RateLimiter } from "@paper-tools/core";
 import { deriveBibtexKey, fetchBibtex, formatBibtex } from "@paper-tools/bibtex/lib";
 
 type BulkPaper = { doi?: string; title?: string };
