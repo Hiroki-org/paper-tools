@@ -16,12 +16,9 @@ const mockProfile: AuthorProfile = {
 
 describe("author-client", () => {
     type MockNotionClient = {
-        databases: { query: ReturnType<typeof vi.fn> };
-        pages: {
-            create: ReturnType<typeof vi.fn>;
-            update: ReturnType<typeof vi.fn>;
-        };
-    };
+    databases: { query: ReturnType<typeof vi.fn> };
+    pages: { create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+};
     let mockClient: MockNotionClient;
 
     beforeEach(() => {
@@ -48,7 +45,7 @@ describe("author-client", () => {
                 results: [{ id: "page-1" }],
             });
 
-            const id = await findExistingAuthorPage(mockProfile, "db-123", mockClient);
+            const id = await findExistingAuthorPage(mockProfile, "db-123", mockClient as any);
             expect(id).toBe("page-1");
             expect(mockClient.databases.query).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -62,7 +59,7 @@ describe("author-client", () => {
                 .mockResolvedValueOnce({ results: [] })
                 .mockResolvedValueOnce({ results: [{ id: "page-2" }] });
 
-            const id = await findExistingAuthorPage(mockProfile, "db-123", mockClient);
+            const id = await findExistingAuthorPage(mockProfile, "db-123", mockClient as any);
             expect(id).toBe("page-2");
             expect(mockClient.databases.query).toHaveBeenCalledTimes(2);
         });
@@ -70,14 +67,14 @@ describe("author-client", () => {
         it("should return null if not found", async () => {
             mockClient.databases.query.mockResolvedValue({ results: [] });
 
-            const id = await findExistingAuthorPage(mockProfile, "db-123", mockClient);
+            const id = await findExistingAuthorPage(mockProfile, "db-123", mockClient as any);
             expect(id).toBeNull();
         });
     });
 
     describe("saveAuthorProfileToNotion", () => {
         it("should return dry-run action", async () => {
-            const result = await saveAuthorProfileToNotion(mockProfile, { dryRun: true }, mockClient);
+            const result = await saveAuthorProfileToNotion(mockProfile, { dryRun: true }, mockClient as any);
             expect(result.action).toBe("dry-run");
             expect(mockClient.pages.create).not.toHaveBeenCalled();
             expect(mockClient.pages.update).not.toHaveBeenCalled();
@@ -89,7 +86,7 @@ describe("author-client", () => {
             });
             mockClient.pages.update.mockResolvedValueOnce({ id: "page-1" });
 
-            const result = await saveAuthorProfileToNotion(mockProfile, {}, mockClient);
+            const result = await saveAuthorProfileToNotion(mockProfile, {}, mockClient as any);
             expect(result.action).toBe("updated");
             expect(result.pageId).toBe("page-1");
             expect(mockClient.pages.update).toHaveBeenCalled();
@@ -99,7 +96,7 @@ describe("author-client", () => {
             mockClient.databases.query.mockResolvedValue({ results: [] });
             mockClient.pages.create.mockResolvedValueOnce({ id: "page-new" });
 
-            const result = await saveAuthorProfileToNotion(mockProfile, {}, mockClient);
+            const result = await saveAuthorProfileToNotion(mockProfile, {}, mockClient as any);
             expect(result.action).toBe("created");
             expect(result.pageId).toBe("page-new");
             expect(mockClient.pages.create).toHaveBeenCalled();
@@ -107,7 +104,7 @@ describe("author-client", () => {
 
         it("should throw error if db id missing", async () => {
             vi.unstubAllEnvs();
-            await expect(saveAuthorProfileToNotion(mockProfile, {}, mockClient)).rejects.toThrow(
+            await expect(saveAuthorProfileToNotion(mockProfile, {}, mockClient as any)).rejects.toThrow(
                 "NOTION_AUTHOR_DATABASE_ID が未設定です",
             );
         });
