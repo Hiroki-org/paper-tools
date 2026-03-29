@@ -83,7 +83,11 @@ export async function buildCitationGraph(
                     }
                     return { citations, currentDoi };
                 } catch (error) {
-                    console.error(`Error fetching citations for ${currentDoi}:`, error);
+                    const errorDetail = error instanceof Error ? error.message : String(error);
+                    console.error("[visualizer] Failed to fetch citations", {
+                        doi: currentDoi,
+                        error: errorDetail,
+                    });
                     return { citations: [], currentDoi, error };
                 }
             })

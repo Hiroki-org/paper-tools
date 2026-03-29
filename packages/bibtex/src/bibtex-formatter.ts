@@ -92,8 +92,7 @@ function parseFieldValue(body: string, start: number): { value: string; nextInde
 
 export function parseBibtexEntry(raw: string): ParsedBibtexEntry {
     const text = raw.trim();
-    const headerMatch = text.match(/^@(\w+)\s*\{\s*([^,]+)\s*,([\s\S]*)\}$/);
-    if (!headerMatch) {
+    if (!text.startsWith("@")) {
         throw new Error("Invalid BibTeX entry format");
     }
 
