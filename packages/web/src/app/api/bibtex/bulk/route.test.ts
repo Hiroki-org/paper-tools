@@ -37,17 +37,20 @@ describe("/api/bibtex/bulk POST", () => {
 
     it("サーバーエラー時に500エラーを返す", async () => {
         const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-        const req = new NextRequest("http://localhost/api/bibtex/bulk", {
-            method: "POST",
-            body: "invalid json",
-        });
-        const res = await POST(req);
-        const data = await res.json();
+        try {
+            const req = new NextRequest("http://localhost/api/bibtex/bulk", {
+                method: "POST",
+                body: "invalid json",
+            });
+            const res = await POST(req);
+            const data = await res.json();
 
-        expect(res.status).toBe(500);
-        expect(data.error).toBe("Internal Server Error");
-        expect(consoleSpy).toHaveBeenCalled();
-        consoleSpy.mockRestore();
+            expect(res.status).toBe(500);
+            expect(data.error).toBe("Internal Server Error");
+            expect(consoleSpy).toHaveBeenCalled();
+        } finally {
+            consoleSpy.mockRestore();
+        }
     });
 
     it("複数論文の BibTeX を結合して返す", async () => {
