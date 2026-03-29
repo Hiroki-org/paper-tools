@@ -29,10 +29,7 @@ function findPropertyByKeyword(properties: Record<string, NotionProperty>, keywo
     let partialMatch: string | null = null;
 
     for (const name in properties) {
-        if (!Object.hasOwn(properties, name)) {
-            continue;
-        }
-
+        if (!Object.hasOwn(properties, name)) continue;
         const nameLower = name.toLowerCase();
         if (nameLower === lower) {
             return name;
