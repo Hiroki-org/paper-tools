@@ -31,6 +31,10 @@ def test_setup_page_select_database_redirects_to_home(page: Page) -> None:
     selected_database_id: str | None = None
 
     def handle_database_select(route: Route) -> None:
+        if route.request.method != "POST":
+            _json_response(route, 405, {"error": f"Unsupported method: {route.request.method}"})
+            return
+
         nonlocal selected_database_id
         request_body = _read_request_json(route)
         selected_database_id = str(request_body.get("databaseId") or "").strip() or None
@@ -90,6 +94,10 @@ def test_search_and_save_to_notion_flow(page: Page) -> None:
         _json_response(route, 405, {"error": f"Unsupported method: {method}"})
 
     def handle_search(route: Route) -> None:
+        if route.request.method != "GET":
+            _json_response(route, 405, {"error": f"Unsupported method: {route.request.method}"})
+            return
+
         calls["search"] += 1
         _json_response(
             route,
@@ -110,6 +118,10 @@ def test_search_and_save_to_notion_flow(page: Page) -> None:
         )
 
     def handle_resolve(route: Route) -> None:
+        if route.request.method != "POST":
+            _json_response(route, 405, {"error": f"Unsupported method: {route.request.method}"})
+            return
+
         calls["resolve"] += 1
         _json_response(
             route,
@@ -175,8 +187,9 @@ def main() -> int:
         try:
             for scenario_name, scenario in scenarios:
                 print(f"[e2e] START: {scenario_name}")
-                context = browser.new_context()
+                context = None
                 try:
+                    context = browser.new_context()
                     page = context.new_page()
                     scenario(page)
                     print(f"[e2e] PASS: {scenario_name}")
@@ -186,7 +199,8 @@ def main() -> int:
                     print(f"[e2e] REASON: {error}")
                     traceback.print_exc()
                 finally:
-                    context.close()
+                    if context is not None:
+                        context.close()
         finally:
             browser.close()
 

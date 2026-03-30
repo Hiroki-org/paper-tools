@@ -146,7 +146,7 @@ jobs:
         run: pnpm --filter @paper-tools/web test
 
   web-e2e-noop:
-    name: Web e2e verification (skip: no web changes)
+    name: "Web e2e verification (skip: no web changes)"
     needs: changes
     if: ${{ needs.changes.outputs.web != 'true' }}
     runs-on: ubuntu-latest
