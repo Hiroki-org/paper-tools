@@ -7,12 +7,18 @@ vi.mock("@paper-tools/bibtex/lib", () => ({
     deriveBibtexKey: vi.fn(),
 }));
 
+vi.mock("@/lib/auth", () => ({
+    getAccessToken: vi.fn(),
+}));
+
 const bibtex = await import("@paper-tools/bibtex/lib");
+const auth = await import("@/lib/auth");
 const { GET } = await import("./route");
 
 describe("/api/bibtex GET", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.mocked(auth.getAccessToken).mockReturnValue("mock-token");
     });
 
     it("doi で BibTeX を取得して返す", async () => {
@@ -54,5 +60,38 @@ describe("/api/bibtex GET", () => {
 
         expect(res.status).toBe(404);
         expect(data.error).toContain("取得");
+    });
+
+    it("未認証時は 401 を返す", async () => {
+        vi.mocked(auth.getAccessToken).mockReturnValueOnce(null);
+
+        const req = new NextRequest("http://localhost/api/bibtex?doi=10.1000/xyz");
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(401);
+        expect(data.error).toBe("[bibtex-api] Operation failed: Unauthorized request to /api/bibtex");
+    });
+
+    it("内部エラー発生時は 500 を返す", async () => {
+        vi.mocked(bibtex.fetchBibtex).mockRejectedValueOnce(new Error("Network Error"));
+
+        const req = new NextRequest("http://localhost/api/bibtex?title=Sample");
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(data.error).toBe("Network Error");
+    });
+
+    it("非Errorオブジェクトの例外発生時は 500 を返す", async () => {
+        vi.mocked(bibtex.fetchBibtex).mockRejectedValueOnce("String Error");
+
+        const req = new NextRequest("http://localhost/api/bibtex?title=Sample");
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(data.error).toBe("Unknown error");
     });
 });

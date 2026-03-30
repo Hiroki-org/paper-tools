@@ -57,6 +57,7 @@ jobs:
             recommender,
             bibtex,
             author-profiler,
+            web,
           ]
     steps:
       - uses: actions/checkout@v4
