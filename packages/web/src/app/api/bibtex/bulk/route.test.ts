@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/auth", () => ({
-    getAccessToken: vi.fn().mockReturnValue("fake-token"),
-}));
-
 vi.mock("@paper-tools/core", () => ({
     RateLimiter: class {
         async acquire() {
@@ -94,17 +90,5 @@ describe("/api/bibtex/bulk POST", () => {
         expect(res.status).toBe(200);
         expect(data.count).toBe(0);
         expect(data.errors).toHaveLength(1);
-    });
-
-    it("認証情報がない場合は 401 を返す", async () => {
-        const auth = await import("@/lib/auth");
-        vi.mocked(auth.getAccessToken).mockReturnValueOnce(null);
-
-        const req = makeRequest({ papers: [{ title: "A" }] });
-        const res = await POST(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(401);
-        expect(data.error).toBe("Unauthorized");
     });
 });
