@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("@/lib/auth", () => ({
+    getAccessToken: vi.fn().mockReturnValue("fake-token"),
+}));
+
 vi.mock("@paper-tools/core", () => ({
     RateLimiter: class {
         async acquire() {
@@ -27,7 +31,12 @@ function makeRequest(body: unknown) {
 }
 
 describe("/api/bibtex/bulk POST", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
+
+
+        const auth = await import("@/lib/auth");
+        vi.mocked(auth.getAccessToken).mockReturnValue("fake-token");
+
         vi.clearAllMocks();
     });
 
@@ -72,5 +81,65 @@ describe("/api/bibtex/bulk POST", () => {
         expect(res.status).toBe(200);
         expect(data.count).toBe(0);
         expect(data.errors).toHaveLength(1);
+    });
+
+    it("認証情報がない場合は 401 を返す", async () => {
+        const auth = await import("@/lib/auth");
+        vi.mocked(auth.getAccessToken).mockReturnValueOnce(null);
+
+        const req = makeRequest({ papers: [{ title: "A" }] });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(401);
+        expect(data.error).toBe("Unauthorized");
+    });
+
+    it("予期せぬエラーは 500 を返す", async () => {
+        const auth = await import("@/lib/auth");
+        vi.mocked(auth.getAccessToken).mockImplementation(() => {
+            throw new Error("Unexpected auth error");
+        });
+
+        const req = makeRequest({ papers: [{ title: "A" }] });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(data.error).toBe("Unexpected auth error");
+    });
+
+    it("doi または title がない場合は error に追加する", async () => {
+        const req = makeRequest({ papers: [{}] });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.errors).toHaveLength(1);
+        expect(data.errors[0].message).toBe("doi または title が必要です");
+    });
+
+    it("取得時に例外が発生した場合は error に追加する", async () => {
+        vi.mocked(bibtex.fetchBibtex).mockRejectedValueOnce(new Error("Network error"));
+
+        const req = makeRequest({ papers: [{ title: "Error Paper" }] });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.errors).toHaveLength(1);
+        expect(data.errors[0].message).toBe("Network error");
+    });
+
+    it("取得時に Error インスタンス以外の例外が発生した場合は Unknown error になる", async () => {
+        vi.mocked(bibtex.fetchBibtex).mockRejectedValueOnce("String error");
+
+        const req = makeRequest({ papers: [{ title: "Error Paper" }] });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(200);
+        expect(data.errors).toHaveLength(1);
+        expect(data.errors[0].message).toBe("Unknown error");
     });
 });
