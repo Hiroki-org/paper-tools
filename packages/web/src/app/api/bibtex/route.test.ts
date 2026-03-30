@@ -72,4 +72,26 @@ describe("/api/bibtex GET", () => {
         expect(res.status).toBe(401);
         expect(data.error).toBe("[bibtex-api] Operation failed: Unauthorized request to /api/bibtex");
     });
+
+    it("内部エラー発生時は 500 を返す", async () => {
+        vi.mocked(bibtex.fetchBibtex).mockRejectedValueOnce(new Error("Network Error"));
+
+        const req = new NextRequest("http://localhost/api/bibtex?title=Sample");
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(data.error).toBe("Network Error");
+    });
+
+    it("非Errorオブジェクトの例外発生時は 500 を返す", async () => {
+        vi.mocked(bibtex.fetchBibtex).mockRejectedValueOnce("String Error");
+
+        const req = new NextRequest("http://localhost/api/bibtex?title=Sample");
+        const res = await GET(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(500);
+        expect(data.error).toBe("Unknown error");
+    });
 });
