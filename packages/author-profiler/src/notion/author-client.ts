@@ -6,14 +6,6 @@ export interface SaveAuthorProfileOptions {
     dryRun?: boolean;
 }
 
-export type NotionProperties = Record<string,
-    | { title: { text: { content: string } }[] }
-    | { rich_text: { text: { content: string } }[] }
-    | { number: number | undefined }
-    | { url: string | null }
-    | { date: { start: string } | null }
->;
-
 export interface SaveAuthorProfileResult {
     action: "created" | "updated" | "dry-run";
     pageId?: string;
@@ -81,7 +73,9 @@ export async function saveAuthorProfileToNotion(
         throw new Error("NOTION_AUTHOR_DATABASE_ID が未設定です");
     }
 
-        const properties = {
+    type PageProperties = Parameters<Client["pages"]["create"]>[0]["properties"];
+
+    const properties: PageProperties = {
         "Name": {
             title: titleRichText(profile.name),
         },
@@ -106,7 +100,7 @@ export async function saveAuthorProfileToNotion(
         "Last Updated": {
             date: { start: new Date().toISOString().slice(0, 10) },
         },
-    } satisfies NotionProperties;
+    };
 
     if (options.dryRun) {
         return { action: "dry-run" };
@@ -114,7 +108,7 @@ export async function saveAuthorProfileToNotion(
 
     const existingPageId = await findExistingAuthorPage(profile, databaseId, client);
     if (existingPageId) {
-        await client.pages.update({ page_id: existingPageId, properties: properties as unknown as Parameters<typeof client.pages.update>[0]["properties"] });
+        await client.pages.update({ page_id: existingPageId, properties });
         return {
             action: "updated",
             pageId: existingPageId,
@@ -123,7 +117,7 @@ export async function saveAuthorProfileToNotion(
 
     const created = await client.pages.create({
         parent: { database_id: databaseId },
-        properties: properties as unknown as Parameters<typeof client.pages.create>[0]["properties"],
+        properties,
     });
 
     return {
