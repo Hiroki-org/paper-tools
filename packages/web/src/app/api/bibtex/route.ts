@@ -19,10 +19,7 @@ function normalizeDoi(value?: string): string | undefined {
 export async function GET(request: NextRequest) {
     const accessToken = getAccessToken(request.cookies);
     if (!accessToken) {
-        return NextResponse.json(
-            { error: "[bibtex-api] Operation failed: Unauthorized request to /api/bibtex" },
-            { status: 401 },
-        );
+        return NextResponse.json({ error: "[bibtex-api] Operation failed: Unauthorized request to /api/bibtex" }, { status: 401 });
     }
 
     try {
