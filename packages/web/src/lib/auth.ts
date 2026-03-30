@@ -90,7 +90,7 @@ export function getAccessToken(cookieStore: CookieStore): string | null {
     const raw = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
     if (!raw) return null;
     const parsed = unsealCookieValue<{ token: string }>(raw);
-    return parsed?.token ?? null;
+    return typeof parsed?.token === "string" ? parsed.token : null;
 }
 
 export function getRefreshToken(cookieStore: CookieStore): string | null {
