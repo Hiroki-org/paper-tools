@@ -1,6 +1,9 @@
 import { Client } from "@notionhq/client";
 import type { S2Paper } from "@paper-tools/core";
 
+type CreatePageParameters = Parameters<Client["pages"]["create"]>[0];
+type NotionProperties = CreatePageParameters["properties"];
+
 export interface NotionPaperRecord {
     pageId: string;
     title: string;
@@ -194,7 +197,7 @@ export async function createPaperPage(
     const doi = paper.externalIds?.DOI ?? "";
     const fieldsOfStudy = paper.fieldsOfStudy ?? [];
 
-    const notionProperties: Record<string, unknown> = {
+    const notionProperties: NotionProperties = {
         "タイトル": {
             title: [{ text: { content: paper.title || "(untitled)" } }],
         },
@@ -235,7 +238,7 @@ export async function createPaperPage(
 
     await client.pages.create({
         parent: { database_id: databaseId },
-        properties: notionProperties as any,
+        properties: notionProperties,
     });
 }
 
