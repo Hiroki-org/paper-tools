@@ -117,7 +117,7 @@ export async function getDatabaseInfo(
     let workspaceName = "Notion Workspace";
     try {
         const me = await client.users.me({});
-        workspaceName = (me as any)?.name?.trim() || workspaceName;
+        workspaceName = (me as { name?: string }).name?.trim() || workspaceName;
     } catch (e) {
         console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
     }
