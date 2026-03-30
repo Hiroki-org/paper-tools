@@ -1,9 +1,6 @@
 import { Client } from "@notionhq/client";
 import type { S2Paper } from "@paper-tools/core";
 
-type CreatePageParameters = Parameters<Client["pages"]["create"]>[0];
-type NotionProperties = CreatePageParameters["properties"];
-
 export interface NotionPaperRecord {
     pageId: string;
     title: string;
@@ -117,7 +114,7 @@ export async function getDatabaseInfo(
     let workspaceName = "Notion Workspace";
     try {
         const me = await client.users.me({});
-        workspaceName = (me as { name?: string }).name?.trim() || workspaceName;
+        workspaceName = (me as any)?.name?.trim() || workspaceName;
     } catch (e) {
         console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
     }
@@ -197,7 +194,7 @@ export async function createPaperPage(
     const doi = paper.externalIds?.DOI ?? "";
     const fieldsOfStudy = paper.fieldsOfStudy ?? [];
 
-    const notionProperties: NotionProperties = {
+    const notionProperties: Record<string, unknown> = {
         "タイトル": {
             title: [{ text: { content: paper.title || "(untitled)" } }],
         },
@@ -238,7 +235,7 @@ export async function createPaperPage(
 
     await client.pages.create({
         parent: { database_id: databaseId },
-        properties: notionProperties,
+        properties: notionProperties as any,
     });
 }
 

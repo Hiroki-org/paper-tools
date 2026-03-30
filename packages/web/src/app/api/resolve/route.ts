@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAccessToken } from "@/lib/auth";
 import { getPaper, searchPapers } from "@paper-tools/core";
 
 interface ResolveBody {
@@ -13,11 +12,6 @@ function normalizeDoi(input: string) {
 }
 
 export async function POST(request: NextRequest) {
-    const accessToken = getAccessToken(request.cookies);
-    if (!accessToken) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     try {
         const body = (await request.json()) as ResolveBody;
         const doi = body.doi?.trim();
