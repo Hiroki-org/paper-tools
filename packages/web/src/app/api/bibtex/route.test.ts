@@ -70,6 +70,6 @@ describe("/api/bibtex GET", () => {
         const data = await res.json();
 
         expect(res.status).toBe(401);
-        expect(data.error).toBe("Unauthorized");
+        expect(data.error).toBe("[bibtex-api] Operation failed: Unauthorized request to /api/bibtex");
     });
 });
