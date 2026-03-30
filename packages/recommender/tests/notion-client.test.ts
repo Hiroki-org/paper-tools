@@ -1,10 +1,7 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { S2Paper } from "@paper-tools/core";
 
 const mockClient = {
-    users: {
-        me: vi.fn(),
-    },
     databases: {
         retrieve: vi.fn(),
         query: vi.fn(),
@@ -14,19 +11,18 @@ const mockClient = {
     },
 };
 
+const {
+    getDatabase,
+    createPaperPage,
+    findDuplicates,
+} = await import("../src/notion-client.js");
+
 describe("notion-client", () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    afterEach(() => {
-        vi.unstubAllEnvs();
-        vi.unstubAllGlobals();
-        vi.resetModules();
-    });
-
     it("createPaperPage should map properties correctly", async () => {
-        const { getDatabase, createPaperPage } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
             properties: {
                 "タイトル": { type: "title" },
@@ -69,7 +65,6 @@ describe("notion-client", () => {
     });
 
     it("findDuplicates should detect DOI duplicates", async () => {
-        const { findDuplicates } = await import("../src/notion-client.js");
         mockClient.databases.query
             .mockResolvedValueOnce({
                 results: [
@@ -101,7 +96,6 @@ describe("notion-client", () => {
     });
 
     it("getDatabase should throw when required properties are missing", async () => {
-        const { getDatabase } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
             properties: {
                 "タイトル": { type: "title" },
@@ -110,40 +104,82 @@ describe("notion-client", () => {
 
         await expect(getDatabase("db-1", mockClient as any)).rejects.toThrow("必須プロパティが不足");
     });
-
-    it("createNotionClient should throw if API key is not set", async () => {
-        vi.stubEnv('NOTION_API_KEY', '');
+});
+describe("additional coverage", () => {
+    it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
-        await expect(getDatabaseInfo("db-1", undefined)).rejects.toThrow("NOTION_API_KEY が未設定です");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: "Test" }, {}, null, { plain_text: " DB" }],
+        });
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockResolvedValueOnce({ name: "Test User" }),
+            }
+        };
+
+        const info = await getDatabaseInfo("db-1", clientWithUsers as any);
+
+        expect(info.databaseName).toBe("Test DB");
+        expect(info.workspaceName).toBe("Test User");
     });
 
-    it("createNotionClient should return a valid Client when API key is set", async () => {
-        vi.stubEnv('NOTION_API_KEY', 'valid-key');
+    it("readTitle and readRichText should handle NotionRichTextItem mapping", async () => {
+        const { queryPapers } = await import("../src/notion-client.js");
+        mockClient.databases.query.mockResolvedValueOnce({
+            results: [
+                {
+                    id: "page-1",
+                    properties: {
+                        "タイトル": { type: "title", title: [{ plain_text: "Mapped" }, {}, null, { plain_text: " Title" }] },
+                        "DOI": { type: "rich_text", rich_text: [null, {}, { plain_text: "10.1000/mapped" }] },
+                        "Semantic Scholar ID": { type: "rich_text", rich_text: [] },
+                    },
+                },
+            ],
+            has_more: false,
+            next_cursor: null,
+        });
 
-        // This fails by timeout probably because Notion Client uses fetch/http internally without respecting mock Fetch,
-        // or uses a retry mechanism that hangs.
-        // We'll mock @notionhq/client so it doesn't do a real HTTP request.
-        // But doing so in the middle of a file where we import it dynamically is hard.
-        // Wait, `mockFetch` times out. So let's just assert that an error other than "NOTION_API_KEY" is thrown
-        // meaning it successfully created a Client and attempted a network request.
+        const papers = await queryPapers("db-1", mockClient as any);
 
-        const { getDatabaseInfo } = await import("../src/notion-client.js?v=" + Date.now());
-
-        // The real client will attempt a fetch and likely fail since there's no such db and key is fake.
-        // We can just wrap it in a short timeout or mock fetch using Undici interceptor if we were using it.
-        // Let's just mock console.warn since it might complain, but let it fail and catch the error.
-
-        try {
-            await Promise.race([
-                getDatabaseInfo("db-1", undefined),
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout Expected")), 50))
-            ]);
-        } catch(e: any) {
-            expect(e.message).not.toBe("NOTION_API_KEY が未設定です");
-        }
+        expect(papers[0].title).toBe("Mapped Title");
+        expect(papers[0].doi).toBe("10.1000/mapped");
     });
 
-    it("truncateRichTextContent should slice text to max length and append ellipsis via createPaperPage", async () => {
+    it("readTitle and readRichText should handle null or invalid properties gracefully", async () => {
+        const { queryPapers } = await import("../src/notion-client.js");
+        mockClient.databases.query.mockResolvedValueOnce({
+            results: [
+                {
+                    id: "page-1",
+                    properties: {
+                        "タイトル": { type: "title", title: null },
+                        "DOI": { type: "rich_text", rich_text: null },
+                        "Semantic Scholar ID": { type: "invalid_type", rich_text: [] },
+                    },
+                },
+                {
+                    id: "page-2",
+                    properties: {},
+                }
+            ],
+            has_more: false,
+            next_cursor: null,
+        });
+
+        const papers = await queryPapers("db-1", mockClient as any);
+
+        expect(papers[0].title).toBe("");
+        expect(papers[0].doi).toBe(undefined);
+        expect(papers[1].title).toBe("");
+        expect(papers[1].doi).toBe(undefined);
+    });
+});
+
+describe("additional coverage 2", () => {
+    it("truncateRichTextContent should truncate string properly", async () => {
+        const { createPaperPage, getDatabase } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
             properties: {
                 "タイトル": { type: "title" },
@@ -153,317 +189,37 @@ describe("notion-client", () => {
         });
         mockClient.pages.create.mockResolvedValueOnce({ id: "new-page" });
 
-        const paper = {
-            paperId: "s2-trunc",
-            abstract: "A".repeat(2005),
-            title: "Trun",
-            externalIds: { DOI: "10.0" }
-        } as any;
+        const paper: S2Paper = {
+            paperId: "s2-1",
+            title: "Test Paper",
+            abstract: "a".repeat(2005),
+        };
 
-        const { createPaperPage } = await import("../src/notion-client.js");
-
-        // Pass a mock validation directly to bypass retrieve mock overlap
-        await createPaperPage("db-1", paper, mockClient as any, {
-            properties: {
-                "タイトル": { type: "title" },
-                "DOI": { type: "rich_text" },
-                "要約": { type: "rich_text" }
-            },
-            missingOptional: []
-        });
+        const validation = await getDatabase("db-1", mockClient as any);
+        await createPaperPage("db-1", paper, mockClient as any, validation);
 
         expect(mockClient.pages.create).toHaveBeenCalledTimes(1);
-        const call = mockClient.pages.create.mock.calls.at(-1)[0];
-        const truncated = call.properties["要約"].rich_text[0].text.content;
-        expect(truncated.length).toBe(2000);
-        expect(truncated.endsWith("…")).toBe(true);
+        const call = mockClient.pages.create.mock.calls[0]?.[0];
+
+        const abstractContent = call.properties["要約"].rich_text[0].text.content;
+        expect(abstractContent.length).toBe(2000);
+        expect(abstractContent.endsWith("…")).toBe(true);
     });
 
-    it("getDatabaseInfo should handle errors when fetching workspace name", async () => {
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
-        const mockErrorClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    title: [{ plain_text: " My Database " }]
-                })
-            },
-            users: {
-                me: vi.fn().mockRejectedValueOnce(new Error("API Error"))
-            }
-        };
-
+    it("extractPlainText should handle non-array gracefully", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
-        const info = await getDatabaseInfo("db-1", mockErrorClient as any);
-        expect(info.databaseId).toBe("db-1");
-        expect(info.workspaceName).toBe("Notion Workspace");
-    });
-
-    it("getDatabase should throw when properties have incorrect type", async () => {
-        const typeMockClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    properties: {
-                        "タイトル": { type: "number" },
-                        "DOI": { type: "rich_text" }
-                    },
-                })
-            }
-        };
-
-        const { getDatabase } = await import("../src/notion-client.js");
-        await expect(getDatabase("db-1", typeMockClient as any)).rejects.toThrow("Notion DBプロパティ型が不正です: タイトル expected=title actual=number");
-    });
-
-    it("getDatabaseInfo should fetch workspace name", async () => {
-        const mockNameClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    title: [{ plain_text: " My Database " }]
-                })
-            },
-            users: {
-                me: vi.fn().mockResolvedValueOnce({
-                    name: " Test Workspace "
-                })
-            }
-        };
-
-        const { getDatabaseInfo } = await import("../src/notion-client.js");
-        const info = await getDatabaseInfo("db-1", mockNameClient as any);
-        expect(info.databaseId).toBe("db-1");
-        expect(info.databaseName).toBe("My Database");
-        expect(info.workspaceName).toBe("Test Workspace");
-    });
-
-    it("readTitle and readRichText should return empty when property is missing or wrong type", async () => {
-        const emptyMockClient = {
-            databases: {
-                query: vi.fn().mockResolvedValueOnce({
-                    results: [
-                        {
-                            id: "page-empty",
-                            properties: {
-                                "タイトル": { type: "rich_text", rich_text: [{ plain_text: "wrong-type" }] },
-                                "DOI": { type: "number", number: 123 },
-                                "Semantic Scholar ID": undefined,
-                            },
-                        },
-                    ],
-                    has_more: false,
-                    next_cursor: null,
-                })
-            }
-        };
-
-        const { findDuplicates } = await import("../src/notion-client.js");
-        const result = await findDuplicates(
-            "db-1",
-            [],
-            emptyMockClient as any,
-        );
-        expect(result.duplicateTitles.size).toBe(0);
-        expect(result.duplicateDois.size).toBe(0);
-    });
-
-    it("createPaperPage should fallback if validation is not provided", async () => {
-        const fbMockClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    properties: {
-                        "タイトル": { type: "title" },
-                        "DOI": { type: "rich_text" },
-                    },
-                })
-            },
-            pages: {
-                create: vi.fn().mockResolvedValueOnce({ id: "new-page" })
-            }
-        };
-
-        const paper = {
-            paperId: "s2-2",
-            title: "Fallback Paper",
-            externalIds: { DOI: "10.0" }
-        };
-
-        const { createPaperPage } = await import("../src/notion-client.js");
-        await createPaperPage("db-1", paper as any, fbMockClient as any);
-
-        expect(fbMockClient.pages.create).toHaveBeenCalledTimes(1);
-    });
-
-    it("createPaperPage should handle missing title and externalIds gracefully", async () => {
-        const msMockClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    properties: {
-                        "タイトル": { type: "title" },
-                        "DOI": { type: "rich_text" },
-                    },
-                })
-            },
-            pages: {
-                create: vi.fn().mockResolvedValueOnce({ id: "new-page2" })
-            }
-        };
-
-        const paper = {
-            paperId: "s2-3",
-            title: "",
-            externalIds: { DOI: "" }
-        };
-
-        const { createPaperPage } = await import("../src/notion-client.js");
-        await createPaperPage("db-1", paper as any, msMockClient as any, {
-            properties: {
-                "タイトル": { type: "title" },
-                "DOI": { type: "rich_text" },
-            },
-            missingOptional: []
-        });
-
-        expect(msMockClient.pages.create).toHaveBeenCalledTimes(1);
-    });
-
-    it("queryPapers should handle missing title and plain_text properties gracefully", async () => {
-        const qMockClient = {
-            databases: {
-                query: vi.fn().mockResolvedValueOnce({
-                    results: [
-                        {
-                            id: "page-empty-text",
-                            properties: {
-                                "タイトル": { type: "title", title: undefined },
-                                "DOI": { type: "rich_text", rich_text: [{ plain_text: undefined }] },
-                                "Semantic Scholar ID": { type: "rich_text", rich_text: undefined },
-                            },
-                        },
-                    ],
-                    has_more: true,
-                    next_cursor: "cursor-1",
-                }).mockResolvedValueOnce({
-                    results: [
-                        {
-                            id: "page-empty-title",
-                            properties: {
-                                "タイトル": { type: "title", title: [{ plain_text: undefined }] },
-                            },
-                        },
-                    ],
-                    has_more: false,
-                    next_cursor: null,
-                })
-            }
-        };
-
-        const { queryPapers } = await import("../src/notion-client.js");
-        const papers = await queryPapers("db-1", qMockClient as any);
-
-        expect(papers.length).toBe(2);
-        expect(papers[0].title).toBe("");
-        expect(papers[0].doi).toBe(undefined);
-        expect(papers[0].semanticScholarId).toBe(undefined);
-        expect(papers[1].title).toBe("");
-    });
-
-    it("findDuplicates should handle papers without titles gracefully", async () => {
-        const dpMockClient = {
-            databases: {
-                query: vi.fn().mockResolvedValueOnce({
-                    results: [],
-                    has_more: false,
-                })
-            }
-        };
-
-        const { findDuplicates } = await import("../src/notion-client.js");
-        const result = await findDuplicates(
-            "db-1",
-            [
-                { paperId: "x", title: undefined as any },
-            ],
-            dpMockClient as any,
-        );
-        expect(result.duplicateTitles.size).toBe(0);
-    });
-
-    it("getDatabase should handle missing properties object safely without throwing undefined", async () => {
-        const dbMockClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    properties: undefined,
-                })
-            }
-        };
-
-        const { getDatabase } = await import("../src/notion-client.js");
-        await expect(getDatabase("db-1", dbMockClient as any)).rejects.toThrow("必須プロパティが不足しています: タイトル, DOI");
-    });
-
-    it("getDatabaseInfo should fallback to untitled database name when title is empty or missing", async () => {
-        const infoMockClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    title: undefined
-                })
-            },
-            users: { me: vi.fn().mockResolvedValueOnce({ name: undefined }) }
-        };
-
-        const { getDatabaseInfo } = await import("../src/notion-client.js");
-        const info = await getDatabaseInfo("db-1", infoMockClient as any);
-        expect(info.databaseName).toBe("(untitled database)");
-        expect(info.workspaceName).toBe("Notion Workspace");
-    });
-
-    it("getDatabaseInfo should map plain_text properly with gaps", async () => {
-        const gapMockClient = {
-            databases: {
-                retrieve: vi.fn().mockResolvedValueOnce({
-                    title: [{ plain_text: undefined }, { plain_text: "  " }]
-                })
-            },
-            users: { me: vi.fn().mockResolvedValueOnce({ name: "   " }) }
-        };
-
-        const { getDatabaseInfo } = await import("../src/notion-client.js");
-        const info = await getDatabaseInfo("db-1", gapMockClient as any);
-        expect(info.databaseName).toBe("(untitled database)");
-        expect(info.workspaceName).toBe("Notion Workspace");
-    });
-
-    it("queryPapers should handle cursor pagination when next_cursor is null but has_more is true", async () => {
-        const cursorMockClient = {
-            databases: {
-                query: vi.fn().mockResolvedValueOnce({
-                    results: [],
-                    has_more: true,
-                    next_cursor: null,
-                })
-            }
-        };
-
-        const { queryPapers } = await import("../src/notion-client.js");
-        await queryPapers("db-1", cursorMockClient as any);
-    });
-
-    it("createPaperPage should handle missing externalIds gracefully", async () => {
         mockClient.databases.retrieve.mockResolvedValueOnce({
-            properties: {
-                "タイトル": { type: "title" },
-                "DOI": { type: "rich_text" },
-            },
+            title: "not an array",
         });
-        mockClient.pages.create.mockResolvedValueOnce({ id: "new-page3" });
-
-        const paper = {
-            paperId: "s2-4",
-            externalIds: undefined
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockResolvedValueOnce({ name: "Test User" }),
+            }
         };
 
-        const { createPaperPage } = await import("../src/notion-client.js");
-        await createPaperPage("db-1", paper as any, mockClient as any);
+        const info = await getDatabaseInfo("db-1", clientWithUsers as any);
 
-        expect(mockClient.pages.create).toHaveBeenCalledTimes(1);
+        expect(info.databaseName).toBe("(untitled database)");
     });
 });

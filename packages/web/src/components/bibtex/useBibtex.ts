@@ -1,5 +1,4 @@
 "use client";
-import { normalizeDoi } from "@paper-tools/core";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -37,6 +36,10 @@ function setCacheWithEviction(key: string, value: BibtexSingleResult): void {
     sharedCache.set(key, value);
 }
 
+function normalizeDoi(value?: string): string {
+    if (!value) return "";
+    return value.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:/i, "").trim();
+}
 
 function cacheKey(input: { doi?: string; title?: string; format: BibtexFormat; keyFormat: BibtexKeyFormat }): string {
     return [normalizeDoi(input.doi), (input.title ?? "").trim().toLowerCase(), input.format, input.keyFormat].join("|");

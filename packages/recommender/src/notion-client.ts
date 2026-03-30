@@ -45,7 +45,6 @@ function createNotionClient(): Client {
 
 type NotionDatabase = {
     properties: Record<string, { type: string }>;
-    title?: { plain_text?: string }[];
 };
 
 export interface DatabaseValidationResult {
@@ -57,6 +56,10 @@ export interface NotionDatabaseInfo {
     databaseId: string;
     databaseName: string;
     workspaceName: string;
+}
+
+export interface NotionRichTextItem {
+    plain_text?: string;
 }
 
 function truncateRichTextContent(text: string, maxLength = 2000): string {
@@ -102,21 +105,28 @@ export async function getDatabase(
     };
 }
 
+function extractPlainText(items: unknown): string {
+    if (!Array.isArray(items)) {
+        return "";
+    }
+    return items
+        .filter((t): t is NotionRichTextItem => typeof t === "object" && t !== null && "plain_text" in t)
+        .map((t) => typeof t.plain_text === "string" ? t.plain_text : "")
+        .join("")
+        .trim();
+}
+
 export async function getDatabaseInfo(
     databaseId: string,
     client: Client = createNotionClient(),
 ): Promise<NotionDatabaseInfo> {
-    const database = await client.databases.retrieve({ database_id: databaseId }) as unknown as NotionDatabase;
-    const databaseName = (database?.title ?? [])
-        .map((t: { plain_text?: string }) => t?.plain_text ?? "")
-        .join("")
-        .trim() || "(untitled database)";
+    const database = await client.databases.retrieve({ database_id: databaseId }) as any;
+    const databaseName = extractPlainText(database?.title) || "(untitled database)";
 
-    type NotionUser = { name?: string };
     let workspaceName = "Notion Workspace";
     try {
         const me = await client.users.me({});
-        workspaceName = (me as unknown as NotionUser)?.name?.trim() || workspaceName;
+        workspaceName = (me as any)?.name?.trim() || workspaceName;
     } catch (e) {
         console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
     }
@@ -130,7 +140,7 @@ export async function getDatabaseInfo(
 
 type NotionPage = {
     id: string;
-    properties: Record<string, { type?: string; title?: { plain_text?: string }[]; rich_text?: { plain_text?: string }[]; }>;
+    properties: Record<string, any>;
 };
 
 function readTitle(page: NotionPage): string {
@@ -138,7 +148,7 @@ function readTitle(page: NotionPage): string {
     if (!prop || prop.type !== "title") {
         return "";
     }
-    const text = (prop.title ?? []).map((t: { plain_text?: string }) => t?.plain_text ?? "").join("").trim();
+    const text = extractPlainText(prop.title);
     return text;
 }
 
@@ -147,7 +157,7 @@ function readRichText(page: NotionPage, propertyName: string): string {
     if (!prop || prop.type !== "rich_text") {
         return "";
     }
-    return (prop.rich_text ?? []).map((t: { plain_text?: string }) => t?.plain_text ?? "").join("").trim();
+    return extractPlainText(prop.rich_text);
 }
 
 export async function queryPapers(
@@ -237,7 +247,7 @@ export async function createPaperPage(
 
     await client.pages.create({
         parent: { database_id: databaseId },
-        properties: notionProperties as unknown as Record<string, any>,
+        properties: notionProperties as any,
     });
 }
 

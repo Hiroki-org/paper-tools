@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeDoi } from "@paper-tools/core";
 import { RateLimiter } from "@paper-tools/core";
 import { deriveBibtexKey, fetchBibtex, formatBibtex } from "@paper-tools/bibtex/lib";
-import { getAccessToken } from "@/lib/auth";
-
 
 type BulkPaper = { doi?: string; title?: string };
 
@@ -22,13 +19,12 @@ function parseKeyFormat(value: string | undefined): "default" | "short" | "venue
     return "default";
 }
 
+function normalizeDoi(value?: string): string | undefined {
+    if (!value?.trim()) return undefined;
+    return value.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:/i, "").trim();
+}
 
 export async function POST(request: NextRequest) {
-    const accessToken = getAccessToken(request.cookies);
-    if (!accessToken) {
-        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
     try {
         const body = (await request.json()) as BulkBody;
         const papers = Array.isArray(body.papers) ? body.papers : [];
@@ -91,7 +87,7 @@ export async function POST(request: NextRequest) {
             errors,
         });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error(error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
