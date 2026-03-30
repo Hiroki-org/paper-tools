@@ -4,7 +4,7 @@ import { getAuthor, searchAuthors } from "@paper-tools/core";
 import { readFile, writeFile } from "node:fs/promises";
 import prompts from "prompts";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { homedir } from "node:os";
 
 // Mock external dependencies
 vi.mock("@paper-tools/core", () => ({
@@ -22,7 +22,7 @@ vi.mock("prompts", () => ({
     default: vi.fn()
 }));
 
-const CACHE_DIR = process.env.PAPER_TOOLS_CACHE_DIR || join(tmpdir(), ".paper-tools", "author-profiler");
+const CACHE_DIR = join(homedir(), ".paper-tools", "author-profiler");
 const CACHE_FILE = join(CACHE_DIR, "resolver-cache.json");
 
 describe("author-resolver", () => {
