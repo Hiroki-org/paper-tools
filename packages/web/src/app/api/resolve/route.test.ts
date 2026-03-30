@@ -6,8 +6,13 @@ vi.mock("@paper-tools/core", () => ({
     searchPapers: vi.fn(),
 }));
 
+vi.mock("@/lib/auth", () => ({
+    getAccessToken: vi.fn(),
+}));
+
 const core = await import("@paper-tools/core");
 const { POST } = await import("./route");
+const { getAccessToken } = await import("@/lib/auth");
 
 function makeRequest(body: unknown) {
     return new NextRequest("http://localhost/api/resolve", {
@@ -19,7 +24,16 @@ function makeRequest(body: unknown) {
 
 describe("/api/resolve POST", () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
+        vi.mocked(getAccessToken).mockReturnValue("fake-token");
+    });
+
+    it("アクセストークンがない場合は401を返す", async () => {
+        vi.mocked(getAccessToken).mockReturnValue(null);
+        const res = await POST(makeRequest({ doi: "10.1000/xyz" }));
+        const data = await res.json();
+        expect(res.status).toBe(401);
+        expect(data.error).toBe("Unauthorized");
     });
 
     it("doi から論文を解決する", async () => {
