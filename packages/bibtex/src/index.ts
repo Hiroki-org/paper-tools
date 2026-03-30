@@ -8,6 +8,7 @@ import { fetchBibtex } from "./bibtex-fetcher.js";
 import { deriveBibtexKey, formatBibtex, getValidationWarnings, parseBibtexEntry, splitBibtexEntries } from "./bibtex-formatter.js";
 import type { BibtexFormat, BibtexKeyFormat, ValidateIssue } from "./types.js";
 import { queryPapers } from "@paper-tools/recommender";
+import { normalizeDoi } from "@paper-tools/core";
 
 const program = new Command();
 
@@ -24,9 +25,6 @@ function looksLikeDoi(inputValue: string): boolean {
     return /^10\.[^\s/]+\/.+/i.test(s) || /^https?:\/\/doi\.org\//i.test(s) || /^doi:/i.test(s);
 }
 
-function normalizeDoi(inputValue: string): string {
-    return inputValue.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:/i, "").trim();
-}
 
 function parseKeyFormat(value: string | undefined): BibtexKeyFormat {
     if (value === "short" || value === "venue") return value;
