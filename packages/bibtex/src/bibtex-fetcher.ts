@@ -32,11 +32,8 @@ async function fetchCrossrefBibtexByDoi(doi: string): Promise<string> {
 
 async function fetchDblpBibtexByTitle(title: string): Promise<string | null> {
     const candidates = await searchPublications(title, 10);
-    let dblpKey: string | null = null;
-    for (const paper of candidates) {
-        dblpKey = extractDblpKeyFromUrl(paper.url);
-        if (dblpKey) break;
-    }
+    const candidate = candidates.find((paper) => extractDblpKeyFromUrl(paper.url));
+    const dblpKey = extractDblpKeyFromUrl(candidate?.url);
     if (!dblpKey) return null;
 
     const url = `https://dblp.org/rec/${dblpKey}.bib?param=1`;
