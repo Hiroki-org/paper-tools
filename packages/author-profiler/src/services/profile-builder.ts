@@ -27,8 +27,11 @@ interface ProfileCacheItem {
 }
 
 type ProfileCache = Record<string, ProfileCacheItem>;
-export const _inFlightProfiles = new Map<string, Promise<AuthorProfile>>();
-const inFlightProfiles = _inFlightProfiles;
+const inFlightProfiles = new Map<string, Promise<AuthorProfile>>();
+
+export function resetInFlightProfilesForTests(): void {
+    inFlightProfiles.clear();
+}
 
 const CACHE_DIR = process.env.PAPER_TOOLS_CACHE_DIR || join(tmpdir(), ".paper-tools", "author-profiler");
 const PROFILE_CACHE_FILE = join(CACHE_DIR, "profile-cache.json");

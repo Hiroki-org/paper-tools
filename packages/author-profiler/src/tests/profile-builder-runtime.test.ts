@@ -28,13 +28,12 @@ vi.mock("../services/coauthor-network.js", () => ({
     aggregateCoauthorsFromPapers: mockAggregateCoauthorsFromPapers,
 }));
 
-const { buildAuthorProfile, _inFlightProfiles } = await import("../services/profile-builder.js");
-const inFlightProfiles = _inFlightProfiles || null;
+const { buildAuthorProfile, resetInFlightProfilesForTests } = await import("../services/profile-builder.js");
 
 describe("buildAuthorProfile runtime behavior", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        inFlightProfiles?.clear?.();
+        resetInFlightProfilesForTests();
         mockReadFile.mockRejectedValue(new Error("no cache"));
         mockMkdir.mockResolvedValue(undefined);
         mockWriteFile.mockResolvedValue(undefined);
