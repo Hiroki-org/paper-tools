@@ -58,6 +58,10 @@ export interface NotionDatabaseInfo {
     workspaceName: string;
 }
 
+export interface NotionRichTextItem {
+    plain_text?: string;
+}
+
 function truncateRichTextContent(text: string, maxLength = 2000): string {
     const chars = Array.from(text);
     if (chars.length <= maxLength) {
@@ -101,15 +105,23 @@ export async function getDatabase(
     };
 }
 
+function extractPlainText(items: unknown): string {
+    if (!Array.isArray(items)) {
+        return "";
+    }
+    return items
+        .filter((t): t is NotionRichTextItem => typeof t === "object" && t !== null && "plain_text" in t)
+        .map((t) => typeof t.plain_text === "string" ? t.plain_text : "")
+        .join("")
+        .trim();
+}
+
 export async function getDatabaseInfo(
     databaseId: string,
     client: Client = createNotionClient(),
 ): Promise<NotionDatabaseInfo> {
     const database = await client.databases.retrieve({ database_id: databaseId }) as any;
-    const databaseName = (database?.title ?? [])
-        .map((t: any) => t?.plain_text ?? "")
-        .join("")
-        .trim() || "(untitled database)";
+    const databaseName = extractPlainText(database?.title) || "(untitled database)";
 
     let workspaceName = "Notion Workspace";
     try {
@@ -136,7 +148,7 @@ function readTitle(page: NotionPage): string {
     if (!prop || prop.type !== "title") {
         return "";
     }
-    const text = (prop.title ?? []).map((t: any) => t?.plain_text ?? "").join("").trim();
+    const text = extractPlainText(prop.title);
     return text;
 }
 
@@ -145,7 +157,7 @@ function readRichText(page: NotionPage, propertyName: string): string {
     if (!prop || prop.type !== "rich_text") {
         return "";
     }
-    return (prop.rich_text ?? []).map((t: any) => t?.plain_text ?? "").join("").trim();
+    return extractPlainText(prop.rich_text);
 }
 
 export async function queryPapers(

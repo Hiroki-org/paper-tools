@@ -68,5 +68,4 @@ export type {
 } from "./author-types.js";
 
 // Utilities
-export { normalizeDoi } from "./utils/normalize-doi.js";
 export { parsePositiveInt } from "./utils.js";
