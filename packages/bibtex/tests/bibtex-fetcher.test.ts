@@ -9,7 +9,6 @@ vi.mock("@paper-tools/core", () => ({
     fetchWithRetry,
     searchPublications,
     searchPapers,
-    normalizeDoi: (d: string) => d,
 }));
 
 const { fetchBibtex } = await import("../src/bibtex-fetcher.js");
