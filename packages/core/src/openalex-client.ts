@@ -86,8 +86,7 @@ export async function getOpenAlexAuthor(authorId: string): Promise<OpenAlexAutho
         throw new Error(`OpenAlex API error: ${response.status} ${response.statusText} - ${body}`);
     }
 
-    const payload = await response.json();
-    return payload as OpenAlexAuthor;
+    return await response.json() as OpenAlexAuthor;
 }
 
 function scoreCandidate(candidate: OpenAlexAuthor, name?: string, affiliation?: string, orcid?: string): number {
