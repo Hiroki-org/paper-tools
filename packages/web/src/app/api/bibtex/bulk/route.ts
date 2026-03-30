@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAccessToken } from "@/lib/auth";
 import { RateLimiter } from "@paper-tools/core";
 import { deriveBibtexKey, fetchBibtex, formatBibtex } from "@paper-tools/bibtex/lib";
+import { getAccessToken } from "@/lib/auth";
+
 
 type BulkPaper = { doi?: string; title?: string };
 
@@ -26,11 +27,12 @@ function normalizeDoi(value?: string): string | undefined {
 }
 
 export async function POST(request: NextRequest) {
+    const accessToken = getAccessToken(request.cookies);
+    if (!accessToken) {
+        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     try {
-        const token = getAccessToken(request.cookies);
-        if (!token) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
         const body = (await request.json()) as BulkBody;
         const papers = Array.isArray(body.papers) ? body.papers : [];
         if (papers.length === 0) {

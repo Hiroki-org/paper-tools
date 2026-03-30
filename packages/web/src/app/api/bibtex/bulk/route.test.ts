@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/auth", () => ({
-    getAccessToken: vi.fn().mockReturnValue("fake-token"),
-}));
-
 vi.mock("@paper-tools/core", () => ({
     RateLimiter: class {
         async acquire() {
             return;
         }
     },
+}));
+
+
+vi.mock("@/lib/auth", () => ({
+    getAccessToken: vi.fn(),
 }));
 
 vi.mock("@paper-tools/bibtex/lib", () => ({
@@ -20,6 +21,7 @@ vi.mock("@paper-tools/bibtex/lib", () => ({
 }));
 
 const bibtex = await import("@paper-tools/bibtex/lib");
+const auth = await import("@/lib/auth");
 const { POST } = await import("./route");
 
 function makeRequest(body: unknown) {
@@ -32,7 +34,20 @@ function makeRequest(body: unknown) {
 
 describe("/api/bibtex/bulk POST", () => {
     beforeEach(() => {
+        vi.mocked(auth.getAccessToken).mockReturnValue("mock-token");
+
         vi.clearAllMocks();
+    });
+
+
+    it("認証されていない場合は 401 を返す", async () => {
+        vi.mocked(auth.getAccessToken).mockReturnValue(null as any);
+        const req = makeRequest({ papers: [{ title: "A" }] });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(401);
+        expect(data.error).toBe("Not authenticated");
     });
 
     it("複数論文の BibTeX を結合して返す", async () => {
@@ -76,17 +91,5 @@ describe("/api/bibtex/bulk POST", () => {
         expect(res.status).toBe(200);
         expect(data.count).toBe(0);
         expect(data.errors).toHaveLength(1);
-    });
-
-    it("認証情報がない場合は 401 を返す", async () => {
-        const auth = await import("@/lib/auth");
-        vi.mocked(auth.getAccessToken).mockReturnValueOnce(null);
-
-        const req = makeRequest({ papers: [{ title: "A" }] });
-        const res = await POST(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(401);
-        expect(data.error).toBe("Unauthorized");
     });
 });
