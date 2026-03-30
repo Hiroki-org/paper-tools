@@ -19,6 +19,20 @@ import { parsePositiveInt } from "@paper-tools/core";
 
 const program = new Command();
 
+function createSharedRateLimiter(minIntervalMs: number) {
+    let queue = Promise.resolve();
+
+    return async function limit<T>(task: () => Promise<T>): Promise<T> {
+        const run = queue.then(async () => {
+            const result = await task();
+            await new Promise((resolve) => setTimeout(resolve, minIntervalMs));
+            return result;
+        });
+
+        queue = run.then(() => undefined, () => undefined);
+        return run;
+    };
+}
 
 async function syncPapers(
     databaseId: string,
@@ -50,10 +64,11 @@ async function syncPapers(
         return { added, skipped, errors };
     }
 
-    const CONCURRENCY = 5;
+    const CONCURRENCY = 3;
     let cursor = 0;
 
-    const workerCount = Math.min(toProcess.length, Math.floor(CONCURRENCY));
+    const workerCount = Math.min(toProcess.length, CONCURRENCY);
+    const scheduleNotionWrite = createSharedRateLimiter(350);
     const workers = Array.from({ length: workerCount }, async () => {
         while (true) {
             const current = cursor++;
@@ -63,12 +78,12 @@ async function syncPapers(
 
             const paper = toProcess[current];
             try {
-                await createPaperPage(databaseId, paper, undefined, validation);
+                await scheduleNotionWrite(() => createPaperPage(databaseId, paper, undefined, validation));
                 added++;
             } catch (err) {
                 const doi = paper?.externalIds?.DOI;
                 const id = doi || paper?.title || paper?.paperId;
-                console.error(`Failed to add paper ${id}:`, err instanceof Error ? err.message : err);
+                console.error(`[recommender] [notion] createPaperPage failed: paper=${id} message=${err instanceof Error ? err.message : String(err)}`);
                 errors++;
             }
         }
