@@ -15,12 +15,12 @@ import {
     recommendFromSingle,
 } from "./recommend.js";
 import type { S2Paper } from "@paper-tools/core";
-import { parsePositiveInt } from "@paper-tools/core";
+import { parsePositiveInt, RateLimiter } from "@paper-tools/core";
 
 const program = new Command();
 
 
-async function syncPapers(
+export async function syncPapers(
     databaseId: string,
     papers: S2Paper[],
     duplicates: DuplicateResult,
@@ -50,26 +50,38 @@ async function syncPapers(
         return { added, skipped, errors };
     }
 
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
-        const batch = toProcess.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(async (paper) => {
+    const CONCURRENCY = 3;
+    let cursor = 0;
+    const limiter = new RateLimiter(CONCURRENCY, 1000);
+
+    const workerCount = Math.min(toProcess.length, Math.floor(CONCURRENCY));
+    const workers = Array.from({ length: workerCount }, async () => {
+        while (true) {
+            const current = cursor++;
+            if (current >= toProcess.length) {
+                return;
+            }
+
+            const paper = toProcess[current];
             try {
+                await limiter.acquire();
                 await createPaperPage(databaseId, paper, undefined, validation);
                 added++;
             } catch (err) {
-                const doi = paper.externalIds?.DOI;
-                const id = doi || paper.title || paper.paperId;
-                console.error(`Failed to add paper ${id}:`, err instanceof Error ? err.message : err);
+                const doi = paper?.externalIds?.DOI;
+                const id = doi || paper?.title || paper?.paperId;
+                console.error(`[recommender] [notion] createPaperPage failed: ${id} - ${err instanceof Error ? err.message : String(err)}`);
                 errors++;
             }
-        }));
-    }
+        }
+    });
+
+    await Promise.all(workers);
 
     return { added, skipped, errors };
 }
 
-async function outputJson(data: unknown, output?: string): Promise<void> {
+export async function outputJson(data: unknown, output?: string): Promise<void> {
     const json = JSON.stringify(data, null, 2);
     if (output) {
         const { writeFile } = await import("node:fs/promises");

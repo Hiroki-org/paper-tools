@@ -38,9 +38,7 @@ function parseFormat(value: string | undefined): BibtexFormat {
     return "bibtex";
 }
 
-function deriveCustomKey(rawBibtex: string, keyFormat: BibtexKeyFormat): string | undefined {
-    return deriveBibtexKey(rawBibtex, keyFormat);
-}
+
 
 async function readStdinText(): Promise<string> {
     const chunks: Buffer[] = [];
@@ -116,7 +114,7 @@ program
                 throw new Error("BibTeX を取得できませんでした");
             }
 
-            const customKey = deriveCustomKey(result.bibtex, keyFormat);
+            const customKey = deriveBibtexKey(result.bibtex, keyFormat);
             const formatted = formatBibtex(result.bibtex, {
                 format,
                 key: customKey,
@@ -168,7 +166,7 @@ program
                             return null;
                         }
 
-                        const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
+                        const customKey = deriveBibtexKey(fetched.bibtex, keyFormat);
                         const formatted = formatBibtex(fetched.bibtex, {
                             format,
                             key: customKey,
