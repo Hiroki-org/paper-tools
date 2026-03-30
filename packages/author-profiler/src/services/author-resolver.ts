@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { homedir } from "node:os";
+import { tmpdir } from "node:os";
 import prompts from "prompts";
 import { getAuthor, searchAuthors } from "@paper-tools/core";
 
@@ -17,7 +17,7 @@ export interface ResolveAuthorOptions {
 
 type ResolverCache = Record<string, AuthorResolution>;
 
-const CACHE_DIR = join(homedir(), ".paper-tools", "author-profiler");
+const CACHE_DIR = process.env.PAPER_TOOLS_CACHE_DIR || join(tmpdir(), ".paper-tools", "author-profiler");
 const CACHE_FILE = join(CACHE_DIR, "resolver-cache.json");
 
 export function looksLikeAuthorId(input: string): boolean {
