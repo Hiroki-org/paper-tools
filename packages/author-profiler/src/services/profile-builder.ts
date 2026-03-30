@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { homedir } from "node:os";
 import {
     getAuthor,
     getAuthorPapers,
@@ -29,11 +29,11 @@ interface ProfileCacheItem {
 type ProfileCache = Record<string, ProfileCacheItem>;
 const inFlightProfiles = new Map<string, Promise<AuthorProfile>>();
 
-export function resetInFlightProfilesForTests(): void {
+export function resetInFlightProfilesForTests() {
     inFlightProfiles.clear();
 }
 
-const CACHE_DIR = process.env.PAPER_TOOLS_CACHE_DIR || join(tmpdir(), ".paper-tools", "author-profiler");
+const CACHE_DIR = join(homedir(), ".paper-tools", "author-profiler");
 const PROFILE_CACHE_FILE = join(CACHE_DIR, "profile-cache.json");
 const DEFAULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeDoi } from "@paper-tools/core";
 import { deriveBibtexKey, fetchBibtex, formatBibtex } from "@paper-tools/bibtex/lib";
-import { getAccessToken } from "@/lib/auth";
 
 function parseFormat(value: string | null): "bibtex" | "biblatex" {
     return value === "biblatex" ? "biblatex" : "bibtex";
@@ -12,13 +10,12 @@ function parseKeyFormat(value: string | null): "default" | "short" | "venue" {
     return "default";
 }
 
+function normalizeDoi(value?: string): string | undefined {
+    if (!value?.trim()) return undefined;
+    return value.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:/i, "").trim();
+}
 
 export async function GET(request: NextRequest) {
-    const accessToken = getAccessToken(request.cookies);
-    if (!accessToken) {
-        return NextResponse.json({ error: "[bibtex-api] Operation failed: Unauthorized request to /api/bibtex" }, { status: 401 });
-    }
-
     try {
         const doi = normalizeDoi(request.nextUrl.searchParams.get("doi") ?? undefined);
         const title = request.nextUrl.searchParams.get("title")?.trim() || undefined;
