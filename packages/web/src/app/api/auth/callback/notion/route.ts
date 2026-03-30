@@ -6,6 +6,15 @@ import {
     setAuthCookies,
 } from "@/lib/auth";
 
+
+interface NotionTokenResponse {
+    access_token: string;
+    refresh_token?: string;
+    workspace_name?: string | null;
+    workspace_icon?: string | null;
+    owner?: { type: "user"; user: { name?: string } } | { type: "bot" };
+}
+
 export async function GET(request: NextRequest) {
     const clientId = process.env.NOTION_OAUTH_CLIENT_ID;
     const clientSecret = process.env.NOTION_OAUTH_CLIENT_SECRET;
@@ -24,19 +33,20 @@ export async function GET(request: NextRequest) {
 
     try {
         const notion = new Client();
-        const tokenResponse = await notion.oauth.token({
+        const rawResponse = await notion.oauth.token({
             client_id: clientId,
             client_secret: clientSecret,
             grant_type: "authorization_code",
             code,
             redirect_uri: buildNotionRedirectUri(request),
         });
+        const tokenResponse = rawResponse as unknown as NotionTokenResponse;
 
         const owner = tokenResponse.owner;
-        const userName = owner.type === "user" ? (owner.user as any)?.name : undefined;
+        const userName = owner?.type === "user" ? owner.user.name : undefined;
 
         const response = NextResponse.redirect(new URL("/setup", request.url));
-        const refreshToken = (tokenResponse as any).refresh_token as string | undefined;
+        const refreshToken = tokenResponse.refresh_token;
         if (!refreshToken) {
             return NextResponse.redirect(new URL("/login?error=missing_refresh_token", request.url));
         }

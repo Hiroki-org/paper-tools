@@ -40,7 +40,7 @@ describe("/api/paper/[paperId] GET", () => {
             fieldsOfStudy: [{ category: "Computer Science", source: "s2" }],
             publicationDate: "2024-01-01",
             journal: { name: "J", volume: "1", pages: "1-10" },
-        } as unknown as Partial<PaperDetail>);
+        } as unknown as import("@paper-tools/core").S2Paper);
 
         const res = await GET(new NextRequest("http://localhost/api/paper/abc"), ctx("abc"));
         const data = await res.json();
