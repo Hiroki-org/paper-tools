@@ -192,10 +192,18 @@ jobs:
       - name: Install Playwright browser
         run: python3 -m playwright install chromium --with-deps
       - name: Start web app
-        run: pnpm --filter @paper-tools/web dev > web-dev.log 2>&1 &
+        run: |
+          pnpm --filter @paper-tools/web dev > web-dev.log 2>&1 &
+          echo $! > web-dev.pid
       - name: Wait for web app
         run: |
+          DEV_PID=$(cat web-dev.pid)
           for attempt in {1..90}; do
+            if ! kill -0 "$DEV_PID" 2>/dev/null; then
+              echo "Web app process crashed"
+              cat web-dev.log
+              exit 1
+            fi
             if curl -fsS "${BASE_URL}" > /dev/null; then
               echo "Web app is ready"
               exit 0
@@ -203,6 +211,7 @@ jobs:
             sleep 2
           done
           echo "Web app did not become ready in time"
+          cat web-dev.log
           exit 1
       - name: Run e2e verification scenarios
         run: python3 verification/verify_confirm.py
