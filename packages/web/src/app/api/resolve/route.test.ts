@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@paper-tools/core", () => ({
+    normalizeDoi: (d: string) => d,
     getPaper: vi.fn(),
     searchPapers: vi.fn(),
 }));

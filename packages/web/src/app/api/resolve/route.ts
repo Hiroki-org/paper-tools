@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPaper, searchPapers } from "@paper-tools/core";
+import { getPaper, searchPapers, normalizeDoi } from "@paper-tools/core";
 
 interface ResolveBody {
     doi?: string;
@@ -7,9 +7,6 @@ interface ResolveBody {
     s2Id?: string;
 }
 
-function normalizeDoi(input: string) {
-    return input.replace(/^DOI:/i, "").trim();
-}
 
 export async function POST(request: NextRequest) {
     try {

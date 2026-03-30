@@ -1,13 +1,6 @@
-import { fetchWithRetry, searchPapers, searchPublications } from "@paper-tools/core";
+import { fetchWithRetry, searchPapers, searchPublications, normalizeDoi } from "@paper-tools/core";
 import type { BibtexIdentifier, FetchBibtexResult } from "./types.js";
 
-function normalizeDoi(doi: string): string {
-    return doi
-        .trim()
-        .replace(/^https?:\/\/doi\.org\//i, "")
-        .replace(/^doi:/i, "")
-        .trim();
-}
 
 function extractDblpKeyFromUrl(url?: string): string | null {
     if (!url) return null;
@@ -32,11 +25,8 @@ async function fetchCrossrefBibtexByDoi(doi: string): Promise<string> {
 
 async function fetchDblpBibtexByTitle(title: string): Promise<string | null> {
     const candidates = await searchPublications(title, 10);
-    let dblpKey: string | null = null;
-    for (const paper of candidates) {
-        dblpKey = extractDblpKeyFromUrl(paper.url);
-        if (dblpKey) break;
-    }
+    const candidate = candidates.find((paper) => extractDblpKeyFromUrl(paper.url));
+    const dblpKey = extractDblpKeyFromUrl(candidate?.url);
     if (!dblpKey) return null;
 
     const url = `https://dblp.org/rec/${dblpKey}.bib?param=1`;
