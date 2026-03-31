@@ -86,6 +86,25 @@ pnpm test
 - **Dependency errors:** Run `pnpm install` again to ensure all packages are linked.
 - **Build failures:** Run `pnpm --filter @paper-tools/web build` and inspect the logs for detailed error messages.
 
+### E2E verification scenarios (Web)
+
+The repository includes browser-based E2E verification scripts in `verification/verify_confirm.py`.
+
+```bash
+# 1) Start the web app in another terminal
+pnpm --filter @paper-tools/web dev
+
+# 2) Run E2E scenarios
+python3 verification/verify_confirm.py
+```
+
+Current scenarios:
+- Setup page DB selection flow (`/setup`)
+- Search and Save-to-Notion happy path (`/search`)
+- Unauthorized redirect behavior (`/archive` -> `/login`)
+
+The script prints structured scenario logs (`[e2e] START/PASS/FAIL`) so failure reasons are easy to identify in local runs and CI logs.
+
 ## CLI Tools Usage
 
 ### Recommender CLI

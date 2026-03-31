@@ -7,23 +7,50 @@ on:
       - feat/**
   pull_request:
 
+env:
+  NODE_VERSION: 20
+  PNPM_VERSION: 10.18.3
+
 jobs:
-  build:
-    name: Build All
+  changes:
+    name: Detect changed areas
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Detect file changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            web:
+              - "packages/web/**"
+              - "verification/**"
+              - ".github/workflows/ci.yml"
+
+  build:
+    name: Build monorepo
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: changes
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
@@ -39,8 +66,8 @@ jobs:
           path: packages/*/dist
           retention-days: 1
 
-  test:
-    name: Test ${{ matrix.package }}
+  package-tests:
+    name: Package tests (${{ matrix.package }})
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -60,17 +87,23 @@ jobs:
           ]
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: 20
+          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: packages
-      - name: Test
+      - name: Run tests
         run: pnpm --filter @paper-tools/${{ matrix.package }} test
 
       - name: Generate coverage (lcov)
@@ -83,3 +116,158 @@ jobs:
           flags: ${{ matrix.package }}
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  web-unit-tests:
+    name: Web unit tests
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: packages
+      - name: Run web tests
+        run: pnpm --filter @paper-tools/web test
+
+  web-e2e-noop:
+    name: "Web e2e verification (skip: no web changes)"
+    needs: changes
+    if: ${{ needs.changes.outputs.web != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Explain skip reason
+        run: echo "Skipping web e2e because no web-related files changed."
+
+  web-e2e:
+    name: Web e2e verification
+    needs:
+      - changes
+      - build
+      - web-unit-tests
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BASE_URL: http://127.0.0.1:3000
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Python Playwright package
+        run: python3 -m pip install --upgrade pip playwright
+      - name: Install Playwright browser
+        run: python3 -m playwright install chromium --with-deps
+      - name: Start web app
+        run: |
+          pnpm --filter @paper-tools/web dev > web-dev.log 2>&1 &
+          echo $! > web-dev.pid
+      - name: Wait for web app
+        run: |
+          DEV_PID=$(cat web-dev.pid)
+          for attempt in {1..90}; do
+            if ! kill -0 "$DEV_PID" 2>/dev/null; then
+              echo "Web app process crashed"
+              cat web-dev.log
+              exit 1
+            fi
+            if curl -fsS "${BASE_URL}" > /dev/null; then
+              echo "Web app is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Web app did not become ready in time"
+          cat web-dev.log
+          exit 1
+      - name: Run e2e verification scenarios
+        run: python3 verification/verify_confirm.py
+      - name: Upload web app logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dev-log
+          path: web-dev.log
+
+  ci-summary:
+    name: CI summary
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - package-tests
+      - web-unit-tests
+      - web-e2e-noop
+      - web-e2e
+    if: ${{ always() }}
+    permissions:
+      contents: read
+    steps:
+      - name: Summarize job results
+        shell: bash
+        run: |
+          declare -A RESULTS
+          RESULTS[build]="${{ needs.build.result }}"
+          RESULTS[package-tests]="${{ needs.package-tests.result }}"
+          RESULTS[web-unit-tests]="${{ needs.web-unit-tests.result }}"
+          RESULTS[web-e2e-noop]="${{ needs.web-e2e-noop.result }}"
+          RESULTS[web-e2e]="${{ needs.web-e2e.result }}"
+
+          {
+            echo "## CI job dependency summary"
+            echo ""
+            echo "- \`build\` runs first and produces artifacts for downstream tests."
+            echo "- \`package-tests\` and \`web-unit-tests\` run in parallel after build."
+            echo "- \`web-e2e\` runs after \`build\` + \`web-unit-tests\`, and only when web-related files changed."
+            echo "- \`ci-summary\` runs last and reports all job outcomes."
+            echo ""
+            echo "### Results"
+            echo ""
+            echo "| Job | Result |"
+            echo "| --- | --- |"
+            echo "| build | ${RESULTS[build]} |"
+            echo "| package-tests | ${RESULTS[package-tests]} |"
+            echo "| web-unit-tests | ${RESULTS[web-unit-tests]} |"
+            echo "| web-e2e-noop | ${RESULTS[web-e2e-noop]} |"
+            echo "| web-e2e | ${RESULTS[web-e2e]} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for job in build package-tests web-unit-tests web-e2e-noop web-e2e; do
+            result="${RESULTS[$job]}"
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "Blocking failure detected in $job (result=$result)"
+              exit 1
+            fi
+          done
