@@ -265,8 +265,20 @@ export async function findDuplicates(
     const duplicateTitles = new Set<string>();
 
     const existing = await queryPapers(databaseId, client);
-    const existingTitles = new Set(existing.map((p) => p.title.trim().toLowerCase()).filter(Boolean));
-    const existingDois = new Set(existing.map((p) => p.doi).filter((doi): doi is string => !!doi));
+    const existingTitles = new Set<string>();
+    const existingDois = new Set<string>();
+
+    for (const p of existing) {
+        if (p.title) {
+            const trimmedTitle = p.title.trim().toLowerCase();
+            if (trimmedTitle) {
+                existingTitles.add(trimmedTitle);
+            }
+        }
+        if (p.doi) {
+            existingDois.add(p.doi);
+        }
+    }
 
     for (const paper of papers) {
         const doi = paper.externalIds?.DOI;
