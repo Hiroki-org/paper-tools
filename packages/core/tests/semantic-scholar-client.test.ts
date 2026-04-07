@@ -10,6 +10,7 @@ const {
     getPaper,
     getAuthor,
     searchAuthors,
+    searchPapers,
 } = await import("../src/semantic-scholar-client.js");
 
 describe("Semantic Scholar Client", () => {
@@ -103,6 +104,28 @@ describe("Semantic Scholar Client", () => {
         expect(author.paperCount).toBe(100);
     });
 
+it("searchPapers should pass parameters and parse paper search results", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                total: 1,
+                offset: 0,
+                data: [{ paperId: "paper-search-1", title: "Search Result Paper" }],
+            }),
+        });
+
+        const response = await searchPapers("Machine Learning", "paperId,title", 10);
+        expect(response.total).toBe(1);
+        expect(response.offset).toBe(0);
+        expect(response.data[0]?.paperId).toBe("paper-search-1");
+        expect(response.data[0]?.title).toBe("Search Result Paper");
+
+        const [url] = mockFetch.mock.calls[0];
+        expect(url).toContain("query=Machine+Learning");
+        expect(url).toContain("fields=paperId%2Ctitle");
+        expect(url).toContain("limit=10");
+    });
     it("searchAuthors should pass parameters and parse author search results", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
