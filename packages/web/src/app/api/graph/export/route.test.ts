@@ -1,4 +1,4 @@
-// @vitest-environment node
+// @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -13,7 +13,8 @@ const { POST } = await import("./route");
 
 describe("/api/graph/export POST", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   const mockGraph = {
@@ -21,7 +22,7 @@ describe("/api/graph/export POST", () => {
     edges: [],
   };
 
-  const createRequest = (body: unknown) => {
+  const createRequest = (body: any) => {
     return new NextRequest("http://localhost/api/graph/export", {
       method: "POST",
       body: JSON.stringify(body),
@@ -42,11 +43,13 @@ describe("/api/graph/export POST", () => {
     // Only format present
     req = createRequest({ format: "json" });
     res = await POST(req);
+    data = await res.json();
     expect(res.status).toBe(400);
 
     // Only graph present
     req = createRequest({ graph: mockGraph });
     res = await POST(req);
+    data = await res.json();
     expect(res.status).toBe(400);
   });
 
