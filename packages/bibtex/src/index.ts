@@ -3,7 +3,7 @@
 import "dotenv/config";
 import { Command } from "commander";
 import { readFile, writeFile } from "node:fs/promises";
-import { stdin as input, stdout as output } from "node:process";
+import { stdin as input } from "node:process";
 import { fetchBibtex } from "./bibtex-fetcher.js";
 import { deriveBibtexKey, formatBibtex, getValidationWarnings, parseBibtexEntry, splitBibtexEntries } from "./bibtex-formatter.js";
 import type { BibtexFormat, BibtexKeyFormat, ValidateIssue } from "./types.js";
