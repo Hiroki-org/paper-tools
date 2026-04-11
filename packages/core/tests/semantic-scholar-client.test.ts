@@ -127,7 +127,8 @@ describe("Semantic Scholar Client", () => {
 
     it("should attach x-api-key header when S2_API_KEY is set", async () => {
         const previous = process.env["S2_API_KEY"];
-        process.env["S2_API_KEY"] = "dummy-key";
+        const testKey = `test-key-${Date.now()}`;
+        process.env["S2_API_KEY"] = testKey;
         vi.resetModules();
 
         mockFetch.mockResolvedValueOnce({
@@ -139,7 +140,7 @@ describe("Semantic Scholar Client", () => {
         const { getRecommendationsForPaper: fnWithKey } = await import("../src/semantic-scholar-client.js");
         await fnWithKey("paper-key-test");
         const [, requestInit] = mockFetch.mock.calls[0] as [string, RequestInit];
-        expect((requestInit.headers as Record<string, string>)["x-api-key"]).toBe("dummy-key");
+        expect((requestInit.headers as Record<string, string>)["x-api-key"]).toBe(testKey);
 
         if (previous === undefined) {
             delete process.env["S2_API_KEY"];
