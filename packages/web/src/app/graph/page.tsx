@@ -110,7 +110,7 @@ function useGraphData() {
       }
 
       if (nextMode === "doi") {
-        return trimmed;
+        return trimmed.replace(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:)/i, "");
       }
 
       const body =
