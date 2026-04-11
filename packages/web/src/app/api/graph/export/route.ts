@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { toJson, toDot, toMermaid } from "@paper-tools/visualizer";
-import type { CitationGraph } from "@paper-tools/visualizer";
+import { formatGraph } from "@paper-tools/visualizer";
+import type { CitationGraph, Format } from "@paper-tools/visualizer";
 
 interface ExportBody {
   graph: CitationGraph;
-  format: "json" | "dot" | "mermaid";
+  format: Format;
 }
 
 export async function POST(request: NextRequest) {
@@ -19,23 +19,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let output: string;
-    switch (format) {
-      case "json":
-        output = toJson(graph);
-        break;
-      case "dot":
-        output = toDot(graph);
-        break;
-      case "mermaid":
-        output = toMermaid(graph);
-        break;
-      default:
-        return NextResponse.json(
-          { error: `Unsupported format: ${format}. Use json, dot, or mermaid.` },
-          { status: 400 },
-        );
+    if (!["json", "dot", "mermaid"].includes(format)) {
+      return NextResponse.json(
+        { error: `Unsupported format: ${format}. Use json, dot, or mermaid.` },
+        { status: 400 },
+      );
     }
+
+    const output = formatGraph(graph, format);
 
     return NextResponse.json({ output, format });
   } catch (error) {
