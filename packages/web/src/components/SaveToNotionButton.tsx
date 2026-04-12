@@ -8,6 +8,7 @@ interface SaveToNotionButtonProps {
   paper?: S2Paper;
   doi?: string;
   title?: string;
+  tags?: string[];
   saved?: boolean;
   onSaved?: () => void;
 }
@@ -16,6 +17,7 @@ export default function SaveToNotionButton({
   paper,
   doi,
   title,
+  tags,
   saved = false,
   onSaved,
 }: SaveToNotionButtonProps) {
