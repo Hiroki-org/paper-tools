@@ -1,9 +1,32 @@
 import type { CitationGraph } from "./graph.js";
 
+export const SUPPORTED_FORMATS = ["json", "dot", "mermaid"] as const;
+export type Format = (typeof SUPPORTED_FORMATS)[number];
+
+/**
+ * グラフを指定されたフォーマットに変換・出力する
+ * @param graph - 変換対象の引用グラフ
+ * @param format - 出力フォーマット
+ * @param pretty - JSON 出力時に整形するかどうか (デフォルト: true)
+ * @returns フォーマット済みのグラフ文字列
+ */
+export function formatGraph(graph: CitationGraph, format: Format, pretty = true): string {
+    switch (format) {
+        case "json":
+            return toJson(graph, pretty);
+        case "dot":
+            return toDot(graph);
+        case "mermaid":
+            return toMermaid(graph);
+        default:
+            throw new Error(`Unknown format: ${format}. Supported formats are: ${SUPPORTED_FORMATS.join(", ")}`);
+    }
+}
+
 /**
  * グラフを JSON 文字列として出力する。
  */
-export function toJson(graph: CitationGraph, pretty = true): string {
+function toJson(graph: CitationGraph, pretty = true): string {
     return JSON.stringify(graph, null, pretty ? 2 : undefined);
 }
 
@@ -31,7 +54,7 @@ function doiToId(doi: string): string {
  * グラフを DOT (Graphviz) 形式で出力する。
  * DOI由来のノード ID は Graphviz パーサーの互換性のため、引用符で囲んで出力する
  */
-export function toDot(graph: CitationGraph): string {
+function toDot(graph: CitationGraph): string {
     const lines: string[] = [];
     lines.push("digraph citations {");
     lines.push("    rankdir=LR;");
@@ -81,7 +104,7 @@ function escapeMermaid(text: string): string {
 /**
  * グラフを Mermaid 形式で出力する。
  */
-export function toMermaid(graph: CitationGraph): string {
+function toMermaid(graph: CitationGraph): string {
     const lines: string[] = [];
     lines.push("graph LR");
 

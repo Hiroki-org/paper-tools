@@ -4,11 +4,12 @@ import { buildAuthorProfile } from "@paper-tools/author-profiler";
 export const runtime = "nodejs";
 
 type RouteContext = {
-    params: { authorId: string };
+    params: Promise<{ authorId: string }>;
 };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
-    const authorId = context.params.authorId?.trim();
+    const { authorId: rawAuthorId } = await context.params;
+    const authorId = rawAuthorId?.trim();
     if (!authorId) {
         return NextResponse.json({ error: "authorId is required" }, { status: 400 });
     }

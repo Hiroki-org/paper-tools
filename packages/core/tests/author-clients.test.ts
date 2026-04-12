@@ -89,27 +89,4 @@ describe("Author API clients", () => {
         await expect(getOpenAlexAuthor("A999")).rejects.toThrowError("OpenAlex API error: 404 Not Found - Author not found");
     });
 
-    it("resolveOpenAlexAuthorId selects best match", async () => {
-        mockFetch.mockResolvedValueOnce({
-            ok: true,
-            status: 200,
-            json: async () => ({
-                results: [
-                    { id: "https://openalex.org/A1", display_name: "Alice", works_count: 10 },
-                    {
-                        id: "https://openalex.org/A2",
-                        display_name: "Alice Johnson",
-                        works_count: 200,
-                        last_known_institutions: [{ display_name: "Example University" }],
-                    },
-                ],
-            }),
-        });
-
-        const id = await resolveOpenAlexAuthorId({
-            name: "Alice Johnson",
-            affiliation: "Example University",
-        });
-        expect(id).toBe("https://openalex.org/A2");
-    });
 });

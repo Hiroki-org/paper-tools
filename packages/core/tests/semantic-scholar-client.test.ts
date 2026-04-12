@@ -150,7 +150,8 @@ it("searchPapers should pass parameters and parse paper search results", async (
 
     it("should attach x-api-key header when S2_API_KEY is set", async () => {
         const previous = process.env["S2_API_KEY"];
-        process.env["S2_API_KEY"] = "dummy-key";
+        const testKey = `test-key-${Date.now()}`;
+        process.env["S2_API_KEY"] = testKey;
         vi.resetModules();
 
         mockFetch.mockResolvedValueOnce({
@@ -162,7 +163,7 @@ it("searchPapers should pass parameters and parse paper search results", async (
         const { getRecommendationsForPaper: fnWithKey } = await import("../src/semantic-scholar-client.js");
         await fnWithKey("paper-key-test");
         const [, requestInit] = mockFetch.mock.calls[0] as [string, RequestInit];
-        expect((requestInit.headers as Record<string, string>)["x-api-key"]).toBe("dummy-key");
+        expect((requestInit.headers as Record<string, string>)["x-api-key"]).toBe(testKey);
 
         if (previous === undefined) {
             delete process.env["S2_API_KEY"];
@@ -181,5 +182,42 @@ it("searchPapers should pass parameters and parse paper search results", async (
 
         await expect(getPaper("bad-id")).rejects.toThrow("Semantic Scholar API error: 400 Bad Request - Invalid ID");
         spy.mockRestore();
+    });
+
+    it("getAuthorPapers should pass parameters and parse author papers", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                total: 2,
+                offset: 0,
+                next: 2,
+                data: [
+                    {
+                        paperId: "paper-1",
+                        title: "Test Paper 1",
+                        year: 2024,
+                        venue: "Test Venue",
+                    },
+                    {
+                        paperId: "paper-2",
+                        title: "Test Paper 2",
+                        year: 2023,
+                    }
+                ],
+            }),
+        });
+
+        const response = await getAuthorPapers("author-1", { limit: 10, sort: "citationCount:desc" });
+        expect(response.total).toBe(2);
+        expect(response.offset).toBe(0);
+        expect(response.data.length).toBe(2);
+        expect(response.data[0]?.paperId).toBe("paper-1");
+        expect(response.data[0]?.title).toBe("Test Paper 1");
+
+        const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+        expect(url).toContain("author/author-1/papers");
+        expect(url).toContain("limit=10");
+        expect(url).toContain("sort=citationCount%3Adesc");
     });
 });
