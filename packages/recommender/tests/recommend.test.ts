@@ -8,7 +8,7 @@ vi.mock("@paper-tools/core", () => ({
 }));
 
 const core = await import("@paper-tools/core");
-const { resolveToS2Id } = await import("../src/recommend.js");
+const { resolveToS2Id, recommendFromMultiple, recommendFromSingle } = await import("../src/recommend.js");
 
 describe("recommend resolveToS2Id", () => {
     beforeEach(() => {

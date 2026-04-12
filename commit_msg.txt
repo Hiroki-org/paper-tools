@@ -1,9 +1,7 @@
-⚡ 連続するtoLowerCase呼び出しの最適化
+🔒 Fix SSRF vulnerability in scraper
 
-💡 **What:** `extractTracks` メソッド内のセクション見出しフィルタリングにおいて、ループごとに実行されていた複数の `toLowerCase().includes()` 呼び出しを、ループ外で定義した単一の正規表現 (`/track|workshop|tutorial|symposium/i`) による判定に置き換えました。
-🎯 **Why:** 元のコードでは、各見出しテキストに対して毎回文字列を小文字に変換し、4つのキーワードそれぞれについて検索を行うため、不要なメモリアロケーションと計算処理が発生していました。正規表現を使用することで、各テキストに対する評価を1回の処理にまとめ、パフォーマンスを向上させるためです。
-📊 **Measured Improvement:** Vitest を用いたベンチマークテストにより、最適化前後での文字列マッチング処理のパフォーマンスを比較しました (イテレーション 100,000回)。
-- **Baseline (4x toLowerCase):** ~1000ms
-- **Variable (1x toLowerCase):** ~674ms
-- **Regex:** ~203ms
-正規表現を使用した手法はベースラインと比較して約5倍の高速化を達成しました。機能の同一性は既存のテストスイートを通して確認済みです。
+🎯 **What:** The vulnerability fixed is a Server-Side Request Forgery (SSRF) in the `scrapeAcceptedPapers` function of the scraper tool. The function was directly accepting an arbitrary `trackUrl` and performing an HTTP request without verifying the protocol or domain.
+
+⚠️ **Risk:** If an attacker provided a malicious URL, they could force the server to make requests to internal services (e.g., `http://localhost`, `http://169.254.169.254` for cloud metadata) or act as a proxy to attack external services. This could result in information disclosure, bypassing firewalls, or executing other server-side requests.
+
+🛡️ **Solution:** Implemented URL validation before calling `fetchWithRetry`. The fix uses the built-in `URL` API to parse the `trackUrl`, ensuring the host strictly matches `"conf.researchr.org"` and the protocol is either `http:` or `https:`. This prevents the server from making requests to arbitrary internal or external endpoints. Additionally, validation tests were added to ensure invalid domains, IP addresses, or malformed URLs are properly rejected.

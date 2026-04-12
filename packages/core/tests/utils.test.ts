@@ -36,3 +36,46 @@ describe("parsePositiveInt", () => {
         expect(() => parsePositiveInt("foo", undefined)).toThrow("正の整数を指定してください: foo");
     });
 });
+
+describe("mapWithConcurrency", () => {
+    it("should map items concurrently up to the limit", async () => {
+        const { mapWithConcurrency } = await import("../src/utils.js");
+
+        let concurrentExecutions = 0;
+        let maxConcurrentExecutions = 0;
+
+        const items = [1, 2, 3, 4, 5];
+        const mapper = async (item: number) => {
+            concurrentExecutions++;
+            maxConcurrentExecutions = Math.max(maxConcurrentExecutions, concurrentExecutions);
+
+            // Artificial delay to allow concurrent execution
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            concurrentExecutions--;
+            return item * 2;
+        };
+
+        const results = await mapWithConcurrency(items, mapper, 2);
+
+        expect(results).toEqual([2, 4, 6, 8, 10]);
+        expect(maxConcurrentExecutions).toBeLessThanOrEqual(2);
+    });
+
+    it("should handle empty arrays", async () => {
+        const { mapWithConcurrency } = await import("../src/utils.js");
+        const results = await mapWithConcurrency([], async (x) => x, 2);
+        expect(results).toEqual([]);
+    });
+
+    it("should propagate errors from the mapper", async () => {
+        const { mapWithConcurrency } = await import("../src/utils.js");
+        const items = [1, 2, 3];
+        const mapper = async (item: number) => {
+            if (item === 2) throw new Error("Test error");
+            return item;
+        };
+
+        await expect(mapWithConcurrency(items, mapper, 2)).rejects.toThrow("Test error");
+    });
+});
