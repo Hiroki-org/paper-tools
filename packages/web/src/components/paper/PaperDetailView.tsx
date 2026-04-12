@@ -1,7 +1,9 @@
 import { ArrowLeft, BookOpen, Calendar, Info, MapPin, Quote } from "lucide-react";
+import { useState } from "react";
 import type { S2Paper } from "@paper-tools/core";
 import { BibtexButton } from "@/components/bibtex/BibtexButton";
 import SaveToNotionButton from "@/components/SaveToNotionButton";
+import TagInput from "@/components/TagInput";
 import { ExternalLinkButtons } from "@/components/paper/ExternalLinkButtons";
 import type { PaperDetail } from "@/types/paper";
 
@@ -35,6 +37,7 @@ function toS2Paper(detail: PaperDetail): S2Paper {
 export function PaperDetailView({ paper, onBack }: Props) {
   const doi = paper.externalIds?.DOI;
   const fields = paper.fieldsOfStudy ?? [];
+  const [tags, setTags] = useState<string[]>([]);
 
   return (
     <div className="space-y-10">
@@ -183,11 +186,17 @@ export function PaperDetailView({ paper, onBack }: Props) {
           </div>
 
           <div className="flex flex-col gap-3">
+            <div>
+              <h2 className="mb-2 text-sm font-bold uppercase tracking-[0.15em] text-slate-500">
+                Tags
+              </h2>
+              <TagInput value={tags} onChange={setTags} />
+            </div>
             <h2 className="text-sm font-bold uppercase tracking-[0.15em] text-slate-500">
               Actions
             </h2>
             <div className="grid gap-2">
-              <SaveToNotionButton paper={toS2Paper(paper)} />
+              <SaveToNotionButton paper={toS2Paper(paper)} tags={tags} />
               <BibtexButton doi={doi} title={paper.title} />
             </div>
           </div>
