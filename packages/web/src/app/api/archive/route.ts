@@ -8,6 +8,7 @@ type NotionProperty = {
     title?: Array<{ plain_text?: string }>;
     rich_text?: Array<{ plain_text?: string }>;
     url?: string | null;
+    multi_select?: Array<{ name?: string }>;
 };
 
 type ArchiveNotionDataSource = NotionDataSource<NotionProperty>;
@@ -26,9 +27,13 @@ function findTitleProperty(properties: Record<string, NotionProperty>) {
 
 function findPropertyByKeyword(properties: Record<string, NotionProperty>, keyword: string) {
     const lower = keyword.toLowerCase();
-    const entry = Object.entries(properties).find(([name]) => name.toLowerCase() === lower)
-        ?? Object.entries(properties).find(([name]) => name.toLowerCase().includes(lower));
-    return entry?.[0] ?? null;
+    let partialMatch: string | null = null;
+    for (const name of Object.keys(properties)) {
+        const nameLower = name.toLowerCase();
+        if (nameLower === lower) return name;
+        if (partialMatch === null && nameLower.includes(lower)) partialMatch = name;
+    }
+    return partialMatch;
 }
 
 function mapPageRecord(page: {
@@ -108,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const body = (await request.json()) as { paper: S2Paper };
+        const body = (await request.json()) as { paper: S2Paper; tags?: string[] };
         const { paper } = body;
 
         if (!paper) {
@@ -121,6 +126,7 @@ export async function POST(request: NextRequest) {
         const titleKey = findTitleProperty(props);
         const doiKey = findPropertyByKeyword(props, "doi");
         const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");
+        const tagsKey = findPropertyByKeyword(props, "tag");
 
         const properties: NotionPageCreateProperties = {
             [titleKey]: {
@@ -142,6 +148,25 @@ export async function POST(request: NextRequest) {
             properties[s2Key] = {
                 rich_text: [{ text: { content: paper.paperId } }],
             };
+        }
+
+        if (tagsKey && Array.isArray(body.tags) && body.tags.length > 0) {
+            const tagsType = props[tagsKey]?.type;
+            if (tagsType === "multi_select") {
+                const tagMap = new Map<string, string>();
+                for (const rawTag of body.tags) {
+                    const normalized = rawTag.trim();
+                    if (!normalized) continue;
+                    const dedupeKey = normalized.toLowerCase();
+                    if (!tagMap.has(dedupeKey)) {
+                        tagMap.set(dedupeKey, normalized);
+                    }
+                }
+                const tags = Array.from(tagMap.values()).map((name) => ({ name }));
+                if (tags.length > 0) {
+                    properties[tagsKey] = { multi_select: tags };
+                }
+            }
         }
 
         await notion.pages.create({

@@ -8,6 +8,7 @@ interface SaveToNotionButtonProps {
   paper?: S2Paper;
   doi?: string;
   title?: string;
+  tags?: string[];
   saved?: boolean;
   onSaved?: () => void;
 }
@@ -18,6 +19,7 @@ export default function SaveToNotionButton({
   paper,
   doi,
   title,
+  tags,
   saved = false,
   onSaved,
 }: SaveToNotionButtonProps) {
@@ -70,7 +72,7 @@ export default function SaveToNotionButton({
       const archiveRes = await fetch("/api/archive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paper: targetPaper }),
+        body: JSON.stringify({ paper: targetPaper, tags }),
       });
       const archiveData = await archiveRes.json();
       if (!archiveRes.ok) {
