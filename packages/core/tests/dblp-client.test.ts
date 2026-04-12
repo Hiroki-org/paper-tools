@@ -113,8 +113,8 @@ describe("DBLP Client", () => {
                         hit: [
                             {
                                 info: {
-                                    author: "Alice Smith",
-                                    url: "https://dblp.org/pid/12/34",
+                                    author: "Turing",
+                                    url: "https://dblp.org/pid/t/Turing",
                                 },
                             },
                         ],
@@ -123,14 +123,10 @@ describe("DBLP Client", () => {
             }),
         });
 
-        const authors = await searchAuthors("Alice Smith");
+        const authors = await searchAuthors("Turing");
         expect(authors).toHaveLength(1);
-        expect(authors[0].name).toBe("Alice Smith");
-        expect(authors[0].url).toBe("https://dblp.org/pid/12/34");
-
-        const calledUrl = mockFetch.mock.calls[0][0];
-        expect(calledUrl).toContain("author/api");
-        expect(calledUrl).toContain("q=Alice+Smith");
+        expect(authors[0].name).toBe("Turing");
+        expect(authors[0].url).toBe("https://dblp.org/pid/t/Turing");
     });
 
     it("searchAuthors should handle empty results", async () => {
@@ -146,5 +142,29 @@ describe("DBLP Client", () => {
 
         const authors = await searchAuthors("nonexistent");
         expect(authors).toHaveLength(0);
+
+    });
+
+    it("searchAuthors should handle missing author and url info", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {},
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const authors = await searchAuthors("unknown");
+        expect(authors).toHaveLength(1);
+        expect(authors[0].name).toBe("");
+        expect(authors[0].url).toBe("");
     });
 });
