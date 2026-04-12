@@ -26,7 +26,7 @@ const SEMANTIC_SCHOLAR_FIELDS = [
 const detailLimiter = new RateLimiter(100, 300000);
 
 type RouteContext = {
-    params: { paperId: string };
+    params: Promise<{ paperId: string }>;
 };
 
 function getStatusCodeFromError(error: unknown): number | null {
@@ -118,7 +118,7 @@ function toPaperDetail(input: ExtendedS2Paper): PaperDetail {
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
-    const { paperId } = context.params;
+    const { paperId } = await context.params;
     if (!paperId?.trim()) {
         return NextResponse.json({ error: "paperId is required" }, { status: 400 });
     }
