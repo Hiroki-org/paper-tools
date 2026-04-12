@@ -80,4 +80,68 @@ describe("fetchWithRetry", () => {
         expect(result).toBe(response);
         expect(fetchMock).toHaveBeenCalledTimes(3);
     });
+
+    it("returns successful response immediately", async () => {
+        const response = new Response("ok", {
+            status: 200,
+            statusText: "OK",
+        });
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValue(response);
+
+        const result = await fetchWithRetry("https://example.com");
+
+        expect(result).toBe(response);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns successful response after retrying a 5xx error", async () => {
+        const errorResponse = new Response("server error", {
+            status: 503,
+            statusText: "Service Unavailable",
+        });
+        const successResponse = new Response("ok", {
+            status: 200,
+            statusText: "OK",
+        });
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock
+            .mockResolvedValueOnce(errorResponse)
+            .mockResolvedValueOnce(successResponse);
+
+        const result = await fetchWithRetry("https://example.com", {}, 2, 1);
+
+        expect(result).toBe(successResponse);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns successful response after retrying a network error", async () => {
+        const successResponse = new Response("ok", {
+            status: 200,
+            statusText: "OK",
+        });
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock
+            .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+            .mockResolvedValueOnce(successResponse);
+
+        const result = await fetchWithRetry("https://example.com", {}, 2, 1);
+
+        expect(result).toBe(successResponse);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns client error response immediately without retrying", async () => {
+        const response = new Response("not found", {
+            status: 404,
+            statusText: "Not Found",
+        });
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockResolvedValue(response);
+
+        const result = await fetchWithRetry("https://example.com");
+
+        expect(result).toBe(response);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
 });

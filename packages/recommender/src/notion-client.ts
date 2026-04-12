@@ -35,6 +35,8 @@ const PROPERTY_SPECS: Record<string, PropertySpec> = {
     "要約": { type: "rich_text", required: false },
 };
 
+const PROPERTY_SPECS_ENTRIES = Object.entries(PROPERTY_SPECS);
+
 function createNotionClient(): Client {
     const apiKey = process.env["NOTION_API_KEY"];
     if (!apiKey) {
@@ -80,7 +82,7 @@ export async function getDatabase(
     const missingRequired: string[] = [];
     const missingOptional: string[] = [];
 
-    for (const [name, spec] of Object.entries(PROPERTY_SPECS)) {
+    for (const [name, spec] of PROPERTY_SPECS_ENTRIES) {
         const actual = properties[name];
         if (!actual) {
             if (spec.required) {
