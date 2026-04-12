@@ -208,6 +208,21 @@ function parseDateRange(
  * conf.researchr.org のトラックページからAccepted Papersを取得する
  */
 export async function scrapeAcceptedPapers(trackUrl: string): Promise<Paper[]> {
+    let parsedUrl: URL;
+    try {
+        parsedUrl = new URL(trackUrl);
+    } catch {
+        throw new Error("Invalid URL provided");
+    }
+
+    if (parsedUrl.hostname !== "conf.researchr.org") {
+        throw new Error("URL must be a researchr.org domain");
+    }
+
+    if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+        throw new Error("URL must use http or https protocol");
+    }
+
     const response = await fetchWithRetry(trackUrl);
     const html = await response.text();
     const $ = cheerio.load(html);

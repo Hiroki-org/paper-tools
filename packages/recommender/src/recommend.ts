@@ -60,6 +60,36 @@ export async function recommendFromSingle(
     return response.recommendedPapers ?? [];
 }
 
+async function resolveIdsWithConcurrency(
+    ids: string[],
+    concurrency = 5,
+): Promise<PromiseSettledResult<string>[]> {
+    if (ids.length === 0) return [];
+
+    const results = new Array<PromiseSettledResult<string>>(ids.length);
+    let cursor = 0;
+    const workerCount = Math.max(1, Math.min(ids.length, Math.floor(concurrency)));
+
+    const workers = Array.from({ length: workerCount }, async () => {
+        while (true) {
+            const current = cursor;
+            cursor += 1;
+            if (current >= ids.length) {
+                return;
+            }
+            try {
+                const value = await resolveToS2Id(ids[current]);
+                results[current] = { status: "fulfilled", value };
+            } catch (reason) {
+                results[current] = { status: "rejected", reason };
+            }
+        }
+    });
+
+    await Promise.all(workers);
+    return results;
+}
+
 export async function recommendFromMultiple(
     positiveIds: string[],
     negativeIds: string[] = [],
@@ -69,8 +99,10 @@ export async function recommendFromMultiple(
         return [];
     }
 
-    const positiveSettled = await Promise.allSettled(positiveIds.map((id) => resolveToS2Id(id)));
-    const negativeSettled = await Promise.allSettled(negativeIds.map((id) => resolveToS2Id(id)));
+    const [positiveSettled, negativeSettled] = await Promise.all([
+        resolveIdsWithConcurrency(positiveIds),
+        resolveIdsWithConcurrency(negativeIds),
+    ]);
 
     const resolvedPositive = positiveSettled
         .filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled")
