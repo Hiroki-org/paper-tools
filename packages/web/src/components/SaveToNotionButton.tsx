@@ -1,8 +1,8 @@
 "use client";
 
 import { BookmarkPlus, Check, Loader2, RotateCcw } from "lucide-react";
-import { useCallback, useState } from "react";
 import type { S2Paper } from "@paper-tools/core";
+import { useSaveToNotion } from "@/hooks/useSaveToNotion";
 
 interface SaveToNotionButtonProps {
   paper?: S2Paper;
@@ -13,8 +13,6 @@ interface SaveToNotionButtonProps {
   onSaved?: () => void;
 }
 
-type SaveStatus = "idle" | "resolving" | "saving" | "done" | "error";
-
 export default function SaveToNotionButton({
   paper,
   doi,
@@ -23,69 +21,7 @@ export default function SaveToNotionButton({
   saved = false,
   onSaved,
 }: SaveToNotionButtonProps) {
-  const [status, setStatus] = useState<SaveStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  const handleClick = useCallback(async () => {
-    if (
-      saved ||
-      status === "resolving" ||
-      status === "saving" ||
-      status === "done"
-    ) {
-      return;
-    }
-
-    setError(null);
-
-    try {
-      let targetPaper = paper;
-
-      if (!targetPaper) {
-        const trimmedDoi = doi?.trim();
-        const trimmedTitle = title?.trim();
-
-        if (!trimmedDoi && !trimmedTitle) {
-          throw new Error("保存対象の DOI またはタイトルが見つかりません");
-        }
-
-        setStatus("resolving");
-        const resolveRes = await fetch("/api/resolve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            trimmedDoi ? { doi: trimmedDoi } : { title: trimmedTitle },
-          ),
-        });
-        const resolveData = await resolveRes.json();
-        if (!resolveRes.ok) {
-          throw new Error(resolveData.error ?? "論文の解決に失敗しました");
-        }
-
-        targetPaper = resolveData.paper as S2Paper | undefined;
-        if (!targetPaper) {
-          throw new Error("保存対象の論文を取得できませんでした");
-        }
-      }
-
-      setStatus("saving");
-      const archiveRes = await fetch("/api/archive", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paper: targetPaper, tags }),
-      });
-      const archiveData = await archiveRes.json();
-      if (!archiveRes.ok) {
-        throw new Error(archiveData.error ?? "Notionへの保存に失敗しました");
-      }
-
-      setStatus("done");
-      onSaved?.();
-    } catch (err) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "Unknown error");
-    }
-  }, [status, paper, doi, title, saved, onSaved]);
+  const { status, error, save } = useSaveToNotion({ paper, doi, title, saved, onSaved });
 
   const disabled =
     saved || status === "resolving" || status === "saving" || status === "done";
@@ -126,7 +62,7 @@ export default function SaveToNotionButton({
     <div className="space-y-1.5">
       <button
         type="button"
-        onClick={handleClick}
+        onClick={save}
         disabled={disabled}
         className={buttonClassName}
       >
