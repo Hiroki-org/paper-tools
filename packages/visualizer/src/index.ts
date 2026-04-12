@@ -7,4 +7,4 @@ export {
     type Direction,
 } from "./graph.js";
 
-export { formatGraph, type Format } from "./format.js";
+export { formatGraph, type Format, SUPPORTED_FORMATS } from "./format.js";

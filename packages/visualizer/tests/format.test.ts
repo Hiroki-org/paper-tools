@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { CitationGraph } from "../src/graph.js";
-import { formatGraph } from "../src/format.js";
+import type { Format } from "../src/format.js";
+import { formatGraph, SUPPORTED_FORMATS } from "../src/format.js";
 
 const sampleGraph: CitationGraph = {
     nodes: [
@@ -94,5 +95,18 @@ describe("formatGraph with mermaid format", () => {
         const mermaid = formatGraph(graph, "mermaid");
         expect(mermaid).toContain("&#34;");
         expect(mermaid).not.toContain('"quoted"');
+    });
+});
+
+
+describe("format constants", () => {
+    it("should expose supported formats in one place", () => {
+        expect(SUPPORTED_FORMATS).toEqual(["json", "dot", "mermaid"]);
+    });
+
+    it("should throw a helpful message for unsupported formats", () => {
+        expect(() => formatGraph(sampleGraph, "xml" as Format)).toThrow(
+            "Unknown format: xml. Supported formats are: json, dot, mermaid"
+        );
     });
 });

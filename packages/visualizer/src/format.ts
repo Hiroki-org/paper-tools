@@ -1,9 +1,14 @@
 import type { CitationGraph } from "./graph.js";
 
-export type Format = "json" | "dot" | "mermaid";
+export const SUPPORTED_FORMATS = ["json", "dot", "mermaid"] as const;
+export type Format = (typeof SUPPORTED_FORMATS)[number];
 
 /**
  * グラフを指定されたフォーマットに変換・出力する
+ * @param graph - 変換対象の引用グラフ
+ * @param format - 出力フォーマット
+ * @param pretty - JSON 出力時に整形するかどうか (デフォルト: true)
+ * @returns フォーマット済みのグラフ文字列
  */
 export function formatGraph(graph: CitationGraph, format: Format, pretty = true): string {
     switch (format) {
@@ -14,7 +19,7 @@ export function formatGraph(graph: CitationGraph, format: Format, pretty = true)
         case "mermaid":
             return toMermaid(graph);
         default:
-            throw new Error(`Unknown format: ${format}`);
+            throw new Error(`Unknown format: ${format}. Supported formats are: ${SUPPORTED_FORMATS.join(", ")}`);
     }
 }
 

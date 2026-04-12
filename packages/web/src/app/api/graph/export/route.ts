@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { formatGraph } from "@paper-tools/visualizer";
+import { formatGraph, SUPPORTED_FORMATS } from "@paper-tools/visualizer";
 import type { CitationGraph, Format } from "@paper-tools/visualizer";
 
 interface ExportBody {
@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["json", "dot", "mermaid"].includes(format)) {
+    if (!(SUPPORTED_FORMATS as readonly string[]).includes(format)) {
       return NextResponse.json(
-        { error: `Unsupported format: ${format}. Use json, dot, or mermaid.` },
+        { error: `Unsupported format: ${format}. Use ${SUPPORTED_FORMATS.join(", ")}.` },
         { status: 400 },
       );
     }
