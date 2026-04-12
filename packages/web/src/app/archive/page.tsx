@@ -85,7 +85,11 @@ export default function ArchivePage() {
       setSelectedIds(new Set());
       return;
     }
-    setSelectedIds(new Set(records.map((record) => record.pageId)));
+    const newSelectedIds = new Set<string>();
+    for (const record of records) {
+      newSelectedIds.add(record.pageId);
+    }
+    setSelectedIds(newSelectedIds);
   };
 
   const toggleRow = (pageId: string) => {

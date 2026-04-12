@@ -83,6 +83,15 @@ export function preCachePaper(preview: PaperDetailPreview): void {
     setCache(preview.paperId, previewToPaperDetail(preview));
 }
 
+async function fetchAndMergePaper(paperId: string, cached?: PaperDetail): Promise<PaperDetail> {
+    const res = await fetch(`/api/paper/${encodeURIComponent(paperId)}`);
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.error ?? "Failed to load paper detail");
+    }
+    return cached ? mergePaper(cached, data as PaperDetail) : (data as PaperDetail);
+}
+
 export function usePaperDetail(paperId: string | null) {
     const [paper, setPaper] = useState<PaperDetail | null>(null);
     const [loading, setLoading] = useState(false);
@@ -106,13 +115,8 @@ export function usePaperDetail(paperId: string | null) {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`/api/paper/${encodeURIComponent(paperId)}`);
-                const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.error ?? "Failed to load paper detail");
-                }
+                const merged = await fetchAndMergePaper(paperId, cached);
                 if (cancelled) return;
-                const merged = cached ? mergePaper(cached, data as PaperDetail) : (data as PaperDetail);
                 setCache(paperId, merged);
                 setPaper(merged);
             } catch (err) {
