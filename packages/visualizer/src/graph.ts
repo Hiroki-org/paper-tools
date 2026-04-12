@@ -1,4 +1,4 @@
-import { getCitations, getReferences } from "@paper-tools/core";
+import { getCitations, getReferences, mapWithConcurrency } from "@paper-tools/core";
 
 /**
  * グラフのノード（論文）
@@ -57,9 +57,10 @@ export async function buildCitationGraph(
     for (let d = 0; d < depth; d++) {
         const nextFrontier: string[] = [];
 
-        // Fetch all citations for the current frontier in parallel
-        const results = await Promise.all(
-            frontier.map(async (currentDoi) => {
+        // Fetch all citations for the current frontier with bounded concurrency (e.g., 10)
+        const results = await mapWithConcurrency(
+            frontier,
+            async (currentDoi) => {
                 const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
                 try {
                     const [citing, refs] = await Promise.all([
@@ -90,7 +91,8 @@ export async function buildCitationGraph(
                     });
                     return { citations: [], currentDoi, error };
                 }
-            })
+            },
+            10 // Limit concurrency to avoid too many simultaneous requests
         );
 
         for (const result of results) {

@@ -15,3 +15,30 @@ export function parsePositiveInt(value: string, optionName?: unknown): number {
     }
     return parsed;
 }
+
+
+/**
+ * Executes an async function over an array with limited concurrency.
+ * @param items The array of items to process.
+ * @param mapper The async function to execute for each item.
+ * @param concurrencyLimit The maximum number of concurrent executions.
+ * @returns A promise that resolves to an array of results.
+ */
+export async function mapWithConcurrency<T, R>(
+    items: T[],
+    mapper: (item: T) => Promise<R>,
+    concurrencyLimit: number
+): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let index = 0;
+
+    const workers = Array.from({ length: Math.min(concurrencyLimit, items.length) }, async () => {
+        while (index < items.length) {
+            const currentIndex = index++;
+            results[currentIndex] = await mapper(items[currentIndex]);
+        }
+    });
+
+    await Promise.all(workers);
+    return results;
+}

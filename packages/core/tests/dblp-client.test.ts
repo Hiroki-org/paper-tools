@@ -102,4 +102,49 @@ describe("DBLP Client", () => {
         expect(calledUrl).toContain("ICSE");
         expect(calledUrl).toContain("2026");
     });
+
+    it("searchAuthors should parse DBLP author response", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    author: "Alice Smith",
+                                    url: "https://dblp.org/pid/12/34",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const authors = await searchAuthors("Alice Smith");
+        expect(authors).toHaveLength(1);
+        expect(authors[0].name).toBe("Alice Smith");
+        expect(authors[0].url).toBe("https://dblp.org/pid/12/34");
+
+        const calledUrl = mockFetch.mock.calls[0][0];
+        expect(calledUrl).toContain("author/api");
+        expect(calledUrl).toContain("q=Alice+Smith");
+    });
+
+    it("searchAuthors should handle empty results", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {},
+                },
+            }),
+        });
+
+        const authors = await searchAuthors("nonexistent");
+        expect(authors).toHaveLength(0);
+    });
 });
