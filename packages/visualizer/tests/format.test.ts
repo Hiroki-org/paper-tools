@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { CitationGraph } from "../src/graph.js";
-import { toJson, toDot, toMermaid } from "../src/format.js";
+import { formatGraph } from "../src/format.js";
 
 const sampleGraph: CitationGraph = {
     nodes: [
@@ -14,9 +14,9 @@ const sampleGraph: CitationGraph = {
     ],
 };
 
-describe("toJson", () => {
+describe("formatGraph with json format", () => {
     it("should output valid JSON with all nodes and edges", () => {
-        const json = toJson(sampleGraph);
+        const json = formatGraph(sampleGraph, "json");
         const parsed = JSON.parse(json) as CitationGraph;
         expect(parsed.nodes).toHaveLength(3);
         expect(parsed.edges).toHaveLength(2);
@@ -24,26 +24,26 @@ describe("toJson", () => {
     });
 
     it("should output compact JSON when pretty=false", () => {
-        const compact = toJson(sampleGraph, false);
+        const compact = formatGraph(sampleGraph, "json", false);
         expect(compact).not.toContain("\n");
     });
 
     it("should output pretty JSON by default", () => {
-        const pretty = toJson(sampleGraph);
+        const pretty = formatGraph(sampleGraph, "json");
         expect(pretty).toContain("\n");
     });
 });
 
-describe("toDot", () => {
+describe("formatGraph with dot format", () => {
     it("should produce a valid DOT digraph", () => {
-        const dot = toDot(sampleGraph);
+        const dot = formatGraph(sampleGraph, "dot");
         expect(dot).toContain("digraph citations {");
         expect(dot).toContain("rankdir=LR;");
         expect(dot).toContain("}");
     });
 
     it("should include node declarations with labels", () => {
-        const dot = toDot(sampleGraph);
+        const dot = formatGraph(sampleGraph, "dot");
         expect(dot).toContain('label="Paper A"');
         expect(dot).toContain('label="Paper B"');
         // ノード c にはタイトルがないので DOI がラベルになる
@@ -51,7 +51,7 @@ describe("toDot", () => {
     });
 
     it("should include edge declarations", () => {
-        const dot = toDot(sampleGraph);
+        const dot = formatGraph(sampleGraph, "dot");
         expect(dot).toContain("->");
         // creationDate 付きエッジにはラベルが付く
         expect(dot).toContain('label="2024-01-01"');
@@ -62,25 +62,25 @@ describe("toDot", () => {
             nodes: [{ doi: "10.1/x", title: 'Title with "quotes"' }],
             edges: [],
         };
-        const dot = toDot(graph);
+        const dot = formatGraph(graph, "dot");
         expect(dot).toContain('Title with \\"quotes\\"');
     });
 });
 
-describe("toMermaid", () => {
+describe("formatGraph with mermaid format", () => {
     it("should produce a Mermaid flowchart", () => {
-        const mermaid = toMermaid(sampleGraph);
+        const mermaid = formatGraph(sampleGraph, "mermaid");
         expect(mermaid).toContain("graph LR");
     });
 
     it("should include node definitions with labels", () => {
-        const mermaid = toMermaid(sampleGraph);
+        const mermaid = formatGraph(sampleGraph, "mermaid");
         expect(mermaid).toContain('["Paper A"]');
         expect(mermaid).toContain('["Paper B"]');
     });
 
     it("should include edge definitions", () => {
-        const mermaid = toMermaid(sampleGraph);
+        const mermaid = formatGraph(sampleGraph, "mermaid");
         expect(mermaid).toContain("-->");
         // creationDate 付きエッジにはラベルが付く
         expect(mermaid).toContain("|");
@@ -91,7 +91,7 @@ describe("toMermaid", () => {
             nodes: [{ doi: "10.1/x", title: 'A "quoted" title' }],
             edges: [],
         };
-        const mermaid = toMermaid(graph);
+        const mermaid = formatGraph(graph, "mermaid");
         expect(mermaid).toContain("&#34;");
         expect(mermaid).not.toContain('"quoted"');
     });

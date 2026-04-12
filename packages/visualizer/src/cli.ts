@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { buildCitationGraph, mergeGraphs } from "./graph.js";
-import { toJson, toDot, toMermaid } from "./format.js";
+import { formatGraph, type Format } from "./format.js";
 import type { Direction, CitationGraph } from "./graph.js";
 
 // Get version from package.json
@@ -17,28 +17,6 @@ const packageJson = JSON.parse(
     readFileSync(join(__dirname, "../package.json"), "utf-8")
 );
 const version = packageJson.version;
-
-type Format = "json" | "dot" | "mermaid";
-
-/**
- * グラフを指定されたフォーマットに変換・出力する
- * @param graph - 変換対象の引用グラフ
- * @param format - 出力フォーマット（"json" | "dot" | "mermaid"）
- * @returns フォーマット済みのグラフ文字列
- * @throws 未知のフォーマットが指定された場合は Error をスロー
- */
-function formatGraph(graph: CitationGraph, format: Format): string {
-    switch (format) {
-        case "json":
-            return toJson(graph);
-        case "dot":
-            return toDot(graph);
-        case "mermaid":
-            return toMermaid(graph);
-        default:
-            throw new Error(`Unknown format: ${format}`);
-    }
-}
 
 /**
  * グラフの処理結果を出力する
