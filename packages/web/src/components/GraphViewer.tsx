@@ -29,6 +29,125 @@ interface GraphViewerProps {
   onNodeTap?: (node: { doi: string; title?: string }) => void;
 }
 
+const CYTOSCAPE_STYLE: cytoscape.StylesheetStyle[] = [
+  {
+    selector: "node",
+    style: {
+      label: "data(label)",
+      "background-color": "#2563eb",
+      color: "#475569",
+      "font-size": "11px",
+      "font-weight": 600,
+      "text-valign": "bottom",
+      "text-margin-y": 8,
+      "text-wrap": "wrap" as unknown as "wrap",
+      "text-max-width": "132px",
+      width: 34,
+      height: 34,
+      "border-width": 2,
+      "border-color": "#ffffff",
+      "overlay-padding": 6,
+    },
+  },
+  {
+    selector: "edge",
+    style: {
+      width: 1.5,
+      "line-color": "#cbd5e1",
+      "target-arrow-color": "#cbd5e1",
+      "target-arrow-shape": "triangle",
+      "curve-style": "bezier",
+      opacity: 0.9,
+    },
+  },
+  {
+    selector: "node:selected",
+    style: {
+      "background-color": "#1d4ed8",
+      "border-width": 4,
+      "border-color": "#bfdbfe",
+      width: 42,
+      height: 42,
+      "font-size": "12px",
+      color: "#0f172a",
+    },
+  },
+];
+
+const CYTOSCAPE_LAYOUT: cytoscape.LayoutOptions = {
+  name: "cose",
+  animate: true,
+  animationDuration: 700,
+  padding: 50,
+  componentSpacing: 100,
+  nodeRepulsion: () => 400000,
+} as cytoscape.LayoutOptions;
+
+function buildElements(graph: CitationGraph): cytoscape.ElementDefinition[] {
+  return [
+    ...graph.nodes.map((node) => ({
+      data: {
+        id: node.doi,
+        doi: node.doi,
+        title: node.title,
+        label: node.title
+          ? Array.from(node.title).length > 22
+            ? `${Array.from(node.title).slice(0, 22).join("")}…`
+            : node.title
+          : node.doi,
+        fullTitle: node.title ?? node.doi,
+      },
+    })),
+    ...graph.edges.map((edge, index) => ({
+      data: {
+        id: `e${index}`,
+        source: edge.source,
+        target: edge.target,
+      },
+    })),
+  ];
+}
+
+function setupEvents(
+  cy: cytoscape.Core,
+  container: HTMLDivElement,
+  onNodeTap?: (node: { doi: string; title?: string }) => void,
+) {
+  cy.on("tap", "node", (event) => {
+    const data = event.target.data() as { doi?: string; title?: string };
+    const doi = data.doi ?? event.target.id();
+    onNodeTap?.({ doi, title: data.title });
+  });
+
+  cy.on("mouseover", "node", () => {
+    container.style.cursor = "pointer";
+  });
+
+  cy.on("mouseout", "node", () => {
+    container.style.cursor = "default";
+  });
+}
+
+function EmptyGraphState({ height }: { height: number }) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/90 px-6 text-center text-sm text-slate-500"
+      style={{ height }}
+    >
+      <div className="mb-4 rounded-full border border-slate-200 bg-white p-4 shadow-sm">
+        <Network className="text-slate-400" size={32} />
+      </div>
+      <p className="text-base font-semibold text-slate-700">
+        No graph data yet
+      </p>
+      <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+        Enter a DOI, title, or Semantic Scholar ID to build a citation graph
+        and explore how papers connect.
+      </p>
+    </div>
+  );
+}
+
 export default function GraphViewer({
   graph,
   height = 600,
@@ -46,106 +165,19 @@ export default function GraphViewer({
       cyRef.current.destroy();
     }
 
-    const elements: cytoscape.ElementDefinition[] = [
-      ...graph.nodes.map((node) => ({
-        data: {
-          id: node.doi,
-          doi: node.doi,
-          title: node.title,
-          label: node.title
-            ? Array.from(node.title).length > 22
-              ? `${Array.from(node.title).slice(0, 22).join("")}…`
-              : node.title
-            : node.doi,
-          fullTitle: node.title ?? node.doi,
-        },
-      })),
-      ...graph.edges.map((edge, index) => ({
-        data: {
-          id: `e${index}`,
-          source: edge.source,
-          target: edge.target,
-        },
-      })),
-    ];
+    const elements = buildElements(graph);
 
     const cy = cytoscape({
       container: containerRef.current,
       elements,
-      style: [
-        {
-          selector: "node",
-          style: {
-            label: "data(label)",
-            "background-color": "#2563eb",
-            color: "#475569",
-            "font-size": "11px",
-            "font-weight": 600,
-            "text-valign": "bottom",
-            "text-margin-y": 8,
-            "text-wrap": "wrap" as unknown as "wrap",
-            "text-max-width": "132px",
-            width: 34,
-            height: 34,
-            "border-width": 2,
-            "border-color": "#ffffff",
-            "overlay-padding": 6,
-          },
-        },
-        {
-          selector: "edge",
-          style: {
-            width: 1.5,
-            "line-color": "#cbd5e1",
-            "target-arrow-color": "#cbd5e1",
-            "target-arrow-shape": "triangle",
-            "curve-style": "bezier",
-            opacity: 0.9,
-          },
-        },
-        {
-          selector: "node:selected",
-          style: {
-            "background-color": "#1d4ed8",
-            "border-width": 4,
-            "border-color": "#bfdbfe",
-            width: 42,
-            height: 42,
-            "font-size": "12px",
-            color: "#0f172a",
-          },
-        },
-      ],
-      layout: {
-        name: "cose",
-        animate: true,
-        animationDuration: 700,
-        padding: 50,
-        componentSpacing: 100,
-        nodeRepulsion: () => 400000,
-      } satisfies cytoscape.LayoutOptions,
+      style: CYTOSCAPE_STYLE,
+      layout: CYTOSCAPE_LAYOUT,
       minZoom: 0.2,
       maxZoom: 3,
       wheelSensitivity: 0.2,
     });
 
-    cy.on("tap", "node", (event) => {
-      const data = event.target.data() as { doi?: string; title?: string };
-      const doi = data.doi ?? event.target.id();
-      onNodeTap?.({ doi, title: data.title });
-    });
-
-    cy.on("mouseover", "node", () => {
-      if (containerRef.current) {
-        containerRef.current.style.cursor = "pointer";
-      }
-    });
-
-    cy.on("mouseout", "node", () => {
-      if (containerRef.current) {
-        containerRef.current.style.cursor = "default";
-      }
-    });
+    setupEvents(cy, containerRef.current, onNodeTap);
 
     cyRef.current = cy;
   }, [graph, onNodeTap]);
@@ -160,23 +192,7 @@ export default function GraphViewer({
   }, [initGraph]);
 
   if (graph.nodes.length === 0) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/90 px-6 text-center text-sm text-slate-500"
-        style={{ height }}
-      >
-        <div className="mb-4 rounded-full border border-slate-200 bg-white p-4 shadow-sm">
-          <Network className="text-slate-400" size={32} />
-        </div>
-        <p className="text-base font-semibold text-slate-700">
-          No graph data yet
-        </p>
-        <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-          Enter a DOI, title, or Semantic Scholar ID to build a citation graph
-          and explore how papers connect.
-        </p>
-      </div>
-    );
+    return <EmptyGraphState height={height} />;
   }
 
   return (

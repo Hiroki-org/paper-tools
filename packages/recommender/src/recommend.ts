@@ -69,8 +69,29 @@ export async function recommendFromMultiple(
         return [];
     }
 
-    const positiveSettled = await Promise.allSettled(positiveIds.map((id) => resolveToS2Id(id)));
-    const negativeSettled = await Promise.allSettled(negativeIds.map((id) => resolveToS2Id(id)));
+    const CONCURRENCY = 10;
+    async function processPool(ids: string[]): Promise<PromiseSettledResult<string>[]> {
+        const results = new Array<PromiseSettledResult<string>>(ids.length);
+        let cursor = 0;
+        const worker = async () => {
+            while (cursor < ids.length) {
+                const index = cursor++;
+                try {
+                    const value = await resolveToS2Id(ids[index]);
+                    results[index] = { status: "fulfilled", value };
+                } catch (reason) {
+                    results[index] = { status: "rejected", reason };
+                }
+            }
+        };
+        await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length) }, worker));
+        return results;
+    }
+
+    const [positiveSettled, negativeSettled] = await Promise.all([
+        processPool(positiveIds),
+        processPool(negativeIds),
+    ]);
 
     const resolvedPositive = positiveSettled
         .filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled")

@@ -3,7 +3,7 @@
 import "dotenv/config";
 import { Command } from "commander";
 import { readFile, writeFile } from "node:fs/promises";
-import { stdin as input, stdout as output } from "node:process";
+import { stdin as input } from "node:process";
 import { fetchBibtex } from "./bibtex-fetcher.js";
 import { deriveBibtexKey, formatBibtex, getValidationWarnings, parseBibtexEntry, splitBibtexEntries } from "./bibtex-formatter.js";
 import type { BibtexFormat, BibtexKeyFormat, ValidateIssue } from "./types.js";
@@ -127,7 +127,7 @@ program
                     console.error(`Warning: ${warning}`);
                 }
             }
-            output.write(`${formatted.formatted}\n`);
+            process.stdout.write(`${formatted.formatted}\n`);
         } catch (error) {
             console.error("Error:", error instanceof Error ? error.message : error);
             process.exit(1);
@@ -190,7 +190,7 @@ program
                 await writeFile(options.output, outputText, "utf8");
                 console.error(`Wrote ${chunks.length} entries to ${options.output}`);
             } else {
-                output.write(outputText + (outputText ? "\n" : ""));
+                process.stdout.write(outputText + (outputText ? "\n" : ""));
             }
         } catch (error) {
             console.error("Error:", error instanceof Error ? error.message : error);

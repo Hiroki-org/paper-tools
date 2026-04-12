@@ -81,6 +81,12 @@ describe("Researchr Scraper", () => {
     await expect(scrapeConference("nonexistent-conf")).rejects.toThrow();
   });
 
+  it("scrapeAcceptedPapers should reject invalid URLs", async () => {
+    await expect(scrapeAcceptedPapers("invalid-url")).rejects.toThrow("Invalid URL provided");
+    await expect(scrapeAcceptedPapers("http://malicious.com/track/1")).rejects.toThrow("URL must be a researchr.org domain");
+    await expect(scrapeAcceptedPapers("javascript:alert(1)")).rejects.toThrow("URL must be a researchr.org domain");
+  });
+
   it("scrapeAcceptedPapers should fetch and parse accepted papers", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
