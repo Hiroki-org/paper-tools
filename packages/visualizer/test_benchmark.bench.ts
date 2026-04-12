@@ -1,5 +1,5 @@
 import { bench, describe } from "vitest";
-import { mergeGraphs, buildCitationGraph } from "./src/graph.js";
+import { mergeGraphs } from "./src/graph.js";
 import type { CitationGraph } from "./src/graph.js";
 
 const generateMockGraph = (size: number, startNode: string): CitationGraph => {
