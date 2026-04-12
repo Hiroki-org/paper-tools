@@ -68,4 +68,4 @@ export type {
 } from "./author-types.js";
 
 // Utilities
-export { parsePositiveInt } from "./utils.js";
+export { parsePositiveInt, mapWithConcurrency } from "./utils.js";

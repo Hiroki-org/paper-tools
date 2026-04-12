@@ -35,6 +35,8 @@ const PROPERTY_SPECS: Record<string, PropertySpec> = {
     "要約": { type: "rich_text", required: false },
 };
 
+const PROPERTY_SPECS_ENTRIES = Object.entries(PROPERTY_SPECS);
+
 function createNotionClient(): Client {
     const apiKey = process.env["NOTION_API_KEY"];
     if (!apiKey) {
@@ -80,7 +82,7 @@ export async function getDatabase(
     const missingRequired: string[] = [];
     const missingOptional: string[] = [];
 
-    for (const [name, spec] of Object.entries(PROPERTY_SPECS)) {
+    for (const [name, spec] of PROPERTY_SPECS_ENTRIES) {
         const actual = properties[name];
         if (!actual) {
             if (spec.required) {
@@ -265,8 +267,20 @@ export async function findDuplicates(
     const duplicateTitles = new Set<string>();
 
     const existing = await queryPapers(databaseId, client);
-    const existingTitles = new Set(existing.map((p) => p.title.trim().toLowerCase()).filter(Boolean));
-    const existingDois = new Set(existing.map((p) => p.doi).filter((doi): doi is string => !!doi));
+    const existingTitles = new Set<string>();
+    const existingDois = new Set<string>();
+
+    for (const p of existing) {
+        if (p.title) {
+            const trimmedTitle = p.title.trim().toLowerCase();
+            if (trimmedTitle) {
+                existingTitles.add(trimmedTitle);
+            }
+        }
+        if (p.doi) {
+            existingDois.add(p.doi);
+        }
+    }
 
     for (const paper of papers) {
         const doi = paper.externalIds?.DOI;
