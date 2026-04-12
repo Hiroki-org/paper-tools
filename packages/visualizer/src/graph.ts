@@ -1,6 +1,30 @@
 import { getCitations, getReferences, mapWithConcurrency } from "@paper-tools/core";
 
 /**
+ * Limits concurrent execution of an array of promises
+ */
+async function mapConcurrent<T, R>(
+    items: T[],
+    mapper: (item: T) => Promise<R>,
+    concurrency: number
+): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let index = 0;
+    const worker = async () => {
+        while (index < items.length) {
+            const i = index++;
+            results[i] = await mapper(items[i]);
+        }
+    };
+    const workers = [];
+    for (let i = 0; i < Math.min(concurrency, items.length); i++) {
+        workers.push(worker());
+    }
+    await Promise.all(workers);
+    return results;
+}
+
+/**
  * グラフのノード（論文）
  */
 export interface GraphNode {
@@ -57,8 +81,8 @@ export async function buildCitationGraph(
     for (let d = 0; d < depth; d++) {
         const nextFrontier: string[] = [];
 
-        // Fetch all citations for the current frontier with bounded concurrency (e.g., 10)
-        const results = await mapWithConcurrency(
+        // Fetch all citations for the current frontier with a concurrency limit
+        const results = await mapConcurrent(
             frontier,
             async (currentDoi) => {
                 const citations: Array<{ source: string; target: string; creationDate?: string }> = [];
@@ -92,7 +116,7 @@ export async function buildCitationGraph(
                     return { citations: [], currentDoi, error };
                 }
             },
-            10 // Limit concurrency to avoid too many simultaneous requests
+            10 // Concurrency limit to prevent unbounded I/O
         );
 
         for (const result of results) {
