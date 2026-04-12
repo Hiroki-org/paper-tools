@@ -9,6 +9,7 @@ const {
     getRecommendations,
     getPaper,
     getAuthor,
+    getAuthorPapers,
     searchAuthors,
     searchPapers,
 } = await import("../src/semantic-scholar-client.js");

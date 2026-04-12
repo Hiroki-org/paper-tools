@@ -6,7 +6,7 @@ from typing import Any
 
 from playwright.sync_api import Page, Route, expect, sync_playwright
 
-BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:3000").rstrip("/")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:3000").rstrip("/")
 
 
 def _json_response(route: Route, status: int, payload: dict[str, Any]) -> None:
