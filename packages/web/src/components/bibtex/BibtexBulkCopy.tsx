@@ -45,6 +45,16 @@ export function BibtexBulkCopy({ papers }: Props) {
     }
   };
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(bibtex);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Clipboard copy failed:", err);
+    }
+  };
+
   return (
     <>
       <button
@@ -161,15 +171,7 @@ export function BibtexBulkCopy({ papers }: Props) {
                   <button
                     type="button"
                     disabled={!bibtex || loading}
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(bibtex);
-                        setCopied(true);
-                        window.setTimeout(() => setCopied(false), 2000);
-                      } catch (err) {
-                        console.error("Clipboard copy failed:", err);
-                      }
-                    }}
+                    onClick={handleCopy}
                     className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-blue-700 disabled:bg-slate-300"
                   >
                     {copied ? <Check size={14} /> : <Copy size={14} />}
