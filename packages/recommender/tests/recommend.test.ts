@@ -8,7 +8,7 @@ vi.mock("@paper-tools/core", () => ({
 }));
 
 const core = await import("@paper-tools/core");
-const { resolveToS2Id } = await import("../src/recommend.js");
+const { resolveToS2Id, recommendFromMultiple, recommendFromSingle } = await import("../src/recommend.js");
 
 describe("recommend resolveToS2Id", () => {
     beforeEach(() => {
@@ -60,5 +60,80 @@ describe("recommend resolveToS2Id", () => {
         } as any);
 
         await expect(resolveToS2Id("Unknown Title")).rejects.toThrow("タイトルから論文を解決できませんでした");
+    });
+});
+
+describe("recommendFromMultiple", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("positiveIdsが空の場合は空配列を返す", async () => {
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+        const results = await recommendFromMultiple([]);
+        expect(results).toEqual([]);
+        expect(core.getRecommendations).not.toHaveBeenCalled();
+    });
+
+    it("すべての解決に成功した場合、正しく推薦APIを呼び出す", async () => {
+        // mock resolveToS2Id indirectly by mocking getPaper since it relies on it
+        // and we provide simple S2 IDs which resolve directly
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+
+        vi.mocked(core.getRecommendations).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec1", title: "R1" } as any],
+        });
+
+        const results = await recommendFromMultiple(["pos1", "pos2"], ["neg1"]);
+        expect(results).toHaveLength(1);
+        expect(results[0].paperId).toBe("rec1");
+        expect(core.getRecommendations).toHaveBeenCalledWith(
+            ["pos1", "pos2"],
+            ["neg1"],
+            { limit: 20 }
+        );
+    });
+
+    it("解決に失敗したIDはフィルタリングされる", async () => {
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+
+        // title search fails for "bad-title", works for "good-title"
+        vi.mocked(core.searchPapers).mockImplementation(async (query) => {
+            if (query === "bad-title") {
+                return { total: 0, offset: 0, data: [] } as any;
+            }
+            return { total: 1, offset: 0, data: [{ paperId: `s2-${query}` }] } as any;
+        });
+
+        vi.mocked(core.getRecommendations).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec2", title: "R2" } as any],
+        });
+
+        const results = await recommendFromMultiple(
+            ["title:good-title", "title:bad-title", "direct-id"],
+            ["title:bad-title2", "neg-id"]
+        );
+
+        expect(results).toHaveLength(1);
+        expect(core.getRecommendations).toHaveBeenCalledWith(
+            ["s2-good-title", "direct-id"],
+            ["s2-bad-title2", "neg-id"],
+            { limit: 20 }
+        );
+    });
+
+    it("解決後、positiveIdsが空になった場合は空配列を返す", async () => {
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+
+        vi.mocked(core.searchPapers).mockResolvedValue({
+            total: 0,
+            offset: 0,
+            data: [],
+        } as any);
+
+        const results = await recommendFromMultiple(["title:bad1", "title:bad2"], ["neg1"]);
+
+        expect(results).toEqual([]);
+        expect(core.getRecommendations).not.toHaveBeenCalled();
     });
 });
