@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   LayoutGrid,
@@ -13,132 +13,16 @@ import type { S2Paper, Paper, Author } from "@paper-tools/core";
 import RecommendForm from "@/components/RecommendForm";
 import SaveToNotionButton from "@/components/SaveToNotionButton";
 import PaperCard from "@/components/PaperCard";
+import { useSavedPapers } from "@/hooks/useSavedPapers";
+import { useRecommend } from "./hooks/useRecommend";
 
 function RecommendPageClient() {
   const searchParams = useSearchParams();
   const initializedFromQuery = useRef(false);
-  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
   const [initialPaperId, setInitialPaperId] = useState<string>("");
-  const [papers, setPapers] = useState<S2Paper[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const makeKeys = useCallback((paper: S2Paper) => {
-    const keys: string[] = [];
-    if (paper.externalIds?.DOI?.trim()) {
-      keys.push(`doi:${paper.externalIds.DOI.trim().toLowerCase()}`);
-    }
-    if (paper.paperId?.trim()) {
-      keys.push(`s2:${paper.paperId.trim().toLowerCase()}`);
-    }
-    if (paper.title?.trim()) {
-      keys.push(`title:${paper.title.trim().toLowerCase()}`);
-    }
-    return keys;
-  }, []);
-
-  const isSaved = useCallback(
-    (paper: S2Paper) => makeKeys(paper).some((key) => savedKeys.has(key)),
-    [makeKeys, savedKeys],
-  );
-
-  const markSaved = useCallback(
-    (paper: S2Paper) => {
-      const keys = makeKeys(paper);
-      if (keys.length === 0) return;
-      setSavedKeys((prev) => {
-        const next = new Set(prev);
-        keys.forEach((key) => next.add(key));
-        return next;
-      });
-    },
-    [makeKeys],
-  );
-
-  const handleRecommend = useCallback(
-    async (params: {
-      mode: "single" | "multi";
-      paperId?: string;
-      positiveIds?: string[];
-      negativeIds?: string[];
-      limit: number;
-      from?: "recent" | "all-cs";
-    }) => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const body =
-          params.mode === "single"
-            ? {
-                paperId: params.paperId,
-                limit: params.limit,
-                from: params.from,
-              }
-            : {
-                positiveIds: params.positiveIds,
-                negativeIds: params.negativeIds,
-                limit: params.limit,
-              };
-
-        const res = await fetch("/api/recommend", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error ?? "Recommend failed");
-        }
-
-        setPapers(data.papers ?? []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-        setPapers([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchArchive = async () => {
-      try {
-        const res = await fetch("/api/archive");
-        const data = await res.json();
-        if (!res.ok || cancelled) return;
-
-        const next = new Set<string>();
-        for (const record of data.records ?? []) {
-          if (record.doi) {
-            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
-          }
-          if (record.semanticScholarId) {
-            next.add(
-              `s2:${String(record.semanticScholarId).trim().toLowerCase()}`,
-            );
-          }
-          if (record.title) {
-            next.add(`title:${String(record.title).trim().toLowerCase()}`);
-          }
-        }
-        setSavedKeys(next);
-      } catch (err) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn("Failed to fetch archive:", err);
-        }
-      }
-    };
-
-    void fetchArchive();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { isSaved, markSaved } = useSavedPapers();
+  const { papers, loading, error, handleRecommend } = useRecommend();
 
   useEffect(() => {
     if (initializedFromQuery.current) return;

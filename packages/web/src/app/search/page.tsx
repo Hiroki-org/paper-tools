@@ -6,7 +6,7 @@ import type { Paper } from "@paper-tools/core";
 import type { DrilldownResult } from "@paper-tools/drilldown";
 import SearchForm from "@/components/SearchForm";
 import { preCachePaper } from "@/components/paper/usePaperDetail";
-import { useSavedPapers } from "./hooks/useSavedPapers";
+import { useSavedPapers } from "@/hooks/useSavedPapers";
 import SearchPaperList from "./components/SearchPaperList";
 
 
