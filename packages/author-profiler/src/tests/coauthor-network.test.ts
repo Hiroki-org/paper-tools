@@ -7,6 +7,53 @@ vi.mock("@paper-tools/core", () => ({
 }));
 
 describe("aggregateCoauthorsFromPapers", () => {
+    it("returns an empty array when given empty papers array", () => {
+        expect(aggregateCoauthorsFromPapers("self", [])).toEqual([]);
+    });
+
+    it("handles papers with undefined authors gracefully", () => {
+        const papers = [
+            { paperId: "p1", title: "Missing Authors" }
+        ];
+        expect(aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[])).toEqual([]);
+    });
+
+    it("handles authors with missing or empty IDs gracefully", () => {
+        const papers = [
+            {
+                paperId: "p1",
+                title: "A",
+                authors: [
+                    { authorId: "self", name: "Self" },
+                    { authorId: "", name: "Empty ID" },
+                    { authorId: "   ", name: "Whitespace ID" },
+                    { name: "Undefined ID" },
+                    { authorId: "a1", name: "Alice" }
+                ],
+            }
+        ];
+        expect(aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[])).toEqual([
+            { authorId: "a1", name: "Alice", paperCount: 1 }
+        ]);
+    });
+
+    it("deduplicates the same author within the same paper", () => {
+        const papers = [
+            {
+                paperId: "p1",
+                title: "A",
+                authors: [
+                    { authorId: "self", name: "Self" },
+                    { authorId: "a1", name: "Alice" },
+                    { authorId: "a1", name: "Alice Duplicate" }
+                ],
+            }
+        ];
+        expect(aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[])).toEqual([
+            { authorId: "a1", name: "Alice", paperCount: 1 }
+        ]);
+    });
+
     it("aggregates coauthor counts and excludes self", () => {
         const papers = [
             {
