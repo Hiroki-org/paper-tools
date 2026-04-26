@@ -5,7 +5,8 @@ import { runCoauthorsCommand } from "../commands/coauthors.js";
 import { runSaveCommand } from "../commands/save.js";
 import { buildAuthorProfile } from "../services/profile-builder.js";
 import { resolveAuthorId } from "../services/author-resolver.js";
-import { buildCoauthorNetwork } from "../services/coauthor-network.js";
+import { aggregateCoauthorsFromPapers } from "../services/coauthor-network.js";
+import { getAuthorPapers } from "@paper-tools/core";
 import { saveAuthorProfileToNotion } from "../notion/author-client.js";
 
 vi.mock("../services/profile-builder.js", () => ({
@@ -17,7 +18,11 @@ vi.mock("../services/author-resolver.js", () => ({
 }));
 
 vi.mock("../services/coauthor-network.js", () => ({
-    buildCoauthorNetwork: vi.fn(),
+    aggregateCoauthorsFromPapers: vi.fn(),
+}));
+
+vi.mock("@paper-tools/core", () => ({
+    getAuthorPapers: vi.fn(),
 }));
 
 vi.mock("../notion/author-client.js", () => ({
@@ -132,17 +137,24 @@ describe("author-profiler command handlers", () => {
     });
 
     it("runCoauthorsCommand renders coauthor network table", async () => {
-        vi.mocked(buildCoauthorNetwork).mockResolvedValue([
+        vi.mocked(getAuthorPapers).mockResolvedValue({
+            data: [],
+            total: 0,
+            offset: 0,
+            next: 0,
+        });
+        vi.mocked(aggregateCoauthorsFromPapers).mockReturnValue([
             { authorId: "a1", name: "Bob", paperCount: 3 },
             { authorId: "a2", name: "Carol", paperCount: 2 },
         ]);
 
         await runCoauthorsCommand("Alice", { depth: "1" });
 
-        expect(buildCoauthorNetwork).toHaveBeenCalledWith("123", {
+        expect(getAuthorPapers).toHaveBeenCalledWith("123", {
             limit: 200,
             sort: "citationCount:desc",
         });
+        expect(aggregateCoauthorsFromPapers).toHaveBeenCalledWith("123", []);
         expect(mockTable).toHaveBeenCalledTimes(1);
     });
 

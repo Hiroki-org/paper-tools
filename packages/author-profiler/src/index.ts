@@ -1,6 +1,6 @@
 export { resolveAuthorId } from "./services/author-resolver.js";
 export { buildAuthorProfile } from "./services/profile-builder.js";
-export { buildCoauthorNetwork, aggregateCoauthorsFromPapers } from "./services/coauthor-network.js";
+export { aggregateCoauthorsFromPapers } from "./services/coauthor-network.js";
 export { saveAuthorProfileToNotion, findExistingAuthorPage } from "./notion/author-client.js";
 
 export type {

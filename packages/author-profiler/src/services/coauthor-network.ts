@@ -1,9 +1,4 @@
-import { getAuthorPapers, type CoauthorInfo, type S2Paper } from "@paper-tools/core";
-
-interface BuildCoauthorNetworkOptions {
-    limit?: number;
-    sort?: string;
-}
+import type { CoauthorInfo, S2Paper } from "@paper-tools/core";
 
 export function aggregateCoauthorsFromPapers(authorId: string, papers: S2Paper[]): CoauthorInfo[] {
     const authorMap = new Map<string, CoauthorInfo>();
@@ -30,13 +25,3 @@ export function aggregateCoauthorsFromPapers(authorId: string, papers: S2Paper[]
     return [...authorMap.values()].sort((a, b) => b.paperCount - a.paperCount);
 }
 
-export async function buildCoauthorNetwork(
-    authorId: string,
-    options: BuildCoauthorNetworkOptions = {},
-): Promise<CoauthorInfo[]> {
-    const papers = await getAuthorPapers(authorId, {
-        limit: options.limit ?? 200,
-        sort: options.sort,
-    });
-    return aggregateCoauthorsFromPapers(authorId, papers.data ?? []);
-}
