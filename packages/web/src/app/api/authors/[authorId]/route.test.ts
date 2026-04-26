@@ -9,6 +9,10 @@ vi.mock("@paper-tools/author-profiler", () => ({
 const profiler = await import("@paper-tools/author-profiler");
 const { GET } = await import("./route");
 
+function ctx(authorId: string) {
+    return { params: Promise.resolve({ authorId }) } as { params: Promise<{ authorId: string }> };
+}
+
 describe("/api/authors/[authorId] GET", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -29,7 +33,7 @@ describe("/api/authors/[authorId] GET", () => {
         } as Partial<AuthorProfile> as AuthorProfile);
 
         const req = new NextRequest("http://localhost/api/authors/123");
-        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
+        const res = await GET(req, ctx("123"));
         const data = await res.json();
 
         expect(res.status).toBe(200);
@@ -38,7 +42,7 @@ describe("/api/authors/[authorId] GET", () => {
 
     it("returns 400 when authorId is empty", async () => {
         const req = new NextRequest("http://localhost/api/authors/");
-        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
+        const res = await GET(req, ctx(""));
         expect(res.status).toBe(400);
     });
 
@@ -48,7 +52,7 @@ describe("/api/authors/[authorId] GET", () => {
         );
 
         const req = new NextRequest("http://localhost/api/authors/unknown");
-        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
+        const res = await GET(req, ctx("unknown"));
         expect(res.status).toBe(404);
     });
 
@@ -58,7 +62,7 @@ describe("/api/authors/[authorId] GET", () => {
         );
 
         const req = new NextRequest("http://localhost/api/authors/unknown");
-        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
+        const res = await GET(req, ctx("unknown"));
         expect(res.status).toBe(502);
     });
 });
