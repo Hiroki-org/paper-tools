@@ -158,6 +158,33 @@ describe("author-profiler command handlers", () => {
         expect(mockTable).toHaveBeenCalledTimes(1);
     });
 
+    it("runCoauthorsCommand handles undefined papers data", async () => {
+        // Mock getAuthorPapers returning undefined data
+        vi.mocked(getAuthorPapers).mockResolvedValue({
+            data: undefined,
+            total: 0,
+            offset: 0,
+            next: 0,
+        } as any);
+        vi.mocked(aggregateCoauthorsFromPapers).mockReturnValue([]);
+
+        await runCoauthorsCommand("Alice", {});
+
+        expect(getAuthorPapers).toHaveBeenCalledWith("123", {
+            limit: 200,
+            sort: "citationCount:desc",
+        });
+        // Should fallback to empty array
+        expect(aggregateCoauthorsFromPapers).toHaveBeenCalledWith("123", []);
+        expect(mockTable).toHaveBeenCalledTimes(1);
+    });
+
+    it("runCoauthorsCommand throws error when depth is entirely missing or non-finite", async () => {
+        await expect(runCoauthorsCommand("Alice", { depth: "NaN" })).rejects.toThrow(
+            "現在 --depth は 1 のみ対応しています",
+        );
+    });
+
     it("runSaveCommand prints dry-run payload for dry-run action", async () => {
         vi.mocked(buildAuthorProfile).mockResolvedValue({
             id: "123",
