@@ -60,6 +60,16 @@ describe("extractKeywords", () => {
         const keywords = extractKeywords([], 10);
         expect(keywords).toEqual([]);
     });
+
+    it("should return empty array for inputs containing only stopwords or special chars", () => {
+        const papers = [
+            { title: "The a an to for of", authors: [] },
+            { title: "!!! ??? &&&", authors: [] },
+            { title: "The of", abstract: "And but or in on at", authors: [] }
+        ];
+        const keywords = extractKeywords(papers, 10);
+        expect(keywords).toEqual([]);
+    });
 });
 
 describe("drilldown", () => {
