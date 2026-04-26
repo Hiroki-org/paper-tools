@@ -29,7 +29,7 @@ describe("/api/authors/[authorId] GET", () => {
         } as Partial<AuthorProfile> as AuthorProfile);
 
         const req = new NextRequest("http://localhost/api/authors/123");
-        const res = await GET(req, { params: { authorId: "123" } });
+        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
         const data = await res.json();
 
         expect(res.status).toBe(200);
@@ -38,7 +38,7 @@ describe("/api/authors/[authorId] GET", () => {
 
     it("returns 400 when authorId is empty", async () => {
         const req = new NextRequest("http://localhost/api/authors/");
-        const res = await GET(req, { params: { authorId: "" } });
+        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
         expect(res.status).toBe(400);
     });
 
@@ -48,7 +48,7 @@ describe("/api/authors/[authorId] GET", () => {
         );
 
         const req = new NextRequest("http://localhost/api/authors/unknown");
-        const res = await GET(req, { params: { authorId: "unknown" } });
+        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
         expect(res.status).toBe(404);
     });
 
@@ -58,7 +58,7 @@ describe("/api/authors/[authorId] GET", () => {
         );
 
         const req = new NextRequest("http://localhost/api/authors/unknown");
-        const res = await GET(req, { params: { authorId: "unknown" } });
+        const res = await GET(req, { params: Promise.resolve({ authorId: "123" }) });
         expect(res.status).toBe(502);
     });
 });
