@@ -30,11 +30,6 @@ describe("notion-data-source", () => {
             expect(getStatusCodeFromError(new Error("API error: 000"))).toBe(0);
             expect(getStatusCodeFromError(new Error("API error: 12.3"))).toBeNull();
             expect(getStatusCodeFromError(new Error("API error: 1.2"))).toBeNull();
-            // mock Number.isInteger to return false temporarily to test the ternary operator branch
-            const originalIsInteger = Number.isInteger;
-            Number.isInteger = () => false;
-            expect(getStatusCodeFromError(new Error("API error: 500"))).toBeNull();
-            Number.isInteger = originalIsInteger;
             expect(getStatusCodeFromError(new Error("API error: 99.9"))).toBeNull();
         });
     });
