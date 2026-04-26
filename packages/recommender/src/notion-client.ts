@@ -46,11 +46,11 @@ function createNotionClient(): Client {
 }
 
 type NotionDatabase = {
-    properties: Record<string, { type: string }>;
+    properties: Record<string, { type: string; id: string }>;
 };
 
 export interface DatabaseValidationResult {
-    properties: Record<string, { type: string }>;
+    properties: Record<string, { type: string; id: string }>;
     missingOptional: string[];
 }
 
@@ -169,11 +169,19 @@ export async function queryPapers(
     const papers: NotionPaperRecord[] = [];
     let cursor: string | undefined;
 
+    const { properties } = await getDatabase(databaseId, client);
+    const filter_properties = [
+        properties["タイトル"]?.id,
+        properties["DOI"]?.id,
+        properties["Semantic Scholar ID"]?.id,
+    ].filter((id): id is string => typeof id === "string");
+
     do {
         const response = await client.databases.query({
             database_id: databaseId,
             start_cursor: cursor,
             page_size: 100,
+            filter_properties: filter_properties.length > 0 ? filter_properties : undefined,
         });
 
         for (const row of response.results as unknown as NotionPage[]) {

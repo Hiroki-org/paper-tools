@@ -20,6 +20,14 @@ const {
 describe("notion-client", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockClient.databases.retrieve.mockResolvedValue({
+            properties: {
+                "タイトル": { type: "title", id: "t" },
+                "DOI": { type: "rich_text", id: "d" },
+                "Semantic Scholar ID": { type: "rich_text", id: "s" },
+                "著者": { type: "rich_text", id: "a" }
+            }
+        });
     });
 
     it("createPaperPage should map properties correctly", async () => {
