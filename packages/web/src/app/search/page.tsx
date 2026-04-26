@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Sparkles } from "lucide-react";
 import type { Paper } from "@paper-tools/core";
 import type { DrilldownResult } from "@paper-tools/drilldown";
 import SearchForm from "@/components/SearchForm";
