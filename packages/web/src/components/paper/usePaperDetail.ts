@@ -1,20 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR, { mutate } from "swr";
 import type { PaperDetail, PaperDetailPreview } from "@/types/paper";
-
-const MAX_CACHE_ENTRIES = 100;
-const paperCache = new Map<string, PaperDetail>();
-
-function setCache(key: string, value: PaperDetail): void {
-    if (!paperCache.has(key) && paperCache.size >= MAX_CACHE_ENTRIES) {
-        const oldest = paperCache.keys().next().value as string | undefined;
-        if (oldest) {
-            paperCache.delete(oldest);
-        }
-    }
-    paperCache.set(key, value);
-}
 
 function mergePaper(base: PaperDetail, patch: Partial<PaperDetail>): PaperDetail {
     return {
@@ -74,66 +61,38 @@ function previewToPaperDetailPatch(preview: PaperDetailPreview): Partial<PaperDe
 }
 
 export function preCachePaper(preview: PaperDetailPreview): void {
-    const existing = paperCache.get(preview.paperId);
-    if (existing) {
-        const patch = previewToPaperDetailPatch(preview);
-        setCache(preview.paperId, mergePaper(existing, patch));
-        return;
-    }
-    setCache(preview.paperId, previewToPaperDetail(preview));
+    void mutate(
+        preview.paperId,
+        (currentData: PaperDetail | undefined) =>
+            currentData
+                ? mergePaper(currentData, previewToPaperDetailPatch(preview))
+                : previewToPaperDetail(preview),
+        { revalidate: false }
+    );
 }
 
-async function fetchAndMergePaper(paperId: string, cached?: PaperDetail): Promise<PaperDetail> {
+async function fetchAndMergePaper(paperId: string): Promise<PaperDetail> {
     const res = await fetch(`/api/paper/${encodeURIComponent(paperId)}`);
     const data = await res.json();
     if (!res.ok) {
         throw new Error(data.error ?? "Failed to load paper detail");
     }
-    return cached ? mergePaper(cached, data as PaperDetail) : (data as PaperDetail);
+    return data as PaperDetail;
 }
 
 export function usePaperDetail(paperId: string | null) {
-    const [paper, setPaper] = useState<PaperDetail | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!paperId) {
-            setPaper(null);
-            setError(null);
-            setLoading(false);
-            return;
+    const { data, error, isLoading } = useSWR(
+        paperId,
+        fetchAndMergePaper,
+        {
+            revalidateOnFocus: false, // Prevents excessive re-fetching since papers rarely change
+            dedupingInterval: 60000,
         }
+    );
 
-        const cached = paperCache.get(paperId);
-        if (cached) {
-            setPaper(cached);
-        }
-
-        let cancelled = false;
-        const run = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const merged = await fetchAndMergePaper(paperId, cached);
-                if (cancelled) return;
-                setCache(paperId, merged);
-                setPaper(merged);
-            } catch (err) {
-                if (cancelled) return;
-                setError(err instanceof Error ? err.message : "Unknown error");
-            } finally {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        void run();
-        return () => {
-            cancelled = true;
-        };
-    }, [paperId]);
-
-    return { paper, loading, error };
+    return {
+        paper: data ?? null,
+        loading: isLoading,
+        error: error ? (error instanceof Error ? error.message : "Unknown error") : null,
+    };
 }
