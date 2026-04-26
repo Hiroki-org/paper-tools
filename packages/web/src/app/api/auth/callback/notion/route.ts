@@ -1,3 +1,4 @@
+import "server-only";
 import { Client } from "@notionhq/client";
 import { NextRequest, NextResponse } from "next/server";
 import {

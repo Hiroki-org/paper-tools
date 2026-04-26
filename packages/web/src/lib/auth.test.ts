@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+// @vitest-environment node
+import { vi } from "vitest";
+
+// IMPORTANT: Mock "server-only" BEFORE importing anything that imports it
+vi.mock("server-only", () => ({}));
+
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken } from "./auth";
 import {
     ACCESS_TOKEN_COOKIE,
