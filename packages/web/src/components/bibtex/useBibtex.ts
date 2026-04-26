@@ -45,7 +45,7 @@ function cacheKey(input: { doi?: string; title?: string; format: BibtexFormat; k
     return [normalizeDoi(input.doi), (input.title ?? "").trim().toLowerCase(), input.format, input.keyFormat].join("|");
 }
 
-export function useBibtex() {
+function useBibtexSettings() {
     const [format, setFormat] = useState<BibtexFormat>("bibtex");
     const [keyFormat, setKeyFormat] = useState<BibtexKeyFormat>("default");
     const didLoadSettings = useRef(false);
@@ -75,42 +75,89 @@ export function useBibtex() {
         localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ format, keyFormat }));
     }, [format, keyFormat]);
 
+    return { format, setFormat, keyFormat, setKeyFormat };
+}
+
+async function fetchSingleBibtex(
+    input: { doi?: string; title?: string },
+    options: { format: BibtexFormat; keyFormat: BibtexKeyFormat; force?: boolean }
+): Promise<BibtexSingleResult> {
+    const key = cacheKey({
+        doi: input.doi,
+        title: input.title,
+        format: options.format,
+        keyFormat: options.keyFormat,
+    });
+
+    if (!options.force && sharedCache.has(key)) {
+        return sharedCache.get(key)!;
+    }
+
+    const params = new URLSearchParams();
+    if (input.doi?.trim()) params.set("doi", input.doi.trim());
+    if (input.title?.trim()) params.set("title", input.title.trim());
+    params.set("format", options.format);
+    params.set("keyFormat", options.keyFormat);
+
+    const res = await fetch(`/api/bibtex?${params.toString()}`);
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.error ?? "BibTeX の取得に失敗しました");
+    }
+
+    const result: BibtexSingleResult = {
+        bibtex: String(data.bibtex ?? ""),
+        source: String(data.source ?? "unknown"),
+        warnings: Array.isArray(data.warnings) ? data.warnings.map(String) : [],
+    };
+    setCacheWithEviction(key, result);
+    return result;
+}
+
+async function fetchBulkBibtex(
+    papers: BibtexPaperInput[],
+    options: { format: BibtexFormat; keyFormat: BibtexKeyFormat },
+    onProgress?: (done: number, total: number) => void
+): Promise<BibtexBulkResult> {
+    onProgress?.(0, papers.length);
+
+    const res = await fetch("/api/bibtex/bulk", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+            papers,
+            format: options.format,
+            keyFormat: options.keyFormat,
+        }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.error ?? "BibTeX 一括取得に失敗しました");
+    }
+
+    const result: BibtexBulkResult = {
+        bibtex: String(data.bibtex ?? ""),
+        count: Number(data.count ?? 0),
+        errors: Array.isArray(data.errors) ? data.errors : [],
+    };
+
+    onProgress?.(papers.length, papers.length);
+    return result;
+}
+
+export function useBibtex() {
+    const { format, setFormat, keyFormat, setKeyFormat } = useBibtexSettings();
+
     const getSingleBibtex = useCallback(async (
         input: { doi?: string; title?: string },
         overrides?: { format?: BibtexFormat; keyFormat?: BibtexKeyFormat; force?: boolean },
     ): Promise<BibtexSingleResult> => {
-        const currentFormat = overrides?.format ?? format;
-        const currentKeyFormat = overrides?.keyFormat ?? keyFormat;
-        const key = cacheKey({
-            doi: input.doi,
-            title: input.title,
-            format: currentFormat,
-            keyFormat: currentKeyFormat,
+        return fetchSingleBibtex(input, {
+            format: overrides?.format ?? format,
+            keyFormat: overrides?.keyFormat ?? keyFormat,
+            force: overrides?.force,
         });
-
-        if (!overrides?.force && sharedCache.has(key)) {
-            return sharedCache.get(key)!;
-        }
-
-        const params = new URLSearchParams();
-        if (input.doi?.trim()) params.set("doi", input.doi.trim());
-        if (input.title?.trim()) params.set("title", input.title.trim());
-        params.set("format", currentFormat);
-        params.set("keyFormat", currentKeyFormat);
-
-        const res = await fetch(`/api/bibtex?${params.toString()}`);
-        const data = await res.json();
-        if (!res.ok) {
-            throw new Error(data.error ?? "BibTeX の取得に失敗しました");
-        }
-
-        const result: BibtexSingleResult = {
-            bibtex: String(data.bibtex ?? ""),
-            source: String(data.source ?? "unknown"),
-            warnings: Array.isArray(data.warnings) ? data.warnings.map(String) : [],
-        };
-        setCacheWithEviction(key, result);
-        return result;
     }, [format, keyFormat]);
 
     const getBulkBibtex = useCallback(async (
@@ -118,33 +165,10 @@ export function useBibtex() {
         overrides?: { format?: BibtexFormat; keyFormat?: BibtexKeyFormat },
         onProgress?: (done: number, total: number) => void,
     ): Promise<BibtexBulkResult> => {
-        const currentFormat = overrides?.format ?? format;
-        const currentKeyFormat = overrides?.keyFormat ?? keyFormat;
-        onProgress?.(0, papers.length);
-
-        const res = await fetch("/api/bibtex/bulk", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-                papers,
-                format: currentFormat,
-                keyFormat: currentKeyFormat,
-            }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-            throw new Error(data.error ?? "BibTeX 一括取得に失敗しました");
-        }
-
-        const result: BibtexBulkResult = {
-            bibtex: String(data.bibtex ?? ""),
-            count: Number(data.count ?? 0),
-            errors: Array.isArray(data.errors) ? data.errors : [],
-        };
-
-        onProgress?.(papers.length, papers.length);
-        return result;
+        return fetchBulkBibtex(papers, {
+            format: overrides?.format ?? format,
+            keyFormat: overrides?.keyFormat ?? keyFormat,
+        }, onProgress);
     }, [format, keyFormat]);
 
     return useMemo(() => ({
