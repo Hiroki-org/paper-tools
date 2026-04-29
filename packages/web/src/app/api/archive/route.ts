@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { S2Paper } from "@paper-tools/core";
 import { getAccessToken, getNotionClient, getSelectedDatabaseId, getUserInfo } from "@/lib/auth";
-import { resolveNotionDataSource, type NotionDataSource } from "@/lib/notion-data-source";
+import { resolveNotionDataSource } from "@/lib/notion-data-source";
 
 type NotionProperty = {
     type?: string;
@@ -11,7 +11,7 @@ type NotionProperty = {
     multi_select?: Array<{ name?: string }>;
 };
 
-type ArchiveNotionDataSource = NotionDataSource<NotionProperty>;
+type ArchiveNotionDataSource = Awaited<ReturnType<typeof resolveNotionDataSource<NotionProperty>>>;
 
 type NotionClient = ReturnType<typeof getNotionClient>;
 type NotionPageCreateProperties = Parameters<NotionClient["pages"]["create"]>[0]["properties"];
