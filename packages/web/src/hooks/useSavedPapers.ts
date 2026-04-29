@@ -1,25 +1,35 @@
 import { useState, useCallback, useEffect } from "react";
-import type { Paper } from "@paper-tools/core";
+
+type MinimalPaper = {
+  doi?: string | null;
+  title?: string | null;
+  paperId?: string | null;
+  externalIds?: {
+    DOI?: string;
+  } | null;
+};
 
 export function useSavedPapers() {
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
 
-  const makeKeys = useCallback((doi?: string, title?: string) => {
+  const makeKeys = useCallback((paper: MinimalPaper) => {
     const keys: string[] = [];
+    const doi = paper.doi || paper.externalIds?.DOI;
     if (doi?.trim()) keys.push(`doi:${doi.trim().toLowerCase()}`);
-    if (title?.trim()) keys.push(`title:${title.trim().toLowerCase()}`);
+    if (paper.paperId?.trim()) keys.push(`s2:${paper.paperId.trim().toLowerCase()}`);
+    if (paper.title?.trim()) keys.push(`title:${paper.title.trim().toLowerCase()}`);
     return keys;
   }, []);
 
   const isSaved = useCallback(
-    (paper: Paper) =>
-      makeKeys(paper.doi, paper.title).some((k) => savedKeys.has(k)),
+    (paper: MinimalPaper) =>
+      makeKeys(paper).some((k) => savedKeys.has(k)),
     [makeKeys, savedKeys],
   );
 
   const markSaved = useCallback(
-    (paper: Paper) => {
-      const keys = makeKeys(paper.doi, paper.title);
+    (paper: MinimalPaper) => {
+      const keys = makeKeys(paper);
       if (keys.length === 0) return;
       setSavedKeys((prev) => {
         const next = new Set(prev);
@@ -41,6 +51,8 @@ export function useSavedPapers() {
         for (const record of data.records ?? []) {
           if (record.doi)
             next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+          if (record.semanticScholarId)
+            next.add(`s2:${String(record.semanticScholarId).trim().toLowerCase()}`);
           if (record.title)
             next.add(`title:${String(record.title).trim().toLowerCase()}`);
         }
@@ -57,5 +69,5 @@ export function useSavedPapers() {
     };
   }, []);
 
-  return { isSaved, markSaved };
+  return { savedKeys, isSaved, markSaved };
 }
