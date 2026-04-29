@@ -1,10 +1,10 @@
+export { type Format, formatGraph, SUPPORTED_FORMATS } from "./format.js";
 export {
-    buildCitationGraph,
-    mergeGraphs,
-    type CitationGraph,
-    type GraphNode,
-    type GraphEdge,
-    type Direction,
+	buildCitationGraph,
+	type CitationGraph,
+	type Direction,
+	type GraphEdge,
+	type GraphNode,
+	mapConcurrent,
+	mergeGraphs,
 } from "./graph.js";
-
-export { formatGraph, type Format, SUPPORTED_FORMATS } from "./format.js";
