@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { buildCitationGraph, mergeGraphs } from "./graph.js";
 import { formatGraph, type Format, SUPPORTED_FORMATS } from "./format.js";
-import type { Direction, CitationGraph } from "./graph.js";
+import type { Direction } from "./graph.js";
 
 // Get version from package.json
 const __filename = fileURLToPath(import.meta.url);
