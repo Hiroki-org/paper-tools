@@ -1,4 +1,4 @@
-import { getCitations, getReferences, mapWithConcurrency } from "@paper-tools/core";
+import { getCitations, getReferences } from "@paper-tools/core";
 
 /**
  * Limits concurrent execution of an array of promises
