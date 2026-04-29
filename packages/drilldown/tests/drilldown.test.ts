@@ -80,7 +80,7 @@ describe("extractKeywords", () => {
     it("should return empty array for titles/abstracts with stopwords and symbols only", () => {
         const papers = [
             { title: "The and of a in", authors: [], abstract: "!@#$%^&*() is to for be" },
-            { title: "a to at on it", authors: [], abstract: "- = [] {} ; : ' " , . / ? < > \ |" },
+            { title: "a to at on it", authors: [], abstract: "symbols only punctuation marks" },
         ];
 
         const keywords = extractKeywords(papers, 10);
