@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { Client } from "@notionhq/client";
 import { NextResponse } from "next/server";
 import {
@@ -58,7 +58,15 @@ export function sealCookieValue(data: unknown) {
 export function unsealCookieValue<T>(value: string): T | null {
     const [payload, sig] = value.split(".");
     if (!payload || !sig) return null;
-    if (signPayload(payload) !== sig) return null;
+
+    const expectedSig = signPayload(payload);
+    const expectedSigBuffer = Buffer.from(expectedSig);
+    const actualSigBuffer = Buffer.from(sig);
+
+    if (expectedSigBuffer.length !== actualSigBuffer.length || !timingSafeEqual(expectedSigBuffer, actualSigBuffer)) {
+        return null;
+    }
+
     try {
         return JSON.parse(fromBase64Url(payload)) as T;
     } catch {
