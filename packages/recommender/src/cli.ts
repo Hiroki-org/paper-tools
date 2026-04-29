@@ -20,7 +20,7 @@ import { parsePositiveInt } from "@paper-tools/core";
 const program = new Command();
 
 
-async function syncPapers(
+export async function syncPapers(
     databaseId: string,
     papers: S2Paper[],
     duplicates: DuplicateResult,
@@ -69,7 +69,7 @@ async function syncPapers(
     return { added, skipped, errors };
 }
 
-async function outputJson(data: unknown, output?: string): Promise<void> {
+export async function outputJson(data: unknown, output?: string): Promise<void> {
     const json = JSON.stringify(data, null, 2);
     if (output) {
         const { writeFile } = await import("node:fs/promises");
@@ -80,7 +80,7 @@ async function outputJson(data: unknown, output?: string): Promise<void> {
     console.log(json);
 }
 
-function requireDatabaseId(): string {
+export function requireDatabaseId(): string {
     const databaseId = process.env["NOTION_DATABASE_ID"];
     if (!databaseId) {
         throw new Error("NOTION_DATABASE_ID が未設定です");
@@ -181,4 +181,4 @@ program
         }
     });
 
-program.parse();
+if (process.env["VITEST"] !== "true") { program.parse(); }
