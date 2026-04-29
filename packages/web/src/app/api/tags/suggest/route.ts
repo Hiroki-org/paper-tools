@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAccessToken, getNotionClient, getSelectedDatabaseId } from "@/lib/auth";
-import { resolveNotionDataSource, type NotionDataSource } from "@/lib/notion-data-source";
+import { resolveNotionDataSource } from "@/lib/notion-data-source";
 
 export const runtime = "nodejs";
 
@@ -9,7 +9,6 @@ type NotionProperty = {
     multi_select?: Array<{ name?: string }>;
 };
 
-type TagsNotionDataSource = NotionDataSource<NotionProperty>;
 const MAX_QUERY_PAGES = 8;
 
 function clampLimit(limit: number) {
@@ -58,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     try {
         const notion = getNotionClient(accessToken);
-        const dataSource: TagsNotionDataSource = await resolveNotionDataSource<NotionProperty>(notion, dataSourceId);
+        const dataSource = await resolveNotionDataSource<NotionProperty>(notion, dataSourceId);
         const tagKeys = findTagPropertyKeys(dataSource.properties);
         if (tagKeys.length === 0) {
             return NextResponse.json({ suggestions: [] as string[] });
