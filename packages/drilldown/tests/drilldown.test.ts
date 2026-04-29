@@ -60,6 +60,32 @@ describe("extractKeywords", () => {
         const keywords = extractKeywords([], 10);
         expect(keywords).toEqual([]);
     });
+
+    it("should extract keywords from abstract field content", () => {
+        const papers = [
+            {
+                title: "A Study",
+                authors: [],
+                abstract: "This paper discusses revolutionary quantum computing architectures.",
+            },
+        ];
+
+        const keywords = extractKeywords(papers, 10);
+        expect(keywords).toContain("revolutionary");
+        expect(keywords).toContain("quantum");
+        expect(keywords).toContain("computing");
+        expect(keywords).toContain("architectures");
+    });
+
+    it("should return empty array for titles/abstracts with stopwords and symbols only", () => {
+        const papers = [
+            { title: "The and of a in", authors: [], abstract: "!@#$%^&*() is to for be" },
+            { title: "a to at on it", authors: [], abstract: "!!! ??? ###" },
+        ];
+
+        const keywords = extractKeywords(papers, 10);
+        expect(keywords).toEqual([]);
+    });
 });
 
 describe("drilldown", () => {
