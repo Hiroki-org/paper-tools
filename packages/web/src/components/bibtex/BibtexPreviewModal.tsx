@@ -9,15 +9,22 @@ type Props = {
   onClose: () => void;
 };
 
-export function BibtexPreviewModal({ doi, title, isOpen, onClose }: Props) {
-  const { format, keyFormat, setFormat, setKeyFormat, getSingleBibtex } =
-    useBibtex();
+function useBibtexPreviewFetch(
+  isOpen: boolean,
+  doi: string | undefined,
+  title: string,
+  format: "bibtex" | "biblatex",
+  keyFormat: "default" | "short" | "venue",
+  getSingleBibtex: (
+    input: { doi?: string; title?: string },
+    overrides?: { format?: "bibtex" | "biblatex"; keyFormat?: "default" | "short" | "venue"; force?: boolean }
+  ) => Promise<{ bibtex: string; source: string; warnings: string[] }>
+) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bibtex, setBibtex] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
   const [source, setSource] = useState("");
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,6 +59,24 @@ export function BibtexPreviewModal({ doi, title, isOpen, onClose }: Props) {
       cancelled = true;
     };
   }, [isOpen, doi, title, format, keyFormat, getSingleBibtex]);
+
+  return { loading, error, bibtex, warnings, source };
+}
+
+export function BibtexPreviewModal({ doi, title, isOpen, onClose }: Props) {
+  const { format, keyFormat, setFormat, setKeyFormat, getSingleBibtex } =
+    useBibtex();
+
+  const { loading, error, bibtex, warnings, source } = useBibtexPreviewFetch(
+    isOpen,
+    doi,
+    title,
+    format,
+    keyFormat,
+    getSingleBibtex
+  );
+
+  const [copied, setCopied] = useState(false);
 
   const sourceLabel = useMemo(() => {
     if (!source) return "";
