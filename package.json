@@ -16,12 +16,13 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/react-hooks": "^8.0.1",
-    "@vitest/coverage-v8": "^4.1.4",
-    "jsdom": "^29.0.1",
-    "rimraf": "^6.1.2",
-    "vitest": "^4.1.0"
+    "@vitest/coverage-v8": "^4.1.5",
+    "jsdom": "^29.1.0",
+    "rimraf": "^6.1.3",
+    "vitest": "^4.1.5"
   },
   "dependencies": {
+    "esbuild": "^0.28.0",
     "lucide-react": "^0.564.0"
   },
   "type": "module",
@@ -32,7 +33,9 @@
       "undici@>=7.0.0 <7.24.0": "7.24.0",
       "picomatch": "4.0.4",
       "rollup@>=4.0.0 <4.59.0": "4.59.0",
-      "minimatch@>=10.0.0 <10.2.3": "10.2.4"
+      "minimatch@>=10.0.0 <10.2.3": "10.2.4",
+      "vite": "^6.0.0",
+      "postcss": "^8.5.10"
     }
   }
 }
