@@ -14,6 +14,12 @@ describe("notion-data-source", () => {
         it("returns null if error message does not match API error pattern", () => {
             expect(getStatusCodeFromError(new Error("Unknown error"))).toBeNull();
             expect(getStatusCodeFromError(new Error("API error: xyz"))).toBeNull();
+            expect(getStatusCodeFromError(new Error("API error: "))).toBeNull();
+            expect(getStatusCodeFromError(new Error("API error: 12.3"))).toBeNull();
+            expect(getStatusCodeFromError(new Error("API error: NaN"))).toBeNull();
+            expect(getStatusCodeFromError(new Error("API error: 1e3"))).toBeNull();
+            expect(getStatusCodeFromError(new Error("API error: 1.5"))).toBeNull();
+            expect(getStatusCodeFromError(new Error("API error: Infinity"))).toBeNull();
         });
 
         it("extracts status code from API error", () => {
@@ -21,6 +27,22 @@ describe("notion-data-source", () => {
             expect(getStatusCodeFromError(new Error("Notion API error: 400"))).toBe(400);
             expect(getStatusCodeFromError(new Error("Semantic Scholar API error: 500"))).toBe(500);
             expect(getStatusCodeFromError(new Error("API error: 1234"))).toBeNull();
+            expect(getStatusCodeFromError(new Error("API error: 000"))).toBe(0);
+            // mock Number.isInteger to return false temporarily to test the ternary operator branch
+            const originalIsInteger = Number.isInteger;
+            Number.isInteger = () => false;
+            expect(getStatusCodeFromError(new Error("API error: 500"))).toBeNull();
+            Number.isInteger = originalIsInteger;
+        });
+
+        it("returns null if status code parsing returns NaN", () => {
+            // Mock matching to return a string that evals to NaN when passed to Number()
+            const originalMatch = String.prototype.match;
+            String.prototype.match = function() {
+                return [this, "NaN"];
+            };
+            expect(getStatusCodeFromError(new Error("API error: 999"))).toBeNull();
+            String.prototype.match = originalMatch;
         });
     });
 
@@ -97,6 +119,18 @@ describe("notion-data-source", () => {
             expect(result).toEqual(validDataSource);
         });
 
+        it("falls back to database retrieve if initial data source is not an object", async () => {
+            const client = createMockClient();
+            client.dataSources.retrieve
+                .mockResolvedValueOnce(null)
+                .mockResolvedValueOnce(validDataSource);
+            client.databases.retrieve.mockResolvedValue(validDatabase);
+
+            const result = await resolveNotionDataSource(client, "db-123");
+
+            expect(result).toEqual(validDataSource);
+        });
+
         it("throws if initial data source retrieve fails with non-400/404 error", async () => {
             const client = createMockClient();
             const error500 = new Error("Notion API error: 500");
@@ -113,6 +147,41 @@ describe("notion-data-source", () => {
             client.databases.retrieve.mockResolvedValue({
                 object: "database",
                 id: "db-123",
+            });
+
+            await expect(resolveNotionDataSource(client, "db-123")).rejects.toThrow("No data source found in selected database");
+        });
+
+        it("throws if fallback database is not an object", async () => {
+            const client = createMockClient();
+            client.dataSources.retrieve.mockRejectedValueOnce(new Error("Notion API error: 404"));
+
+            client.databases.retrieve.mockResolvedValue(null);
+
+            await expect(resolveNotionDataSource(client, "db-123")).rejects.toThrow("No data source found in selected database");
+        });
+
+        it("throws if first data source in fallback database is not an object", async () => {
+            const client = createMockClient();
+            client.dataSources.retrieve.mockRejectedValueOnce(new Error("Notion API error: 404"));
+
+            client.databases.retrieve.mockResolvedValue({
+                object: "database",
+                id: "db-123",
+                data_sources: [null]
+            });
+
+            await expect(resolveNotionDataSource(client, "db-123")).rejects.toThrow("No data source found in selected database");
+        });
+
+        it("throws if first data source in fallback database has no id string", async () => {
+            const client = createMockClient();
+            client.dataSources.retrieve.mockRejectedValueOnce(new Error("Notion API error: 404"));
+
+            client.databases.retrieve.mockResolvedValue({
+                object: "database",
+                id: "db-123",
+                data_sources: [{ id: 123 }]
             });
 
             await expect(resolveNotionDataSource(client, "db-123")).rejects.toThrow("No data source found in selected database");
