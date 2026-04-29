@@ -1,8 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import type { Paper } from "@paper-tools/core";
 
+let cachedKeys: Set<string> | null = null;
+let fetchPromise: Promise<Set<string>> | null = null;
+
 export function useSavedPapers() {
-  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(
+    () => cachedKeys ?? new Set(),
+  );
 
   const makeKeys = useCallback((doi?: string, title?: string) => {
     const keys: string[] = [];
@@ -21,9 +26,18 @@ export function useSavedPapers() {
     (paper: Paper) => {
       const keys = makeKeys(paper.doi, paper.title);
       if (keys.length === 0) return;
+
+      const applyKeys = (target: Set<string>) => {
+        keys.forEach((k) => target.add(k));
+      };
+
+      if (cachedKeys) {
+        applyKeys(cachedKeys);
+      }
+
       setSavedKeys((prev) => {
         const next = new Set(prev);
-        keys.forEach((k) => next.add(k));
+        applyKeys(next);
         return next;
       });
     },
@@ -32,26 +46,47 @@ export function useSavedPapers() {
 
   useEffect(() => {
     let cancelled = false;
+
     const fetchArchive = async () => {
+      if (cachedKeys) {
+        setSavedKeys(new Set(cachedKeys));
+        return;
+      }
+
+      if (!fetchPromise) {
+        fetchPromise = fetch("/api/archive")
+          .then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error("Failed to fetch archive");
+            const next = new Set<string>();
+            for (const record of data.records ?? []) {
+              if (record.doi)
+                next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
+              if (record.title)
+                next.add(`title:${String(record.title).trim().toLowerCase()}`);
+            }
+            cachedKeys = next;
+            return next;
+          })
+          .finally(() => {
+            fetchPromise = null;
+          });
+      }
+
       try {
-        const res = await fetch("/api/archive");
-        const data = await res.json();
-        if (!res.ok || cancelled) return;
-        const next = new Set<string>();
-        for (const record of data.records ?? []) {
-          if (record.doi)
-            next.add(`doi:${String(record.doi).trim().toLowerCase()}`);
-          if (record.title)
-            next.add(`title:${String(record.title).trim().toLowerCase()}`);
+        const next = await fetchPromise;
+        if (!cancelled) {
+          setSavedKeys(new Set(next));
         }
-        setSavedKeys(next);
       } catch (err) {
-        if (process.env.NODE_ENV === "development") {
+        if (!cancelled && process.env.NODE_ENV === "development") {
           console.warn("Failed to fetch archive:", err);
         }
       }
     };
+
     void fetchArchive();
+
     return () => {
       cancelled = true;
     };
