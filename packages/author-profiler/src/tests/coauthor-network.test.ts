@@ -34,6 +34,76 @@ describe("aggregateCoauthorsFromPapers", () => {
             { authorId: "a2", name: "Bob", paperCount: 1 },
         ]);
     });
+
+    it("handles empty papers array", () => {
+        const result = aggregateCoauthorsFromPapers("self", []);
+        expect(result).toEqual([]);
+    });
+
+    it("handles papers with no authors", () => {
+        const papers = [
+            { paperId: "p1", title: "A" },
+            { paperId: "p2", title: "B", authors: [] },
+        ];
+        const result = aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[]);
+        expect(result).toEqual([]);
+    });
+
+    it("handles authors with missing or empty authorId", () => {
+        const papers = [
+            {
+                paperId: "p1",
+                title: "A",
+                authors: [
+                    { authorId: "self", name: "Self" },
+                    { authorId: "", name: "No ID 1" },
+                    { name: "No ID 2" },
+                    { authorId: "  ", name: "No ID 3" },
+                ],
+            },
+        ];
+        const result = aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[]);
+        expect(result).toEqual([]);
+    });
+
+    it("handles authors with missing or empty names, falling back to 'Unknown'", () => {
+        const papers = [
+            {
+                paperId: "p1",
+                title: "A",
+                authors: [
+                    { authorId: "self", name: "Self" },
+                    { authorId: "a1" },
+                    { authorId: "a2", name: "" },
+                    { authorId: "a3", name: "  " },
+                ],
+            },
+        ];
+        const result = aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[]);
+        expect(result).toEqual([
+            { authorId: "a1", name: "Unknown", paperCount: 1 },
+            { authorId: "a2", name: "Unknown", paperCount: 1 },
+            { authorId: "a3", name: "Unknown", paperCount: 1 },
+        ]);
+    });
+
+    it("ignores duplicate authors within the same paper", () => {
+        const papers = [
+            {
+                paperId: "p1",
+                title: "A",
+                authors: [
+                    { authorId: "self", name: "Self" },
+                    { authorId: "a1", name: "Alice" },
+                    { authorId: "a1", name: "Alice Duplicate" },
+                ],
+            },
+        ];
+        const result = aggregateCoauthorsFromPapers("self", papers as Partial<S2Paper>[] as S2Paper[]);
+        expect(result).toEqual([
+            { authorId: "a1", name: "Alice", paperCount: 1 },
+        ]);
+    });
 });
 
 describe("buildCoauthorNetwork", () => {
