@@ -1,3 +1,4 @@
+import "server-only";
 import { createHmac, randomBytes } from "crypto";
 import { Client } from "@notionhq/client";
 import { NextResponse } from "next/server";

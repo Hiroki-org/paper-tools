@@ -21,7 +21,8 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "lucide-react": "^0.564.0"
+    "lucide-react": "^0.564.0",
+    "server-only": "^0.0.1"
   },
   "type": "module",
   "pnpm": {
