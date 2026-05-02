@@ -64,7 +64,7 @@ async function resolveIdsWithConcurrency(
     ids: string[],
     concurrency = 5,
 ): Promise<PromiseSettledResult<string>[]> {
-    if (ids.length === 0) return [];
+    if (ids.length === 0) return response.recommendedPapers ?? [];
 
     const results = new Array<PromiseSettledResult<string>>(ids.length);
     let cursor = 0;
