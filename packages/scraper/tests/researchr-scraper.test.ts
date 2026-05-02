@@ -142,3 +142,108 @@ describe("Researchr Scraper", () => {
     expect(conference.location).toBeUndefined();
   });
 });
+
+
+describe("Researchr Scraper - Advanced Coverage", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("extractLocation should match location: correctly", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `<html><body><p>location: New York City</p></body></html>`,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.location).toBe("New York City");
+  });
+
+  it("extractTracks should fallback to sections if no links", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Test Conf</title></head>
+      <body>
+        <h1 class="conf-title">Test Conf</h1>
+        <h2>Research Track</h2>
+        <h3>Industry Workshop</h3>
+        <h4>Tutorials</h4>
+      </body>
+      </html>
+      `,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.tracks).toBeDefined();
+    expect(conference.tracks.length).toBe(3);
+  });
+
+  it("extractImportantDates should match lists", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Test Conf</title></head>
+      <body>
+        <h1 class="conf-title">Test Conf</h1>
+        <ul>
+          <li>Abstracts due: October 1, 2025</li>
+          <li>Paper Deadline - November 15, 2025</li>
+          <li>December 20, 2025: Notification</li>
+        </ul>
+      </body>
+      </html>
+      `,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.importantDates.length).toBe(3);
+  });
+
+  it("parseDateRange should parse format 2", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Test Conf</title></head>
+      <body>
+        <h1 class="conf-title">Test Conf</h1>
+        <div class="date-info">October 12 - November 16, 2026</div>
+      </body>
+      </html>
+      `,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.startDate).toBe("October 12, 2026");
+    expect(conference.endDate).toBe("November 16, 2026");
+  });
+
+  it("scrapeAcceptedPapers should fallback to tables", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <body>
+        <table>
+          <tr>
+            <td>A Very Long Paper Title That Is Definitively More Than Ten Characters</td>
+            <td>Alice, and Bob; Charlie</td>
+          </tr>
+        </table>
+      </body>
+      </html>
+      `,
+    });
+    const papers = await scrapeAcceptedPapers("https://conf.researchr.org/track/test");
+    expect(papers.length).toBe(1);
+    expect(papers[0].authors.length).toBe(3);
+  });
+});
