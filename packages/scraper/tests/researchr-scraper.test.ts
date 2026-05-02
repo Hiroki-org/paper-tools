@@ -101,4 +101,44 @@ describe("Researchr Scraper", () => {
     expect(papers[0]?.title).toBe("Automated Bug Detection with AI");
     expect(papers[0]?.authors.map((a) => a.name)).toEqual(["Alice Smith", "Bob Jones"]);
   });
+
+  it("extractLocation should match 'held in'", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `<html><body><p>This conference will be held in Paris, France next year.</p></body></html>`,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.location).toBe("Paris, France next year");
+  });
+
+  it("extractLocation should match 'will take place in'", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `<html><body><p>The event will take place in Tokyo, Japan.</p></body></html>`,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.location).toBe("Tokyo, Japan");
+  });
+
+  it("extractLocation should match 'location:'", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `<html><body><p>Location: Berlin, Germany</p></body></html>`,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.location).toBe("Berlin, Germany");
+  });
+
+  it("extractLocation should return empty string if no match", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `<html><body><p>No location info here.</p></body></html>`,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.location).toBeUndefined();
+  });
 });
