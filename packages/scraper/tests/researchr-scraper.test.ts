@@ -247,3 +247,102 @@ describe("Researchr Scraper - Advanced Coverage", () => {
     expect(papers[0].authors.length).toBe(3);
   });
 });
+
+
+describe("Researchr Scraper - Final Coverage Push", () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it("extractImportantDates should handle empty table rows gracefully", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Test Conf</title></head>
+      <body>
+        <h1 class="conf-title">Test Conf</h1>
+        <table>
+          <tr>
+            <td>Date</td>
+          </tr>
+          <tr>
+            <td>Only one column</td>
+          </tr>
+        </table>
+      </body>
+      </html>
+      `,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.importantDates.length).toBe(0);
+  });
+
+  it("extractTracks should not pick up short/long links", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Test Conf</title></head>
+      <body>
+        <h1 class="conf-title">Test Conf</h1>
+        <a class="nav-link" href="/track/1">A</a>
+        <a class="nav-link" href="/track/2">${"A".repeat(101)}</a>
+      </body>
+      </html>
+      `,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.tracks.length).toBe(0);
+  });
+
+  it("parseDateRange should return empty object for no match", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Test Conf</title></head>
+      <body>
+        <h1 class="conf-title">Test Conf</h1>
+        <div class="date-info">Not a date string</div>
+      </body>
+      </html>
+      `,
+    });
+    const conference = await scrapeConference("test-conf");
+    expect(conference.startDate).toBeUndefined();
+    expect(conference.endDate).toBeUndefined();
+  });
+
+  it("scrapeAcceptedPapers should handle empty table cells", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => `
+      <!DOCTYPE html>
+      <html>
+      <body>
+        <table>
+          <tr>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Short</td>
+            <td>Bob</td>
+          </tr>
+        </table>
+      </body>
+      </html>
+      `,
+    });
+    const papers = await scrapeAcceptedPapers("https://conf.researchr.org/track/test");
+    expect(papers.length).toBe(0);
+  });
+});
