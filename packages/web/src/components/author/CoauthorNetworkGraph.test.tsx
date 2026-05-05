@@ -1,25 +1,22 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import CoauthorNetworkGraph from "./CoauthorNetworkGraph";
 
-const mockCytoscape = vi.fn(() => ({
+const createCytoscapeMockInstance = () => ({
     destroy: vi.fn(),
-}));
-
-vi.mock("cytoscape", () => {
-    return {
-        default: mockCytoscape
-    };
 });
+
+const mockCytoscape = vi.fn(createCytoscapeMockInstance);
+
+vi.mock("cytoscape", () => ({
+    default: mockCytoscape,
+}));
 
 describe("CoauthorNetworkGraph", () => {
     beforeEach(() => {
-        mockCytoscape.mockClear();
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
+        vi.resetAllMocks();
+        mockCytoscape.mockImplementation(createCytoscapeMockInstance);
     });
 
     it("renders empty state when no coauthors are provided", () => {
@@ -50,7 +47,8 @@ describe("CoauthorNetworkGraph", () => {
             expect(mockCytoscape).toHaveBeenCalled();
         });
 
-        // Test unmounting to cover the destroy path
+        const instance = mockCytoscape.mock.results[0]?.value;
         unmount();
+        expect(instance?.destroy).toHaveBeenCalledTimes(1);
     });
 });
