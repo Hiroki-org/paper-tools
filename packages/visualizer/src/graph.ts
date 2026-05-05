@@ -1,19 +1,13 @@
 import { getCitations, getReferences } from "@paper-tools/core";
 
-export const DEFAULT_CONCURRENCY = 10;
-
 /**
- * Limits concurrent execution of an array of promises.
- * If mapper rejects, the returned promise rejects; already-started workers are not cancelled.
+ * Limits concurrent execution of an array of promises
  */
-export async function mapConcurrent<T, R>(
+async function mapConcurrent<T, R>(
     items: T[],
     mapper: (item: T) => Promise<R>,
-    concurrency = DEFAULT_CONCURRENCY,
+    concurrency: number
 ): Promise<R[]> {
-    if (concurrency <= 0) {
-        throw new Error("Concurrency must be at least 1");
-    }
     const results: R[] = new Array(items.length);
     let index = 0;
     const worker = async () => {
@@ -122,7 +116,7 @@ export async function buildCitationGraph(
                     return { citations: [], currentDoi, error };
                 }
             },
-            DEFAULT_CONCURRENCY,
+            10 // Concurrency limit to prevent unbounded I/O
         );
 
         for (const result of results) {

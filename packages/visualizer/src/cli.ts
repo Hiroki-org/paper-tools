@@ -6,7 +6,7 @@ import { writeFileSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { buildCitationGraph, DEFAULT_CONCURRENCY, mapConcurrent, mergeGraphs } from "./graph.js";
+import { buildCitationGraph, mergeGraphs } from "./graph.js";
 import { formatGraph, type Format, SUPPORTED_FORMATS } from "./format.js";
 import type { Direction } from "./graph.js";
 
@@ -82,10 +82,8 @@ program
             if (!(SUPPORTED_FORMATS as readonly string[]).includes(opts.format)) {
                 throw new Error(`Invalid format: ${opts.format}. Must be one of: ${SUPPORTED_FORMATS.join(", ")}`);
             }
-            const graphs = await mapConcurrent(
-                dois,
-                doi => buildCitationGraph(doi, opts.depth, opts.direction as Direction),
-                DEFAULT_CONCURRENCY,
+            const graphs = await Promise.all(
+                dois.map(doi => buildCitationGraph(doi, opts.depth, opts.direction as Direction))
             );
 
             // Ensure all graphs were built successfully

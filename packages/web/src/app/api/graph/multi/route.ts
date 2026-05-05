@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildCitationGraph, DEFAULT_CONCURRENCY, mapConcurrent, mergeGraphs } from "@paper-tools/visualizer";
+import { buildCitationGraph, mergeGraphs } from "@paper-tools/visualizer";
 import type { Direction } from "@paper-tools/visualizer";
 
 interface MultiGraphBody {
@@ -20,10 +20,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const graphs = await mapConcurrent(
-            dois,
-            (doi) => buildCitationGraph(doi, depth, direction),
-            DEFAULT_CONCURRENCY,
+        const graphs = await Promise.all(
+            dois.map((doi) => buildCitationGraph(doi, depth, direction)),
         );
         const merged = mergeGraphs(...graphs);
         return NextResponse.json({ graph: merged });
