@@ -1,3 +1,4 @@
+import type { S2Paper, S2RecommendationsResponse } from "@paper-tools/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@paper-tools/core", () => ({
@@ -140,12 +141,12 @@ describe("recommendFromMultiple", () => {
 
 describe("recommendFromSingle", () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
     });
 
     it("IDを解決してデフォルトオプションで推薦論文を返す", async () => {
         vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
-            recommendedPapers: [{ paperId: "rec1", title: "Rec 1" } as any],
+            recommendedPapers: [{ paperId: "rec1", title: "Rec 1" }] as unknown as S2Paper[],
         });
 
         const results = await recommendFromSingle("direct-id");
@@ -171,7 +172,7 @@ describe("recommendFromSingle", () => {
     });
 
     it("recommendedPapersが未定義の場合は空配列を返す", async () => {
-        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({} as any);
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({} as unknown as S2RecommendationsResponse);
 
         const results = await recommendFromSingle("direct-id");
         expect(results).toEqual([]);
