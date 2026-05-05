@@ -78,7 +78,8 @@ export async function GET(request: NextRequest) {
             for (const record of response.results) {
                 if (!isPageRecord(record)) continue;
                 for (const key of tagKeys) {
-                    const items = record.properties[key]?.multi_select ?? [];
+                    const items = record.properties[key]?.multi_select;
+                    if (!items) continue;
                     for (const item of items) {
                         const normalized = normalizeTag(item.name ?? "");
                         if (!normalized) continue;
