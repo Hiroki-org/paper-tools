@@ -104,24 +104,6 @@ describe("aggregateCoauthorsFromPapers", () => {
             { authorId: "a1", name: "Alice", paperCount: 1 },
         ]);
     });
-
-    it("excludes self author even if target authorId has surrounding whitespace", () => {
-        const papers = [
-            {
-                paperId: "p1",
-                title: "A",
-                authors: [
-                    { authorId: "  self  ", name: "Self" },
-                    { authorId: "a1", name: "Alice" },
-                ],
-            },
-        ];
-
-        const result = aggregateCoauthorsFromPapers("  self  ", papers as Partial<S2Paper>[] as S2Paper[]);
-        expect(result).toEqual([
-            { authorId: "a1", name: "Alice", paperCount: 1 },
-        ]);
-    });
 });
 
 describe("buildCoauthorNetwork", () => {

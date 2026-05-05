@@ -21,7 +21,7 @@ export default function SaveToNotionButton({
   saved = false,
   onSaved,
 }: SaveToNotionButtonProps) {
-  const { status, error, save } = useSaveToNotion({ paper, doi, title, tags, saved, onSaved });
+  const { status, error, save } = useSaveToNotion({ paper, doi, title, saved, onSaved });
 
   const disabled =
     saved || status === "resolving" || status === "saving" || status === "done";

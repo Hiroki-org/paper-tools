@@ -97,15 +97,14 @@ export async function GET(request: NextRequest) {
         } while (startCursor);
 
         const normalizedQuery = q.toLowerCase();
-        const suggestions = Array.from(uniqueTags.entries())
-            .filter(([dedupeKey]) => dedupeKey.includes(normalizedQuery))
-            .sort(([dedupeKeyA, a], [dedupeKeyB, b]) => {
-                const aStarts = dedupeKeyA.startsWith(normalizedQuery) ? 0 : 1;
-                const bStarts = dedupeKeyB.startsWith(normalizedQuery) ? 0 : 1;
+        const suggestions = Array.from(uniqueTags.values())
+            .filter((tag) => tag.toLowerCase().includes(normalizedQuery))
+            .sort((a, b) => {
+                const aStarts = a.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+                const bStarts = b.toLowerCase().startsWith(normalizedQuery) ? 0 : 1;
                 if (aStarts !== bStarts) return aStarts - bStarts;
                 return a.localeCompare(b, "ja");
             })
-            .map(([, tag]) => tag)
             .slice(0, limit);
 
         return NextResponse.json({ suggestions });
