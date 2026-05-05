@@ -1,38 +1,40 @@
 {
-  "name": "paper-tools",
-  "private": true,
-  "packageManager": "pnpm@10.18.3",
-  "description": "論文関連ツール群のモノレポ",
-  "license": "MIT",
-  "scripts": {
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "clean": "pnpm -r clean"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "devDependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/react-hooks": "^8.0.1",
-    "@vitest/coverage-v8": "^4.1.4",
-    "jsdom": "^29.0.1",
-    "rimraf": "^6.1.2",
-    "vitest": "^4.1.0"
-  },
-  "dependencies": {
-    "lucide-react": "^0.564.0"
-  },
-  "type": "module",
-  "pnpm": {
-    "overrides": {
-      "brace-expansion@>=2.0.0 <2.0.3": "2.0.3",
-      "brace-expansion@>=4.0.0 <5.0.5": "5.0.5",
-      "undici@>=7.0.0 <7.24.0": "7.24.0",
-      "picomatch": "4.0.4",
-      "rollup@>=4.0.0 <4.59.0": "4.59.0",
-      "minimatch@>=10.0.0 <10.2.3": "10.2.4"
-    }
-  }
+	"name": "paper-tools",
+	"private": true,
+	"packageManager": "pnpm@10.18.3",
+	"description": "論文関連ツール群のモノレポ",
+	"license": "MIT",
+	"scripts": {
+		"build": "pnpm -r build",
+		"test": "pnpm -r test",
+		"clean": "pnpm -r clean"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"devDependencies": {
+		"@testing-library/dom": "^10.4.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/react-hooks": "^8.0.1",
+		"@vitest/coverage-v8": "^4.1.4",
+		"jsdom": "^29.0.1",
+		"rimraf": "^6.1.2",
+		"vitest": "^4.1.0"
+	},
+	"dependencies": {
+		"lucide-react": "^0.564.0"
+	},
+	"type": "module",
+	"pnpm": {
+		"overrides": {
+			"brace-expansion@>=2.0.0 <2.0.3": "2.0.3",
+			"brace-expansion@>=4.0.0 <5.0.5": "5.0.5",
+			"undici@>=7.0.0 <7.24.0": "7.24.0",
+			"picomatch": "4.0.4",
+			"rollup@>=4.0.0 <4.59.0": "4.59.0",
+			"minimatch@>=10.0.0 <10.2.3": "10.2.4",
+			"postcss": "^8.5.10",
+			"vite": "^7.3.2"
+		}
+	}
 }
