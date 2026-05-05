@@ -136,10 +136,19 @@ describe("additional coverage", () => {
             }
         };
 
-        const info = await getDatabaseInfo("db-1", clientWithFailingUsers as any);
+        const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            const info = await getDatabaseInfo("db-1", clientWithFailingUsers as unknown as Parameters<typeof getDatabaseInfo>[1]);
 
-        expect(info.databaseName).toBe("Test DB");
-        expect(info.workspaceName).toBe("Notion Workspace");
+            expect(info.databaseName).toBe("Test DB");
+            expect(info.workspaceName).toBe("Notion Workspace");
+            expect(consoleSpy).toHaveBeenCalledWith(
+                "Failed to retrieve Notion workspace name, falling back to default:",
+                expect.any(Error),
+            );
+        } finally {
+            consoleSpy.mockRestore();
+        }
     });
 
     it("readTitle and readRichText should handle NotionRichTextItem mapping", async () => {
