@@ -9,46 +9,6 @@ import { deriveBibtexKey, formatBibtex, getValidationWarnings, parseBibtexEntry,
 import type { BibtexFormat, BibtexKeyFormat, ValidateIssue } from "./types.js";
 import { queryPapers } from "@paper-tools/recommender";
 
-async function mapConcurrent<T, R>(
-    items: T[],
-    mapper: (item: T) => Promise<R>,
-    concurrency: number,
-): Promise<R[]> {
-    if (!Number.isInteger(concurrency) || concurrency < 1) {
-        throw new Error("Concurrency must be a positive integer");
-    }
-
-    const results = new Array<R>(items.length);
-    let index = 0;
-    let firstError: unknown;
-
-    const worker = async () => {
-        while (firstError === undefined) {
-            const currentIndex = index;
-            index += 1;
-            if (currentIndex >= items.length) {
-                return;
-            }
-
-            try {
-                results[currentIndex] = await mapper(items[currentIndex]);
-            } catch (error) {
-                firstError = error;
-                return;
-            }
-        }
-    };
-
-    const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
-    await Promise.all(workers);
-
-    if (firstError !== undefined) {
-        throw firstError;
-    }
-
-    return results;
-}
-
 const program = new Command();
 
 function requireDatabaseId(): string {
@@ -196,30 +156,33 @@ program
                 console.error(`Warning: --tag はタイトル文字列ベースの簡易フィルタです (${targets.length}/${records.length})`);
             }
 
-            const MAX_CONCURRENCY = 10;
-            const results: (string | null)[] = await mapConcurrent(
-                targets,
-                async (record) => {
-                    const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
-                    if (!fetched) {
-                        console.error(`Warning: BibTeX取得失敗: ${record.title}`);
-                        return null;
-                    }
+            const results: (string | null)[] = [];
+            const BATCH_SIZE = 10;
+            for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+                const batch = targets.slice(i, i + BATCH_SIZE);
+                const batchResults = await Promise.all(
+                    batch.map(async (record) => {
+                        const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
+                        if (!fetched) {
+                            console.error(`Warning: BibTeX取得失敗: ${record.title}`);
+                            return null;
+                        }
 
-                    const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
-                    const formatted = formatBibtex(fetched.bibtex, {
-                        format,
-                        key: customKey,
-                        keyFormat,
-                    });
+                        const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
+                        const formatted = formatBibtex(fetched.bibtex, {
+                            format,
+                            key: customKey,
+                            keyFormat,
+                        });
 
-                    if (formatted.warnings.length > 0) {
-                        console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
-                    }
-                    return formatted.formatted;
-                },
-                MAX_CONCURRENCY,
-            );
+                        if (formatted.warnings.length > 0) {
+                            console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
+                        }
+                        return formatted.formatted;
+                    })
+                );
+                results.push(...batchResults);
+            }
             const chunks = results.filter((c): c is string => c !== null);
 
             const outputText = chunks.join("\n\n");

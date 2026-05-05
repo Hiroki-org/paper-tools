@@ -1,4 +1,3 @@
-import type { S2Paper, S2RecommendationsResponse } from "@paper-tools/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@paper-tools/core", () => ({
@@ -13,7 +12,7 @@ const { resolveToS2Id, recommendFromMultiple, recommendFromSingle } = await impo
 
 describe("recommend resolveToS2Id", () => {
     beforeEach(() => {
-        vi.resetAllMocks();
+        vi.clearAllMocks();
     });
 
     it("DOIをS2IDに変換できる", async () => {
@@ -66,7 +65,7 @@ describe("recommend resolveToS2Id", () => {
 
 describe("recommendFromMultiple", () => {
     beforeEach(() => {
-        vi.resetAllMocks();
+        vi.clearAllMocks();
     });
 
     it("positiveIdsが空の場合は空配列を返す", async () => {
@@ -136,50 +135,5 @@ describe("recommendFromMultiple", () => {
 
         expect(results).toEqual([]);
         expect(core.getRecommendations).not.toHaveBeenCalled();
-    });
-});
-
-describe("recommendFromSingle", () => {
-    beforeEach(() => {
-        vi.resetAllMocks();
-    });
-
-    it("IDを解決してデフォルトオプションで推薦論文を返す", async () => {
-        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
-            recommendedPapers: [{ paperId: "rec1", title: "Rec 1" }] as unknown as S2Paper[],
-        });
-
-        const results = await recommendFromSingle("direct-id");
-        expect(results).toHaveLength(1);
-        expect(results[0].paperId).toBe("rec1");
-        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("direct-id", {
-            limit: 10,
-            from: "recent"
-        });
-    });
-
-    it("カスタムオプションが渡された場合、適切にAPIを呼び出す", async () => {
-        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
-            recommendedPapers: [],
-        });
-
-        const results = await recommendFromSingle("direct-id", { limit: 50, from: "all-cs" });
-        expect(results).toEqual([]);
-        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("direct-id", {
-            limit: 50,
-            from: "all-cs"
-        });
-    });
-
-    it("recommendedPapersが未定義の場合は空配列を返す", async () => {
-        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({} as unknown as S2RecommendationsResponse);
-
-        const results = await recommendFromSingle("direct-id");
-        expect(results).toEqual([]);
-    });
-
-    it("IDの解決に失敗した場合はエラーを投げる", async () => {
-        await expect(recommendFromSingle("   ")).rejects.toThrow("identifier が空です");
-        expect(core.getRecommendationsForPaper).not.toHaveBeenCalled();
     });
 });

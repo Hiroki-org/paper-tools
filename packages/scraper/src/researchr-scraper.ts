@@ -4,17 +4,6 @@ import { fetchWithRetry } from "@paper-tools/core";
 
 const RESEARCHR_BASE = "https://conf.researchr.org";
 
-const LOCATION_PATTERNS = [
-    /held in ([^.]+)/i,
-    /will take place in ([^.]+)/i,
-    /location:\s*([^.\n]+)/i,
-] as const;
-const IMPORTANT_DATE_PATTERNS = [
-    /(.+?):\s*(\w+ \d{1,2},?\s*\d{4})/,
-    /(.+?)\s*[-–]\s*(\w+ \d{1,2},?\s*\d{4})/,
-    /(\w+ \d{1,2},?\s*\d{4})\s*[-–:]\s*(.+)/,
-] as const;
-
 /**
  * conf.researchr.org のカンファレンスホームページをスクレイピングして
  * カンファレンス情報を取得する
@@ -74,7 +63,12 @@ export async function scrapeConference(
 function extractLocation($: cheerio.CheerioAPI): string {
     // ページ本文からよくある場所パターンを探す
     const bodyText = $("body").text();
-    for (const pattern of LOCATION_PATTERNS) {
+    const locationPatterns = [
+        /held in ([^.]+)/i,
+        /will take place in ([^.]+)/i,
+        /location:\s*([^.\n]+)/i,
+    ];
+    for (const pattern of locationPatterns) {
         const match = bodyText.match(pattern);
         if (match) return match[1].trim();
     }
@@ -149,7 +143,12 @@ function extractImportantDates($: cheerio.CheerioAPI): ImportantDate[] {
     if (dates.length === 0) {
         $("li, .deadline, .important-date").each((_i, el) => {
             const text = $(el).text().trim();
-            for (const pattern of IMPORTANT_DATE_PATTERNS) {
+            const datePatterns = [
+                /(.+?):\s*(\w+ \d{1,2},?\s*\d{4})/,
+                /(.+?)\s*[-–]\s*(\w+ \d{1,2},?\s*\d{4})/,
+                /(\w+ \d{1,2},?\s*\d{4})\s*[-–:]\s*(.+)/,
+            ];
+            for (const pattern of datePatterns) {
                 const match = text.match(pattern);
                 if (match) {
                     const key = text;
