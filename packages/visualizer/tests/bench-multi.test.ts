@@ -1,64 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { buildCitationGraph, mapConcurrent } from "../src/graph.js";
+import { DEFAULT_CONCURRENCY, mapConcurrent } from "../src/graph.js";
 
-describe("Performance: multi command", () => {
-	it("measures sequential vs concurrent", async () => {
-		const normalizeGraph = (graph: any) => {
-			const normalized = {
-				...graph,
-				nodes: [...(graph.nodes || [])].sort((a: any, b: any) =>
-					(a.doi || a.id || "").localeCompare(b.doi || b.id || ""),
-				),
-				edges: [...(graph.edges || [])].sort((a: any, b: any) => {
-					const sourceCompare = (a.source || "").localeCompare(b.source || "");
-					if (sourceCompare !== 0) return sourceCompare;
-					return (a.target || "").localeCompare(b.target || "");
-				}),
-			};
-			return normalized;
-		};
+describe("mapConcurrent", () => {
+    it("limits concurrent work while preserving result order", async () => {
+        const items = Array.from({ length: DEFAULT_CONCURRENCY + 5 }, (_, index) => index);
+        let active = 0;
+        let maxActive = 0;
 
-		const dois = [
-			"10.1145/3597503.3639187",
-			"10.1145/3597503.3639188",
-			"10.1145/3597503.3639189",
-		];
+        const results = await mapConcurrent(
+            items,
+            async (item) => {
+                active++;
+                maxActive = Math.max(maxActive, active);
+                await new Promise((resolve) => setTimeout(resolve, 1));
+                active--;
+                return item * 2;
+            },
+            DEFAULT_CONCURRENCY,
+        );
 
-		// Sequential
-		const startSeq = performance.now();
-		const graphsSeq = [];
-		for (const doi of dois) {
-			graphsSeq.push(await buildCitationGraph(doi, 1, "both"));
-		}
-		const endSeq = performance.now();
-		const seqTime = endSeq - startSeq;
+        expect(results).toEqual(items.map((item) => item * 2));
+        expect(maxActive).toBe(DEFAULT_CONCURRENCY);
+    });
 
-		// Concurrent
-		const startConc = performance.now();
-		const graphsConc = await mapConcurrent(
-			dois,
-			(doi) => buildCitationGraph(doi, 1, "both"),
-			10,
-		);
-		const endConc = performance.now();
-		const concTime = endConc - startConc;
-
-		console.log(`Sequential time: ${seqTime.toFixed(2)}ms`);
-		console.log(`Concurrent time: ${concTime.toFixed(2)}ms`);
-		console.log(
-			`Improvement: ${(((seqTime - concTime) / seqTime) * 100).toFixed(2)}%`,
-		);
-
-		// Verify both implementations produce equivalent results by normalizing
-		// and deep comparing the graphs
-		const normalizedConc = JSON.parse(JSON.stringify(graphsConc)).map(
-			normalizeGraph,
-		);
-		const normalizedSeq = JSON.parse(JSON.stringify(graphsSeq)).map(
-			normalizeGraph,
-		);
-
-		expect(normalizedConc.length).toBe(normalizedSeq.length);
-		expect(normalizedConc).toEqual(normalizedSeq);
-	}, 60000); // 60s timeout
+    it("rejects invalid concurrency limits", async () => {
+        await expect(
+            mapConcurrent([1], async (item) => item, 0),
+        ).rejects.toThrow("Concurrency must be at least 1");
+    });
 });
