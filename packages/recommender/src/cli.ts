@@ -15,7 +15,7 @@ import {
     recommendFromSingle,
 } from "./recommend.js";
 import type { S2Paper } from "@paper-tools/core";
-import { parsePositiveInt } from "@paper-tools/core";
+import { mapWithConcurrency, parsePositiveInt } from "@paper-tools/core";
 
 const program = new Command();
 
@@ -50,10 +50,10 @@ async function syncPapers(
         return { added, skipped, errors };
     }
 
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
-        const batch = toProcess.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(async (paper) => {
+    const CONCURRENCY_LIMIT = 5;
+    await mapWithConcurrency(
+        toProcess,
+        async (paper) => {
             try {
                 await createPaperPage(databaseId, paper, undefined, validation);
                 added++;
@@ -63,8 +63,9 @@ async function syncPapers(
                 console.error(`Failed to add paper ${id}:`, err instanceof Error ? err.message : err);
                 errors++;
             }
-        }));
-    }
+        },
+        CONCURRENCY_LIMIT,
+    );
 
     return { added, skipped, errors };
 }
