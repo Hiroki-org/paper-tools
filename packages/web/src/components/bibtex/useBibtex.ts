@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 export type BibtexFormat = "bibtex" | "biblatex";
 export type BibtexKeyFormat = "default" | "short" | "venue";
 
-export type BibtexSingleResult = {
+type BibtexSingleResult = {
     bibtex: string;
     source: string;
     warnings: string[];

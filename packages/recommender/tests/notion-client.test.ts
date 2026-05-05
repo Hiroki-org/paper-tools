@@ -64,15 +64,15 @@ describe("notion-client", () => {
         expect(call.properties["ソース"].select.name).toBe("recommendation");
     });
 
-    it("findDuplicates should detect DOI duplicates", async () => {
+    it("findDuplicates should detect DOI duplicates and title duplicates independently", async () => {
         mockClient.databases.query
             .mockResolvedValueOnce({
                 results: [
                     {
                         id: "page-1",
                         properties: {
-                            "タイトル": { type: "title", title: [{ plain_text: "Existing" }] },
-                            "DOI": { type: "rich_text", rich_text: [{ plain_text: "10.1000/existing" }] },
+                            "タイトル": { type: "title", title: [{ plain_text: "Existing Paper Title" }] },
+                            "DOI": { type: "rich_text", rich_text: [{ plain_text: "10.1000/duplicatetest" }] },
                             "Semantic Scholar ID": { type: "rich_text", rich_text: [] },
                         },
                     },
@@ -81,17 +81,20 @@ describe("notion-client", () => {
                 next_cursor: null,
             });
 
+        const incomingPaper: S2Paper = {
+            paperId: "incoming-a",
+            title: "Existing Paper Title",
+            externalIds: { DOI: "10.1000/duplicatetest" },
+        };
+
         const result = await findDuplicates(
             "db-1",
-            [
-                { paperId: "a", title: "New", externalIds: { DOI: "10.1000/existing" } },
-                { paperId: "b", title: "Existing" },
-            ],
+            [incomingPaper],
             mockClient as any,
         );
 
-        expect(result.duplicateDois.has("10.1000/existing")).toBe(true);
-        expect(result.duplicateTitles.has("existing")).toBe(true);
+        expect(result.duplicateDois.has("10.1000/duplicatetest")).toBe(true);
+        expect(result.duplicateTitles.has("existing paper title")).toBe(true);
         expect(mockClient.databases.query).toHaveBeenCalledTimes(1);
     });
 
@@ -122,6 +125,33 @@ describe("additional coverage", () => {
 
         expect(info.databaseName).toBe("Test DB");
         expect(info.workspaceName).toBe("Test User");
+    });
+
+    it("getDatabaseInfo should fallback to 'Notion Workspace' if users.me fails", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: "Test DB" }],
+        });
+        const clientWithFailingUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockRejectedValueOnce(new Error("API Error")),
+            }
+        };
+
+        const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            const info = await getDatabaseInfo("db-1", clientWithFailingUsers as unknown as Parameters<typeof getDatabaseInfo>[1]);
+
+            expect(info.databaseName).toBe("Test DB");
+            expect(info.workspaceName).toBe("Notion Workspace");
+            expect(consoleSpy).toHaveBeenCalledWith(
+                "Failed to retrieve Notion workspace name, falling back to default:",
+                expect.any(Error),
+            );
+        } finally {
+            consoleSpy.mockRestore();
+        }
     });
 
     it("readTitle and readRichText should handle NotionRichTextItem mapping", async () => {
