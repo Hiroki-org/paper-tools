@@ -64,15 +64,15 @@ describe("notion-client", () => {
         expect(call.properties["ソース"].select.name).toBe("recommendation");
     });
 
-    it("findDuplicates should detect DOI duplicates", async () => {
+    it("findDuplicates should detect DOI duplicates and title duplicates independently", async () => {
         mockClient.databases.query
             .mockResolvedValueOnce({
                 results: [
                     {
                         id: "page-1",
                         properties: {
-                            "タイトル": { type: "title", title: [{ plain_text: "Existing" }] },
-                            "DOI": { type: "rich_text", rich_text: [{ plain_text: "10.1000/existing" }] },
+                            "タイトル": { type: "title", title: [{ plain_text: "Existing Paper Title" }] },
+                            "DOI": { type: "rich_text", rich_text: [{ plain_text: "10.1000/duplicatetest" }] },
                             "Semantic Scholar ID": { type: "rich_text", rich_text: [] },
                         },
                     },
@@ -81,17 +81,20 @@ describe("notion-client", () => {
                 next_cursor: null,
             });
 
+        const incomingPaper: S2Paper = {
+            paperId: "incoming-a",
+            title: "Existing Paper Title",
+            externalIds: { DOI: "10.1000/duplicatetest" },
+        };
+
         const result = await findDuplicates(
             "db-1",
-            [
-                { paperId: "a", title: "New", externalIds: { DOI: "10.1000/existing" } },
-                { paperId: "b", title: "Existing" },
-            ],
+            [incomingPaper],
             mockClient as any,
         );
 
-        expect(result.duplicateDois.has("10.1000/existing")).toBe(true);
-        expect(result.duplicateTitles.has("existing")).toBe(true);
+        expect(result.duplicateDois.has("10.1000/duplicatetest")).toBe(true);
+        expect(result.duplicateTitles.has("existing paper title")).toBe(true);
         expect(mockClient.databases.query).toHaveBeenCalledTimes(1);
     });
 

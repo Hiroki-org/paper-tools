@@ -183,7 +183,8 @@ program
 			const existingPapers = await queryPapers(databaseId);
 			const positiveIds = existingPapers
 				.map((p) => p.semanticScholarId || p.doi || p.title)
-				.filter((v): v is string => !!v && v.trim().length > 0);
+				.filter((v): v is string => !!v && v.trim().length > 0)
+				.slice(-100);
 
 			const recommended = await recommendFromMultiple(positiveIds, [], {
 				limit,

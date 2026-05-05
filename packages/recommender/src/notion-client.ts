@@ -308,7 +308,6 @@ export async function findDuplicates(
 		const doi = paper.externalIds?.DOI;
 		if (doi && existingDois.has(doi)) {
 			duplicateDois.add(doi);
-			continue;
 		}
 
 		const key = (paper.title ?? "").trim().toLowerCase();
