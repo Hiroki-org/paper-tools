@@ -35,6 +35,34 @@ describe("aggregateCoauthorsFromPapers", () => {
         ]);
     });
 
+    it("normalizes authorId correctly when aggregating", () => {
+        const papers = [
+            {
+                paperId: "p1",
+                title: "A",
+                authors: [
+                    { authorId: " self ", name: "Self" },
+                    { authorId: " a1 ", name: "Alice" },
+                    { authorId: "  a2", name: "Bob" },
+                ],
+            },
+            {
+                paperId: "p2",
+                title: "B",
+                authors: [
+                    { authorId: "self", name: "Self" },
+                    { authorId: "a1", name: "Alice" },
+                ],
+            },
+        ];
+
+        const result = aggregateCoauthorsFromPapers(" self ", papers as Partial<S2Paper>[] as S2Paper[]);
+        expect(result).toEqual([
+            { authorId: "a1", name: "Alice", paperCount: 2 },
+            { authorId: "a2", name: "Bob", paperCount: 1 },
+        ]);
+    });
+
     it("handles empty papers array", () => {
         const result = aggregateCoauthorsFromPapers("self", []);
         expect(result).toEqual([]);

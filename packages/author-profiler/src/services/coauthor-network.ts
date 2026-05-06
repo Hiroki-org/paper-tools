@@ -7,13 +7,14 @@ interface BuildCoauthorNetworkOptions {
 
 export function aggregateCoauthorsFromPapers(authorId: string, papers: S2Paper[]): CoauthorInfo[] {
     const authorMap = new Map<string, CoauthorInfo>();
+    const seenInPaper = new Set<string>();
+    const normalizedAuthorId = authorId.trim();
 
     for (const paper of papers) {
-        const seenInPaper = new Set<string>();
+        seenInPaper.clear();
         for (const author of paper.authors ?? []) {
             const id = (author.authorId ?? "").trim();
-            const name = (author.name ?? "Unknown").trim() || "Unknown";
-            if (!id || id === authorId || seenInPaper.has(id)) {
+            if (!id || id === normalizedAuthorId || seenInPaper.has(id)) {
                 continue;
             }
             seenInPaper.add(id);
@@ -22,6 +23,7 @@ export function aggregateCoauthorsFromPapers(authorId: string, papers: S2Paper[]
             if (prev) {
                 prev.paperCount += 1;
             } else {
+                const name = (author.name ?? "Unknown").trim() || "Unknown";
                 authorMap.set(id, { authorId: id, name, paperCount: 1 });
             }
         }
