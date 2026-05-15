@@ -72,6 +72,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -110,12 +112,13 @@ jobs:
         run: pnpm --filter @paper-tools/${{ matrix.package }} exec vitest run --coverage.enabled --coverage.reporter=lcov
 
       - name: Upload coverage report to Codecov
+        if: ${{ env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v5
         with:
           files: packages/${{ matrix.package }}/coverage/lcov.info
           flags: ${{ matrix.package }}
           fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
 
   web-unit-tests:
     name: Web unit tests
