@@ -109,6 +109,7 @@ jobs:
         run: pnpm --filter @paper-tools/${{ matrix.package }} test
 
       - name: Generate coverage (lcov)
+        if: ${{ env.CODECOV_TOKEN != '' }}
         run: pnpm --filter @paper-tools/${{ matrix.package }} exec vitest run --coverage.enabled --coverage.reporter=lcov
 
       - name: Upload coverage report to Codecov
