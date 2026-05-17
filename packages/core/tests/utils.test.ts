@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { describe, it, expect } from "vitest";
 import { parsePositiveInt } from "../src/utils.js";
 
@@ -77,5 +78,40 @@ describe("mapWithConcurrency", () => {
         };
 
         await expect(mapWithConcurrency(items, mapper, 2)).rejects.toThrow("Test error");
+    });
+});
+
+vi.mock("node:fs/promises", () => ({
+    writeFile: vi.fn(),
+}));
+
+describe("outputJson", () => {
+    it("should write to a file if output path is provided", async () => {
+        const { outputJson } = await import("../src/utils.js");
+        const fsPromises = await import("node:fs/promises");
+        const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        const data = { test: "data" };
+        const outputPath = "test.json";
+
+        await outputJson(data, outputPath);
+
+        expect(fsPromises.writeFile).toHaveBeenCalledWith(outputPath, JSON.stringify(data, null, 2), "utf-8");
+        expect(consoleErrorSpy).toHaveBeenCalledWith(`Output written to: ${outputPath}`);
+
+        consoleErrorSpy.mockRestore();
+    });
+
+    it("should print to console if no output path is provided", async () => {
+        const { outputJson } = await import("../src/utils.js");
+        const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+        const data = { test: "data" };
+
+        await outputJson(data);
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(JSON.stringify(data, null, 2));
+
+        consoleLogSpy.mockRestore();
     });
 });
