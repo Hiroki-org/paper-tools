@@ -35,6 +35,17 @@ describe("parsePositiveInt", () => {
         expect(() => parsePositiveInt("-5", null)).toThrow("正の整数を指定してください: -5");
         expect(() => parsePositiveInt("foo", undefined)).toThrow("正の整数を指定してください: foo");
     });
+
+    it("should handle strings with leading/trailing spaces and other characters", () => {
+        expect(parsePositiveInt("  42  ")).toBe(42);
+        expect(parsePositiveInt("42abc")).toBe(42);
+    });
+
+    it("should throw an error for Infinity and NaN", () => {
+        expect(() => parsePositiveInt("Infinity")).toThrow("正の整数を指定してください: Infinity");
+        expect(() => parsePositiveInt("-Infinity")).toThrow("正の整数を指定してください: -Infinity");
+        expect(() => parsePositiveInt("NaN")).toThrow("正の整数を指定してください: NaN");
+    });
 });
 
 describe("mapWithConcurrency", () => {
