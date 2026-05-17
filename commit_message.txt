@@ -1,0 +1,13 @@
+🧹 Extract API route parameter parsing into shared utility
+
+🎯 **What:**
+Extracted common URL search parameter parsing logic (like extracting the search string and clamping limits) into a shared utility file at `packages/web/src/app/api/utils/params.ts`. Updated the search, authors search, graph, and tags suggest routes to utilize these new utility functions.
+
+💡 **Why:**
+This improves maintainability and code readability by removing duplicated parsing logic from individual route handlers. It provides a single source of truth for URL parameter validation, enforcing consistent boundary checks and error handling across multiple Next.js API routes.
+
+✅ **Verification:**
+Verified by running the local Next.js `test` suite in the `@paper-tools/web` workspace, as well as the full monorepo test suite, ensuring no regressions. Checked linting with `@biomejs/biome` to guarantee code consistency.
+
+✨ **Result:**
+The API routes are now cleaner and easier to read. Replicated parameter manipulation code has been successfully centralized without introducing breaking behavioral changes.
