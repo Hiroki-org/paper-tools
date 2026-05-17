@@ -8,14 +8,13 @@
  * @throws 値が正の整数でない場合は Error をスロー
  */
 export function parsePositiveInt(value: string, optionName?: unknown): number {
-    const parsed = Number.parseInt(value, 10);
-    if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed <= 0) {
-        const prefix = typeof optionName === "string" ? `${optionName} には` : "";
-        throw new Error(`${prefix}正の整数を指定してください: ${value}`);
-    }
-    return parsed;
+	const parsed = Number.parseInt(value, 10);
+	if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed <= 0) {
+		const prefix = typeof optionName === "string" ? `${optionName} には` : "";
+		throw new Error(`${prefix}正の整数を指定してください: ${value}`);
+	}
+	return parsed;
 }
-
 
 /**
  * Executes an async function over an array with limited concurrency.
@@ -25,20 +24,43 @@ export function parsePositiveInt(value: string, optionName?: unknown): number {
  * @returns A promise that resolves to an array of results.
  */
 export async function mapWithConcurrency<T, R>(
-    items: T[],
-    mapper: (item: T) => Promise<R>,
-    concurrencyLimit: number
+	items: T[],
+	mapper: (item: T) => Promise<R>,
+	concurrencyLimit: number,
 ): Promise<R[]> {
-    const results: R[] = new Array(items.length);
-    let index = 0;
+	const results: R[] = new Array(items.length);
+	let index = 0;
 
-    const workers = Array.from({ length: Math.min(concurrencyLimit, items.length) }, async () => {
-        while (index < items.length) {
-            const currentIndex = index++;
-            results[currentIndex] = await mapper(items[currentIndex]);
-        }
-    });
+	const workers = Array.from(
+		{ length: Math.min(concurrencyLimit, items.length) },
+		async () => {
+			while (index < items.length) {
+				const currentIndex = index++;
+				results[currentIndex] = await mapper(items[currentIndex]);
+			}
+		},
+	);
 
-    await Promise.all(workers);
-    return results;
+	await Promise.all(workers);
+	return results;
+}
+
+/**
+ * Output data as formatted JSON.
+ * Writes to the specified file or prints to stdout.
+ * @param data - The data object to output
+ * @param output - Output file path (outputs to stdout if omitted)
+ */
+export async function outputJson(
+	data: unknown,
+	output?: string,
+): Promise<void> {
+	const json = JSON.stringify(data, null, 2);
+	if (output) {
+		const { writeFile } = await import("node:fs/promises");
+		await writeFile(output, json, "utf-8");
+		console.error(`Output written to: ${output}`);
+		return;
+	}
+	console.log(json);
 }

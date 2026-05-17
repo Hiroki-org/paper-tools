@@ -1,71 +1,64 @@
 // Types
-export type {
-    Author,
-    Paper,
-    Citation,
-    ImportantDate,
-    ConferenceTrack,
-    Conference,
-    Journal,
-} from "./types.js";
 
-// Rate limiter
-export { RateLimiter, fetchWithRetry } from "./rate-limiter.js";
+export type {
+	Affiliation,
+	AuthorProfile,
+	CoauthorInfo,
+	TopicTimelineEntry,
+} from "./author-types.js";
+export { getWorkByDoi, searchWorks } from "./crossref-client.js";
 
 // API Clients
 export {
-    searchPublications,
-    searchVenuePublications,
-    searchAuthors as searchDblpAuthors,
+	searchAuthors as searchDblpAuthors,
+	searchPublications,
+	searchVenuePublications,
 } from "./dblp-client.js";
-
-export { getWorkByDoi, searchWorks } from "./crossref-client.js";
-
+export type {
+	OpenAlexAffiliation,
+	OpenAlexAuthor,
+	OpenAlexConcept,
+	OpenAlexCountByYear,
+} from "./openalex-client.js";
+export {
+	getOpenAlexAuthor,
+	resolveOpenAlexAuthorId,
+} from "./openalex-client.js";
 export { getCitations, getReferences } from "./opencitations-client.js";
-
-export {
-    S2_DEFAULT_FIELDS,
-    getRecommendationsForPaper,
-    getRecommendations,
-    getPaper,
-    searchPapers,
-    searchAuthors,
-    getAuthor,
-    getAuthorPapers,
+// Rate limiter
+export { fetchWithRetry, RateLimiter } from "./rate-limiter.js";
+export type {
+	S2Author,
+	S2AuthorDetail,
+	S2AuthorPapersResponse,
+	S2AuthorSearchResponse,
+	S2AuthorSummary,
+	S2ExternalIds,
+	S2OpenAccessPdf,
+	S2Paper,
+	S2RecommendationOptions,
+	S2RecommendationsResponse,
+	S2SearchResponse,
 } from "./semantic-scholar-client.js";
-
-export type {
-    S2Author,
-    S2AuthorSummary,
-    S2AuthorSearchResponse,
-    S2AuthorDetail,
-    S2AuthorPapersResponse,
-    S2ExternalIds,
-    S2OpenAccessPdf,
-    S2Paper,
-    S2RecommendationsResponse,
-    S2RecommendationOptions,
-    S2SearchResponse,
-} from "./semantic-scholar-client.js";
-
 export {
-    getOpenAlexAuthor,
-    resolveOpenAlexAuthorId,
-} from "./openalex-client.js";
-
+	getAuthor,
+	getAuthorPapers,
+	getPaper,
+	getRecommendations,
+	getRecommendationsForPaper,
+	S2_DEFAULT_FIELDS,
+	searchAuthors,
+	searchPapers,
+} from "./semantic-scholar-client.js";
 export type {
-    OpenAlexAuthor,
-    OpenAlexConcept,
-    OpenAlexAffiliation,
-    OpenAlexCountByYear,
-} from "./openalex-client.js";
-
-export type {
-    AuthorProfile,
-    Affiliation,
-    CoauthorInfo,
-    TopicTimelineEntry,
-} from "./author-types.js";
+	Author,
+	Citation,
+	Conference,
+	ConferenceTrack,
+	ImportantDate,
+	Journal,
+	Paper,
+} from "./types.js";
 
 // Utilities
-export { parsePositiveInt, mapWithConcurrency } from "./utils.js";
+export { mapWithConcurrency, outputJson, parsePositiveInt } from "./utils.js";
