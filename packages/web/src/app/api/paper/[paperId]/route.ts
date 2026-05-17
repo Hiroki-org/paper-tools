@@ -1,144 +1,155 @@
-import { NextRequest, NextResponse } from "next/server";
-import { RateLimiter, getPaper } from "@paper-tools/core";
+import type { S2Author, S2Paper } from "@paper-tools/core";
+import { getPaper, RateLimiter } from "@paper-tools/core";
+import { type NextRequest, NextResponse } from "next/server";
 import type { PaperDetail } from "@/types/paper";
-import type { S2Paper, S2Author } from "@paper-tools/core";
 
 export const runtime = "nodejs";
 
 const SEMANTIC_SCHOLAR_FIELDS = [
-    "paperId",
-    "title",
-    "abstract",
-    "authors",
-    "year",
-    "venue",
-    "citationCount",
-    "influentialCitationCount",
-    "externalIds",
-    "url",
-    "tldr",
-    "fieldsOfStudy",
-    "publicationDate",
-    "journal",
-    "referenceCount",
+	"paperId",
+	"title",
+	"abstract",
+	"authors",
+	"year",
+	"venue",
+	"citationCount",
+	"influentialCitationCount",
+	"externalIds",
+	"url",
+	"tldr",
+	"fieldsOfStudy",
+	"publicationDate",
+	"journal",
+	"referenceCount",
 ].join(",");
 
 const detailLimiter = new RateLimiter(100, 300000);
 
 type RouteContext = {
-    params: Promise<{ paperId: string }>;
+	params: Promise<{ paperId: string }>;
 };
 
 function getStatusCodeFromError(error: unknown): number | null {
-    if (!(error instanceof Error)) {
-        return null;
-    }
+	if (!(error instanceof Error)) {
+		return null;
+	}
 
-    const match = error.message.match(/Semantic Scholar API error:\s*(\d{3})\b/i);
-    if (!match?.[1]) {
-        return null;
-    }
+	const match = error.message.match(/Semantic Scholar API error:\s*(\d{3})\b/i);
+	if (!match?.[1]) {
+		return null;
+	}
 
-    const status = Number(match[1]);
-    return Number.isInteger(status) ? status : null;
+	const status = Number(match[1]);
+	return Number.isInteger(status) ? status : null;
 }
 
 type ExtendedS2Paper = Omit<S2Paper, "fieldsOfStudy"> & {
-    influentialCitationCount?: number;
-    tldr?: { model?: string; text?: string };
-    fieldsOfStudy?: Array<string | { category?: string; source?: string }>;
-    publicationDate?: string;
-    journal?: {
-        name?: string;
-        volume?: string | number;
-        pages?: string | number;
-    };
+	influentialCitationCount?: number;
+	tldr?: { model?: string; text?: string };
+	fieldsOfStudy?: Array<string | { category?: string; source?: string }>;
+	publicationDate?: string;
+	journal?: {
+		name?: string;
+		volume?: string | number;
+		pages?: string | number;
+	};
 };
 
 function toPaperDetail(input: ExtendedS2Paper): PaperDetail {
-    const rawFields = Array.isArray(input?.fieldsOfStudy) ? input.fieldsOfStudy : null;
-    const fieldsOfStudy = rawFields
-        ? rawFields.map((f: string | { category?: string; source?: string }) => {
-            if (typeof f === "string") {
-                return { category: f, source: "unknown" };
-            }
-            return {
-                category: String((f as Record<string, unknown>)?.category ?? "Unknown"),
-                source: String((f as Record<string, unknown>)?.source ?? "unknown"),
-            };
-        })
-        : null;
+	const rawFields = Array.isArray(input?.fieldsOfStudy)
+		? input.fieldsOfStudy
+		: null;
+	const fieldsOfStudy = rawFields
+		? rawFields.map((f: string | { category?: string; source?: string }) => {
+				if (typeof f === "string") {
+					return { category: f, source: "unknown" };
+				}
+				return {
+					category: String(
+						(f as Record<string, unknown>)?.category ?? "Unknown",
+					),
+					source: String((f as Record<string, unknown>)?.source ?? "unknown"),
+				};
+			})
+		: null;
 
-    const corpusRaw = input?.externalIds?.CorpusId;
-    const corpusId =
-        typeof corpusRaw === "number"
-            ? corpusRaw
-            : typeof corpusRaw === "string" && /^\d+$/.test(corpusRaw)
-                ? Number(corpusRaw)
-                : undefined;
+	const corpusRaw = input?.externalIds?.CorpusId;
+	const corpusId =
+		typeof corpusRaw === "number"
+			? corpusRaw
+			: typeof corpusRaw === "string" && /^\d+$/.test(corpusRaw)
+				? Number(corpusRaw)
+				: undefined;
 
-    return {
-        paperId: String(input?.paperId ?? ""),
-        title: String(input?.title ?? "Untitled"),
-        abstract: input?.abstract ?? null,
-        authors: Array.isArray(input?.authors)
-            ? input.authors.map((a: S2Author) => ({
-                authorId: String(a?.authorId ?? ""),
-                name: String(a?.name ?? "Unknown"),
-            }))
-            : [],
-        year: typeof input?.year === "number" ? input.year : null,
-        venue: String(input?.venue ?? ""),
-        citationCount: Number(input?.citationCount ?? 0),
-        influentialCitationCount: Number(input?.influentialCitationCount ?? 0),
-        referenceCount: Number(input?.referenceCount ?? 0),
-        externalIds: {
-            DOI: input?.externalIds?.DOI,
-            ArXiv: input?.externalIds?.ArXiv,
-            ACL: input?.externalIds?.ACL,
-            DBLP: input?.externalIds?.DBLP,
-            CorpusId: corpusId,
-        },
-        url: String(input?.url ?? `https://www.semanticscholar.org/paper/${input?.paperId ?? ""}`),
-        tldr:
-            input?.tldr && typeof input.tldr.text === "string"
-                ? { model: String(input.tldr.model ?? ""), text: input.tldr.text }
-                : null,
-        fieldsOfStudy,
-        publicationDate: input?.publicationDate ?? null,
-        journal:
-            input?.journal && typeof input.journal === "object"
-                ? {
-                    name: String(input.journal.name ?? ""),
-                    volume: input.journal.volume ? String(input.journal.volume) : undefined,
-                    pages: input.journal.pages ? String(input.journal.pages) : undefined,
-                }
-                : null,
-    };
+	return {
+		paperId: String(input?.paperId ?? ""),
+		title: String(input?.title ?? "Untitled"),
+		abstract: input?.abstract ?? null,
+		authors: Array.isArray(input?.authors)
+			? input.authors.map((a: S2Author) => ({
+					authorId: String(a?.authorId ?? ""),
+					name: String(a?.name ?? "Unknown"),
+				}))
+			: [],
+		year: typeof input?.year === "number" ? input.year : null,
+		venue: String(input?.venue ?? ""),
+		citationCount: Number(input?.citationCount ?? 0),
+		influentialCitationCount: Number(input?.influentialCitationCount ?? 0),
+		referenceCount: Number(input?.referenceCount ?? 0),
+		externalIds: {
+			DOI: input?.externalIds?.DOI,
+			ArXiv: input?.externalIds?.ArXiv,
+			ACL: input?.externalIds?.ACL,
+			DBLP: input?.externalIds?.DBLP,
+			CorpusId: corpusId,
+		},
+		url: String(
+			input?.url ??
+				`https://www.semanticscholar.org/paper/${input?.paperId ?? ""}`,
+		),
+		tldr:
+			input?.tldr && typeof input.tldr.text === "string"
+				? { model: String(input.tldr.model ?? ""), text: input.tldr.text }
+				: null,
+		fieldsOfStudy,
+		publicationDate: input?.publicationDate ?? null,
+		journal:
+			input?.journal && typeof input.journal === "object"
+				? {
+						name: String(input.journal.name ?? ""),
+						volume: input.journal.volume
+							? String(input.journal.volume)
+							: undefined,
+						pages: input.journal.pages
+							? String(input.journal.pages)
+							: undefined,
+					}
+				: null,
+	};
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
-    const { paperId } = await context.params;
-    if (!paperId?.trim()) {
-        return NextResponse.json({ error: "paperId is required" }, { status: 400 });
-    }
+	const { paperId } = await context.params;
+	if (!paperId?.trim()) {
+		return NextResponse.json({ error: "paperId is required" }, { status: 400 });
+	}
 
-    try {
-        await detailLimiter.acquire();
-        const paper = await getPaper(paperId, SEMANTIC_SCHOLAR_FIELDS);
-        const normalized = toPaperDetail(paper as ExtendedS2Paper);
+	try {
+		await detailLimiter.acquire();
+		const paper = await getPaper(paperId, SEMANTIC_SCHOLAR_FIELDS);
+		const normalized = toPaperDetail(paper as ExtendedS2Paper);
 
-        if (!normalized.paperId) {
-            return NextResponse.json({ error: "Paper not found" }, { status: 404 });
-        }
+		if (!normalized.paperId) {
+			return NextResponse.json({ error: "Paper not found" }, { status: 404 });
+		}
 
-        return NextResponse.json(normalized);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        const statusCode = getStatusCodeFromError(error);
-        if (statusCode === 404) {
-            return NextResponse.json({ error: message }, { status: 404 });
-        }
-        return NextResponse.json({ error: message }, { status: 502 });
-    }
+		return NextResponse.json(normalized);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "Unknown error";
+		const statusCode = getStatusCodeFromError(error);
+		if (statusCode === 404) {
+			return NextResponse.json({ error: message }, { status: 404 });
+		}
+		return NextResponse.json({ error: message }, { status: 502 });
+	}
 }
