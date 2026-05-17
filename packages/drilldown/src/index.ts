@@ -4,10 +4,10 @@ export {
     enrichWithCrossref,
     enrichAllWithCrossref,
     searchCrossref,
+    drilldown,
+    type DrilldownResult,
 } from "./search.js";
 
 export {
-    drilldown,
     extractKeywords,
-    type DrilldownResult,
 } from "./drilldown.js";

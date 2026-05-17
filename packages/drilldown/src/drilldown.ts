@@ -1,6 +1,3 @@
-import type { Paper } from "@paper-tools/core";
-import { searchByKeyword, enrichAllWithCrossref } from "./search.js";
-
 /**
  * 英語ストップワード一覧（キーワード抽出で除外する）
  */
@@ -29,108 +26,20 @@ const STOP_WORDS = new Set([
 ]);
 
 /**
- * drilldown 結果の型
- */
-export interface DrilldownResult {
-    /** 探索の深さレベル (0 = seed) */
-    level: number;
-    /** この深さで見つかった論文 */
-    papers: Paper[];
-}
-
-/**
- * シード論文群から再帰的にキーワード抽出 → 検索を繰り返して深掘りする
- * @param seedPapers - 初期論文リスト
- * @param depth - 深掘りの最大深さ（デフォルト 1）
- * @param maxPerLevel - 各レベルで取得する最大論文数（デフォルト 10）
- * @param enrich - Crossref で情報を補完するか（デフォルト false）
- */
-export async function drilldown(
-    seedPapers: Paper[],
-    depth = 1,
-    maxPerLevel = 10,
-    enrich = false,
-): Promise<DrilldownResult[]> {
-    const results: DrilldownResult[] = [{ level: 0, papers: seedPapers }];
-    const seenDois = new Set<string>();
-    const seenTitles = new Set<string>();
-
-    // seed の DOI と title を記録
-    for (const p of seedPapers) {
-        if (p.doi) seenDois.add(p.doi.toLowerCase());
-        if (p.title) {
-            const normalizedTitle = p.title.toLowerCase().trim().replace(/\s+/g, " ");
-            seenTitles.add(normalizedTitle);
-        }
-    }
-
-    let currentPapers = seedPapers;
-    const enrichPromises: Promise<void>[] = [];
-
-    for (let d = 1; d <= depth; d++) {
-        const keywords = extractKeywords(currentPapers, 5);
-        if (keywords.length === 0) break;
-
-        const query = keywords.join(" ");
-        let found = await searchByKeyword(query, maxPerLevel * 2);
-
-        // 既出 DOI / title を除外
-        found = found.filter((p) => {
-            if (p.doi) {
-                const lower = p.doi.toLowerCase();
-                if (seenDois.has(lower)) return false;
-                seenDois.add(lower);
-            } else if (p.title) {
-                const normalizedTitle = p.title.toLowerCase().trim().replace(/\s+/g, " ");
-                if (seenTitles.has(normalizedTitle)) return false;
-                seenTitles.add(normalizedTitle);
-            }
-            return true;
-        });
-
-        found = found.slice(0, maxPerLevel);
-
-        if (found.length === 0) break;
-
-        const resultEntry: DrilldownResult = { level: d, papers: found };
-        results.push(resultEntry);
-
-        if (enrich) {
-            // Background enrichment allows parallel fetch
-            enrichPromises.push(
-                enrichAllWithCrossref(found)
-                    .then((enriched) => {
-                        resultEntry.papers = enriched;
-                    })
-                    .catch((error) => {
-                        const message = error instanceof Error ? error.message : String(error);
-                        console.error(`[drilldown] Enrichment failed at level ${d}: ${message}`);
-                    })
-            );
-        }
-        currentPapers = found;
-    }
-
-    if (enrichPromises.length > 0) {
-        await Promise.all(enrichPromises);
-    }
-
-    return results;
-}
-
-/**
  * 論文群のタイトル・キーワードからキーワードを抽出し、出現頻度順に返す
  * @param papers - 論文リスト
  * @param topN - 返すキーワード数（デフォルト 10）
  */
-export function extractKeywords(papers: Paper[], topN = 10): string[] {
+export function extractKeywords(papers: { title?: string; keywords?: string[]; abstract?: string }[], topN = 10): string[] {
     const freq = new Map<string, number>();
 
     for (const paper of papers) {
         // タイトルからトークン抽出
-        const titleTokens = tokenize(paper.title);
-        for (const token of titleTokens) {
-            freq.set(token, (freq.get(token) ?? 0) + 1);
+        if (paper.title) {
+            const titleTokens = tokenize(paper.title);
+            for (const token of titleTokens) {
+                freq.set(token, (freq.get(token) ?? 0) + 1);
+            }
         }
 
         // 既存キーワード（tokenize適用）

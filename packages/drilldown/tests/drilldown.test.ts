@@ -5,7 +5,8 @@ const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
 // Import after mocking
-const { extractKeywords, drilldown } = await import("../src/drilldown.js");
+const { extractKeywords } = await import("../src/drilldown.js");
+const { drilldown } = await import("../src/search.js");
 
 describe("extractKeywords", () => {
     it("should extract keywords from paper titles", () => {
