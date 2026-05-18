@@ -8,9 +8,8 @@ describe("parsePositiveInt", () => {
         expect(parsePositiveInt("999")).toBe(999);
     });
 
-    it("should ignore decimal parts and return the integer part if positive", () => {
-        // Number.parseInt("42.5", 10) returns 42
-        expect(parsePositiveInt("42.5")).toBe(42);
+    it("should throw an error for decimal values", () => {
+        expect(() => parsePositiveInt("42.5")).toThrow("正の整数を指定してください: 42.5");
     });
 
     it("should throw an error for 0 or negative numbers", () => {
@@ -36,9 +35,12 @@ describe("parsePositiveInt", () => {
         expect(() => parsePositiveInt("foo", undefined)).toThrow("正の整数を指定してください: foo");
     });
 
-    it("should handle strings with leading/trailing spaces and other characters", () => {
+    it("should handle strings with leading/trailing spaces", () => {
         expect(parsePositiveInt("  42  ")).toBe(42);
-        expect(parsePositiveInt("42abc")).toBe(42);
+    });
+
+    it("should throw an error for strings with trailing non-numeric characters", () => {
+        expect(() => parsePositiveInt("42abc")).toThrow("正の整数を指定してください: 42abc");
     });
 
     it("should throw an error for Infinity and NaN", () => {
