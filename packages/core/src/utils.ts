@@ -8,9 +8,8 @@
  * @throws 値が正の整数でない場合は Error をスロー
  */
 export function parsePositiveInt(value: string, optionName?: unknown): number {
-    const normalizedValue = value.trim();
-    const parsed = Number(normalizedValue);
-    if (!/^[0-9]+$/.test(normalizedValue) || !Number.isInteger(parsed) || parsed <= 0) {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
         const prefix = typeof optionName === "string" ? `${optionName} には` : "";
         throw new Error(`${prefix}正の整数を指定してください: ${value}`);
     }

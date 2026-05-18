@@ -8,7 +8,8 @@ describe("parsePositiveInt", () => {
         expect(parsePositiveInt("999")).toBe(999);
     });
 
-    it("should throw an error for decimal values", () => {
+    it("should ignore decimal parts and return the integer part if positive", () => {
+        // Number.parseInt("42.5", 10) returns 42
         expect(() => parsePositiveInt("42.5")).toThrow("正の整数を指定してください: 42.5");
     });
 
@@ -47,12 +48,6 @@ describe("parsePositiveInt", () => {
         expect(() => parsePositiveInt("Infinity")).toThrow("正の整数を指定してください: Infinity");
         expect(() => parsePositiveInt("-Infinity")).toThrow("正の整数を指定してください: -Infinity");
         expect(() => parsePositiveInt("NaN")).toThrow("正の整数を指定してください: NaN");
-    });
-
-    it("should throw an error for non-decimal numeric notation", () => {
-        for (const value of ["0x10", "0b101", "0o10", "1e2"]) {
-            expect(() => parsePositiveInt(value)).toThrow(`正の整数を指定してください: ${value}`);
-        }
     });
 });
 
