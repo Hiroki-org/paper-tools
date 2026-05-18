@@ -209,7 +209,7 @@ program
 
             const entries = splitBibtexEntries(text);
             if (entries.length === 0) {
-                console.log("No BibTeX entries found.");
+                process.stdout.write("No BibTeX entries found.\n");
                 return;
             }
 
@@ -217,22 +217,22 @@ program
             const errors = report.issues.filter((i) => i.level === "error");
             const warnings = report.issues.filter((i) => i.level === "warning");
 
-            console.log(`Entries: ${report.total}`);
-            console.log(`Errors: ${errors.length}`);
-            console.log(`Warnings: ${warnings.length}`);
+            process.stdout.write(`Entries: ${report.total}\n`);
+            process.stdout.write(`Errors: ${errors.length}\n`);
+            process.stdout.write(`Warnings: ${warnings.length}\n`);
 
             for (const issue of report.issues) {
                 const prefix = issue.level.toUpperCase();
                 const keyInfo = issue.key ? ` [${issue.key}]` : "";
-                console.log(`${prefix}${keyInfo}: ${issue.message}`);
+                process.stdout.write(`${prefix}${keyInfo}: ${issue.message}\n`);
             }
 
             if (errors.length > 0) {
-                process.exit(1);
+                process.exitCode = 1;
             }
         } catch (error) {
             console.error("Error:", error instanceof Error ? error.message : error);
-            process.exit(1);
+            process.exitCode = 1;
         }
     });
 

@@ -1,5 +1,5 @@
 import { RateLimiter, fetchWithRetry } from "./rate-limiter.js";
-import type { Paper, Author } from "./types.js";
+import type { Paper } from "./types.js";
 
 const CROSSREF_API_BASE = "https://api.crossref.org";
 const APP_USER_AGENT = "paper-tools";
@@ -92,7 +92,7 @@ export async function searchWorks(
 }
 
 function mapCrossrefWorkToPaper(work: CrossrefWork): Paper {
-    const authors: Author[] = (work.author ?? []).map((a) => ({
+    const authors = (work.author ?? []).map((a) => ({
         name: a.name ?? [a.given, a.family].filter(Boolean).join(" "),
         orcid: a.ORCID,
         affiliations: a.affiliation?.map((aff) => aff.name),

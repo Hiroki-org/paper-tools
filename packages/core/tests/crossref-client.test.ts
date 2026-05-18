@@ -10,6 +10,61 @@ describe("Crossref Client", () => {
         mockFetch.mockReset();
     });
 
+    it("getWorkByDoi should throw error on non-404 failure", async () => {
+        mockFetch.mockResolvedValue({
+            ok: false,
+            status: 403,
+            statusText: "Forbidden"
+        });
+
+        await expect(getWorkByDoi("10.1234/error")).rejects.toThrow("Crossref API error: 403 Forbidden");
+    });
+
+    it("searchWorks should parse results with missing authors", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                message: {
+                    items: [
+                        {
+                            DOI: "10.1234/b",
+                            title: ["Paper B"]
+                        },
+                    ],
+                },
+            }),
+        });
+
+        const papers = await searchWorks("test missing author");
+        expect(papers).toHaveLength(1);
+        expect(papers[0].title).toBe("Paper B");
+        expect(papers[0].authors).toHaveLength(0);
+    });
+
+    it("buildHeaders should include User-Agent if mailto is set", async () => {
+        process.env["CROSSREF_MAILTO"] = "test@example.com";
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                message: { items: [] },
+            }),
+        });
+
+        await searchWorks("test query");
+
+        expect(mockFetch).toHaveBeenCalledWith(
+            expect.stringContaining("mailto=test%40example.com"),
+            expect.objectContaining({
+                headers: expect.objectContaining({
+                    "User-Agent": "paper-tools (mailto:test@example.com)"
+                })
+            })
+        );
+        delete process.env["CROSSREF_MAILTO"];
+    });
+
     it("getWorkByDoi should parse Crossref response", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
