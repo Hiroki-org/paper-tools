@@ -20,11 +20,12 @@ describe("useSaveToNotion", () => {
 	};
 
 	beforeEach(() => {
+		vi.resetAllMocks();
 		vi.stubGlobal("fetch", vi.fn());
 	});
 
 	afterEach(() => {
-		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
 	});
 
 	it("should initialize with idle status and null error", () => {
@@ -47,7 +48,7 @@ describe("useSaveToNotion", () => {
 	it("should return early if status is resolving, saving, or done", async () => {
 		// Mock fetch to delay so we can check state mid-flight
 		vi.mocked(fetch).mockImplementationOnce(
-			() => new Promise((resolve) => setTimeout(resolve, 100)),
+			() => new Promise(() => {}),
 		);
 
 		const { result } = renderHook(() => useSaveToNotion({ paper: mockPaper }));
@@ -147,6 +148,21 @@ describe("useSaveToNotion", () => {
 
 			expect(result.current.status).toBe("error");
 			expect(result.current.error).toBe("Notionへの保存に失敗しました");
+		});
+
+		it("should handle unknown error", async () => {
+			vi.mocked(fetch).mockRejectedValueOnce("Unknown primitive error");
+
+			const { result } = renderHook(() =>
+				useSaveToNotion({ paper: mockPaper }),
+			);
+
+			await act(async () => {
+				await result.current.save();
+			});
+
+			expect(result.current.status).toBe("error");
+			expect(result.current.error).toBe("Unknown error");
 		});
 	});
 
@@ -310,19 +326,5 @@ describe("useSaveToNotion", () => {
 			expect(result.current.error).toBe("保存対象の論文を取得できませんでした");
 		});
 
-		it("should handle unknown error", async () => {
-			vi.mocked(fetch).mockRejectedValueOnce("Unknown primitive error");
-
-			const { result } = renderHook(() =>
-				useSaveToNotion({ paper: mockPaper }),
-			);
-
-			await act(async () => {
-				await result.current.save();
-			});
-
-			expect(result.current.status).toBe("error");
-			expect(result.current.error).toBe("Unknown error");
-		});
 	});
 });
