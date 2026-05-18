@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { ACCESS_TOKEN_COOKIE, DATABASE_ID_COOKIE } from "@/lib/auth-cookies";
 
 function isPublicPath(pathname: string) {
@@ -17,8 +16,10 @@ function hasValidAccessTokenShape(rawCookieValue?: string) {
     const [payload, signature] = rawCookieValue.split(".");
     if (!payload || !signature) return false;
     try {
-        const parsed = JSON.parse(decodeBase64Url(payload)) as { token?: unknown };
-        return typeof parsed.token === "string" && parsed.token.length > 0;
+        const token = (JSON.parse(decodeBase64Url(payload)) as unknown as {
+            token?: unknown;
+        } | null)?.token;
+        return typeof token === "string" && token.length > 0;
     } catch {
         return false;
     }
