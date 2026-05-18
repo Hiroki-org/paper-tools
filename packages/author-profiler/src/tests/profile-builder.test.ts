@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { S2Paper } from "@paper-tools/core";
 import {
     buildTopicTimelineFromPapers,
     mergeAffiliations,
@@ -75,12 +76,51 @@ describe("profile-builder helpers", () => {
                 year: 2023,
                 fieldsOfStudy: ["Systems"],
             },
-        ] as any);
+        ] as unknown as S2Paper[]);
 
         expect(timeline).toHaveLength(2);
         expect(timeline[0]?.year).toBe(2022);
         expect(timeline[0]?.topics[0]).toEqual({ name: "ML", score: 0.6667 });
         expect(timeline[1]?.year).toBe(2023);
         expect(timeline[1]?.topics[0]).toEqual({ name: "Systems", score: 1 });
+    });
+
+    it("buildTopicTimelineFromPapers skips incomplete topic data", () => {
+        expect(buildTopicTimelineFromPapers([])).toEqual([]);
+
+        const timeline = buildTopicTimelineFromPapers([
+            {
+                paperId: "no-year",
+                title: "No year",
+                fieldsOfStudy: ["ML"],
+            },
+            {
+                paperId: "no-fields",
+                title: "No fields",
+                year: 2022,
+            },
+            {
+                paperId: "non-array-fields",
+                title: "Bad fields",
+                year: 2022,
+                fieldsOfStudy: "ML",
+            },
+            {
+                paperId: "empty-fields",
+                title: "Empty fields",
+                year: 2023,
+                fieldsOfStudy: [],
+            },
+            {
+                paperId: "valid",
+                title: "Valid",
+                year: 2024,
+                fieldsOfStudy: ["Systems"],
+            },
+        ] as unknown as S2Paper[]);
+
+        expect(timeline).toEqual([
+            { year: 2024, topics: [{ name: "Systems", score: 1 }] },
+        ]);
     });
 });

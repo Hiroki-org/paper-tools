@@ -79,7 +79,11 @@ export function buildTopicTimelineFromPapers(papers: S2Paper[]): TopicTimelineEn
     const yearly = new Map<number, Map<string, number>>();
 
     for (const paper of papers) {
-        if (!paper.year || !Array.isArray(paper.fieldsOfStudy)) {
+        if (
+            !paper.year ||
+            !Array.isArray(paper.fieldsOfStudy) ||
+            paper.fieldsOfStudy.length === 0
+        ) {
             continue;
         }
 
