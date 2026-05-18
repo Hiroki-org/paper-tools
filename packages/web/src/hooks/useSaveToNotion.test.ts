@@ -45,26 +45,66 @@ describe("useSaveToNotion", () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	it("should return early if status is resolving, saving, or done", async () => {
-		// Mock fetch to delay so we can check state mid-flight
+	it("should return early while saving", async () => {
 		vi.mocked(fetch).mockImplementationOnce(
 			() => new Promise(() => {}),
 		);
 
 		const { result } = renderHook(() => useSaveToNotion({ paper: mockPaper }));
 
-		act(() => {
-			result.current.save();
+		await act(async () => {
+			void result.current.save();
 		});
 
 		expect(result.current.status).toBe("saving");
 
-		// Call save again while saving
-		act(() => {
-			result.current.save();
+		await act(async () => {
+			await result.current.save();
 		});
 
-		// Should only have been called once
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it("should return early while resolving", async () => {
+		vi.mocked(fetch).mockImplementationOnce(
+			() => new Promise(() => {}),
+		);
+
+		const { result } = renderHook(() =>
+			useSaveToNotion({ doi: "10.1234/test" }),
+		);
+
+		await act(async () => {
+			void result.current.save();
+		});
+
+		expect(result.current.status).toBe("resolving");
+
+		await act(async () => {
+			await result.current.save();
+		});
+
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it("should return early after save is done", async () => {
+		vi.mocked(fetch).mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({ success: true }),
+		} as Response);
+
+		const { result } = renderHook(() => useSaveToNotion({ paper: mockPaper }));
+
+		await act(async () => {
+			await result.current.save();
+		});
+
+		expect(result.current.status).toBe("done");
+
+		await act(async () => {
+			await result.current.save();
+		});
+
 		expect(fetch).toHaveBeenCalledTimes(1);
 	});
 
@@ -94,11 +134,9 @@ describe("useSaveToNotion", () => {
 				useSaveToNotion({ paper: mockPaper, onSaved: onSavedMock }),
 			);
 
-			act(() => {
-				result.current.save();
+			await act(async () => {
+				await result.current.save();
 			});
-
-			expect(result.current.status).toBe("saving");
 
 			await waitFor(() => {
 				expect(result.current.status).toBe("done");
@@ -164,6 +202,37 @@ describe("useSaveToNotion", () => {
 			expect(result.current.status).toBe("error");
 			expect(result.current.error).toBe("Unknown error");
 		});
+
+		it("should retry successfully after an archive error", async () => {
+			vi.mocked(fetch)
+				.mockResolvedValueOnce({
+					ok: false,
+					json: async () => ({ error: "Temporary Notion Error" }),
+				} as Response)
+				.mockResolvedValueOnce({
+					ok: true,
+					json: async () => ({ success: true }),
+				} as Response);
+
+			const { result } = renderHook(() =>
+				useSaveToNotion({ paper: mockPaper }),
+			);
+
+			await act(async () => {
+				await result.current.save();
+			});
+
+			expect(result.current.status).toBe("error");
+			expect(result.current.error).toBe("Temporary Notion Error");
+
+			await act(async () => {
+				await result.current.save();
+			});
+
+			expect(result.current.status).toBe("done");
+			expect(result.current.error).toBeNull();
+			expect(fetch).toHaveBeenCalledTimes(2);
+		});
 	});
 
 	describe("when providing doi or title without paper", () => {
@@ -186,11 +255,9 @@ describe("useSaveToNotion", () => {
 				useSaveToNotion({ doi: "10.1234/test", onSaved: onSavedMock }),
 			);
 
-			act(() => {
-				result.current.save();
+			await act(async () => {
+				await result.current.save();
 			});
-
-			expect(result.current.status).toBe("resolving");
 
 			await waitFor(() => {
 				expect(result.current.status).toBe("done");
