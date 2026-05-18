@@ -1,20 +1,21 @@
+import { createHmac } from "crypto";
 import type { NextResponse } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	buildNotionRedirectUri,
 	clearAuthCookies,
+	createStateToken,
 	getAccessToken,
+	getNotionClient,
+	getRefreshToken,
+	getSelectedDatabaseId,
+	getUserInfo,
+	isAuthenticated,
 	sealCookieValue,
 	setAuthCookies,
+	setDatabaseCookie,
+	setOauthStateCookie,
 	unsealCookieValue,
-    getRefreshToken,
-    getSelectedDatabaseId,
-    isAuthenticated,
-    getNotionClient,
-    getUserInfo,
-    setDatabaseCookie,
-    setOauthStateCookie,
-    createStateToken
 } from "./auth";
 import {
 	ACCESS_TOKEN_COOKIE,
@@ -23,6 +24,20 @@ import {
 	REFRESH_TOKEN_COOKIE,
 	USER_INFO_COOKIE,
 } from "./auth-cookies";
+
+type MockResponse = NextResponse & {
+	cookies: {
+		set: ReturnType<typeof vi.fn>;
+	};
+};
+
+function createMockResponse(): MockResponse {
+	return {
+		cookies: {
+			set: vi.fn(),
+		},
+	} as unknown as MockResponse;
+}
 
 describe("auth", () => {
 	describe("sealCookieValue and unsealCookieValue", () => {
@@ -68,9 +83,7 @@ describe("auth", () => {
 			const invalidJsonPayload = Buffer.from("not json", "utf8").toString(
 				"base64url",
 			);
-			const crypto = require("crypto");
-			const sig = crypto
-				.createHmac("sha256", "super-secret-key-12345")
+			const sig = createHmac("sha256", "super-secret-key-12345")
 				.update(invalidJsonPayload)
 				.digest("base64url");
 
@@ -102,20 +115,16 @@ describe("auth", () => {
 	});
 
 	describe("setAuthCookies", () => {
-		let mockResponse: any;
+		let mockResponse: MockResponse;
 
 		beforeEach(() => {
-			mockResponse = {
-				cookies: {
-					set: vi.fn(),
-				},
-			};
+			mockResponse = createMockResponse();
 			vi.stubEnv("NODE_ENV", "development"); // to make isSecureRequest predictable
 			vi.stubEnv("COOKIE_SECRET", "super-secret-key-12345");
 		});
 
 		afterEach(() => {
-			vi.restoreAllMocks();
+			vi.resetAllMocks();
 			vi.unstubAllEnvs();
 		});
 
@@ -261,25 +270,21 @@ describe("auth", () => {
 	});
 
 	describe("clearAuthCookies", () => {
-		let mockResponse: any;
+		let mockResponse: MockResponse;
 
 		beforeEach(() => {
-			mockResponse = {
-				cookies: {
-					set: vi.fn(),
-				},
-			};
+			mockResponse = createMockResponse();
 		});
 
 		afterEach(() => {
 			vi.unstubAllEnvs();
-			vi.restoreAllMocks();
+			vi.resetAllMocks();
 		});
 
 		it("should clear all auth cookies with correct options in development", () => {
 			vi.stubEnv("NODE_ENV", "development");
 
-			clearAuthCookies(mockResponse as NextResponse);
+			clearAuthCookies(mockResponse);
 
 			const expectedCookies = [
 				ACCESS_TOKEN_COOKIE,
@@ -305,7 +310,7 @@ describe("auth", () => {
 		it("should set secure flag to true in production", () => {
 			vi.stubEnv("NODE_ENV", "production");
 
-			clearAuthCookies(mockResponse as NextResponse);
+			clearAuthCookies(mockResponse);
 
 			const expectedCookies = [
 				ACCESS_TOKEN_COOKIE,
@@ -342,7 +347,7 @@ describe("auth", () => {
 			const cookieStore = {
 				get: vi.fn().mockReturnValue(undefined),
 			};
-			expect(getRefreshToken(cookieStore as any)).toBeNull();
+			expect(getRefreshToken(cookieStore)).toBeNull();
 		});
 
 		it("should return the token when valid cookie is present", () => {
@@ -352,15 +357,23 @@ describe("auth", () => {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
 
-			expect(getRefreshToken(cookieStore as any)).toBe(token);
+			expect(getRefreshToken(cookieStore)).toBe(token);
 		});
 
 		it("should return null when the cookie is valid but contains no token", () => {
-			const sealed = sealCookieValue({ notToken: "abc" } as any);
+			const sealed = sealCookieValue({ notToken: "abc" });
 			const cookieStore = {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
-			expect(getRefreshToken(cookieStore as any)).toBeNull();
+			expect(getRefreshToken(cookieStore)).toBeNull();
+		});
+
+		it("should return null when the cookie is valid but contains a non-string token", () => {
+			const sealed = sealCookieValue({ token: 12345 });
+			const cookieStore = {
+				get: vi.fn().mockReturnValue({ value: sealed }),
+			};
+			expect(getRefreshToken(cookieStore)).toBeNull();
 		});
 	});
 
@@ -369,7 +382,7 @@ describe("auth", () => {
 			const cookieStore = {
 				get: vi.fn().mockReturnValue(undefined),
 			};
-			expect(getSelectedDatabaseId(cookieStore as any)).toBeNull();
+			expect(getSelectedDatabaseId(cookieStore)).toBeNull();
 		});
 
 		it("should return the database id when cookie is present", () => {
@@ -378,7 +391,7 @@ describe("auth", () => {
 				get: vi.fn().mockReturnValue({ value: dbId }),
 			};
 
-			expect(getSelectedDatabaseId(cookieStore as any)).toBe(dbId);
+			expect(getSelectedDatabaseId(cookieStore)).toBe(dbId);
 		});
 	});
 
@@ -395,7 +408,7 @@ describe("auth", () => {
 			const cookieStore = {
 				get: vi.fn().mockReturnValue(undefined),
 			};
-			expect(isAuthenticated(cookieStore as any)).toBe(false);
+			expect(isAuthenticated(cookieStore)).toBe(false);
 		});
 
 		it("should return true if access token is present", () => {
@@ -404,7 +417,7 @@ describe("auth", () => {
 			const cookieStore = {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
-			expect(isAuthenticated(cookieStore as any)).toBe(true);
+			expect(isAuthenticated(cookieStore)).toBe(true);
 		});
 	});
 
@@ -428,7 +441,7 @@ describe("auth", () => {
 			const cookieStore = {
 				get: vi.fn().mockReturnValue(undefined),
 			};
-			expect(getUserInfo(cookieStore as any)).toBeNull();
+			expect(getUserInfo(cookieStore)).toBeNull();
 		});
 
 		it("should return the user info when valid cookie is present", () => {
@@ -442,19 +455,15 @@ describe("auth", () => {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
 
-			expect(getUserInfo(cookieStore as any)).toEqual(userInfo);
+			expect(getUserInfo(cookieStore)).toEqual(userInfo);
 		});
 	});
 
 	describe("setDatabaseCookie specific options tests", () => {
-		let mockResponse: any;
+		let mockResponse: MockResponse;
 
 		beforeEach(() => {
-			mockResponse = {
-				cookies: {
-					set: vi.fn(),
-				},
-			};
+			mockResponse = createMockResponse();
 		});
 
 		it("should correctly set database cookie with default secure option based on NODE_ENV", () => {
@@ -493,19 +502,15 @@ describe("auth", () => {
 	});
 
 	describe("setOauthStateCookie specific options tests", () => {
-		let mockResponse: any;
+		let mockResponse: MockResponse;
 
 		beforeEach(() => {
-			mockResponse = {
-				cookies: {
-					set: vi.fn(),
-				},
-			};
+			mockResponse = createMockResponse();
 		});
 
-		it("should correctly set oauth state cookie with explicit secure false based on NODE_ENV development fallback", () => {
-			vi.stubEnv("NODE_ENV", "development");
-			setOauthStateCookie(mockResponse, "state-123", undefined as any);
+		it("should correctly set oauth state cookie with secure false for localhost request", () => {
+			const request = { headers: new Headers([["host", "localhost:3000"]]) };
+			setOauthStateCookie(mockResponse, "state-123", request);
 			expect(mockResponse.cookies.set).toHaveBeenCalledWith(
 				OAUTH_STATE_COOKIE,
 				"state-123",
@@ -517,12 +522,11 @@ describe("auth", () => {
 					maxAge: 600,
 				},
 			);
-			vi.unstubAllEnvs();
 		});
 
-		it("should correctly set oauth state cookie with explicit secure true based on NODE_ENV production fallback", () => {
-			vi.stubEnv("NODE_ENV", "production");
-			setOauthStateCookie(mockResponse, "state-123", undefined as any);
+		it("should correctly set oauth state cookie with secure true for https request", () => {
+			const request = { headers: new Headers([["x-forwarded-proto", "https"]]) };
+			setOauthStateCookie(mockResponse, "state-123", request);
 			expect(mockResponse.cookies.set).toHaveBeenCalledWith(
 				OAUTH_STATE_COOKIE,
 				"state-123",
@@ -534,7 +538,6 @@ describe("auth", () => {
 					maxAge: 600,
 				},
 			);
-			vi.unstubAllEnvs();
 		});
 	});
 
@@ -559,7 +562,7 @@ describe("auth", () => {
 			const cookieStore = {
 				get: vi.fn().mockReturnValue(undefined),
 			};
-			expect(getAccessToken(cookieStore as any)).toBeNull();
+			expect(getAccessToken(cookieStore)).toBeNull();
 			expect(cookieStore.get).toHaveBeenCalledWith(ACCESS_TOKEN_COOKIE);
 		});
 
@@ -570,30 +573,30 @@ describe("auth", () => {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
 
-			expect(getAccessToken(cookieStore as any)).toBe(token);
+			expect(getAccessToken(cookieStore)).toBe(token);
 		});
 
 		it("should return null when the cookie is malformed or invalid", () => {
 			const cookieStore = {
 				get: vi.fn().mockReturnValue({ value: "invalid.cookie.value" }),
 			};
-			expect(getAccessToken(cookieStore as any)).toBeNull();
+			expect(getAccessToken(cookieStore)).toBeNull();
 		});
 
 		it("should return null when the cookie is valid but contains no token", () => {
-			const sealed = sealCookieValue({ notToken: "abc" } as any);
+			const sealed = sealCookieValue({ notToken: "abc" });
 			const cookieStore = {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
-			expect(getAccessToken(cookieStore as any)).toBeNull();
+			expect(getAccessToken(cookieStore)).toBeNull();
 		});
 
 		it("should return null when the cookie is valid but contains a non-string token", () => {
-			const sealed = sealCookieValue({ token: 12345 } as any);
+			const sealed = sealCookieValue({ token: 12345 });
 			const cookieStore = {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
-			expect(getAccessToken(cookieStore as any)).toBeNull();
+			expect(getAccessToken(cookieStore)).toBeNull();
 		});
 	});
 });
