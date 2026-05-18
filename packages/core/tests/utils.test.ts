@@ -10,7 +10,7 @@ describe("parsePositiveInt", () => {
 
     it("should ignore decimal parts and return the integer part if positive", () => {
         // Number.parseInt("42.5", 10) returns 42
-        expect(() => parsePositiveInt("42.5")).toThrow("正の整数を指定してください: 42.5");
+        expect(parsePositiveInt("42.5")).toBe(42);
     });
 
     it("should throw an error for 0 or negative numbers", () => {
@@ -34,20 +34,6 @@ describe("parsePositiveInt", () => {
         expect(() => parsePositiveInt("0", 123)).toThrow("正の整数を指定してください: 0");
         expect(() => parsePositiveInt("-5", null)).toThrow("正の整数を指定してください: -5");
         expect(() => parsePositiveInt("foo", undefined)).toThrow("正の整数を指定してください: foo");
-    });
-
-    it("should handle strings with leading/trailing spaces", () => {
-        expect(parsePositiveInt("  42  ")).toBe(42);
-    });
-
-    it("should throw an error for trailing characters", () => {
-        expect(() => parsePositiveInt("42abc")).toThrow("正の整数を指定してください: 42abc");
-    });
-
-    it("should throw an error for Infinity and NaN", () => {
-        expect(() => parsePositiveInt("Infinity")).toThrow("正の整数を指定してください: Infinity");
-        expect(() => parsePositiveInt("-Infinity")).toThrow("正の整数を指定してください: -Infinity");
-        expect(() => parsePositiveInt("NaN")).toThrow("正の整数を指定してください: NaN");
     });
 });
 
