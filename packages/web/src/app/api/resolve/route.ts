@@ -13,11 +13,11 @@ function normalizeDoi(input: string) {
 }
 
 export async function POST(request: NextRequest) {
-	if (!isAuthenticated(request.cookies)) {
-		return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
-	}
-
 	try {
+		if (!isAuthenticated(request.cookies)) {
+			return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+		}
+
 		const body = (await request.json()) as ResolveBody;
 		const doi = body.doi?.trim();
 		const title = body.title?.trim();

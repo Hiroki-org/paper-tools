@@ -37,6 +37,18 @@ describe("/api/resolve POST", () => {
 		expect(data.error).toBe("認証が必要です");
 	});
 
+	it("認証チェック中の例外はJSONの500として返す", async () => {
+		vi.mocked(auth.isAuthenticated).mockImplementationOnce(() => {
+			throw new Error("COOKIE_SECRET is not set");
+		});
+
+		const res = await POST(makeRequest({ doi: "10.1000/xyz" }));
+		const data = await res.json();
+
+		expect(res.status).toBe(500);
+		expect(data.error).toBe("COOKIE_SECRET is not set");
+	});
+
 	it("doi から論文を解決する", async () => {
 		vi.mocked(core.getPaper).mockResolvedValueOnce({
 			paperId: "s2-1",
