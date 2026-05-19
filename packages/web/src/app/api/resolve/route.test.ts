@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import * as auth from "@/lib/auth";
 
 vi.mock("@paper-tools/core", () => ({
     getPaper: vi.fn(),
@@ -17,9 +18,21 @@ function makeRequest(body: unknown) {
     });
 }
 
+vi.mock("@/lib/auth", () => ({ isAuthenticated: vi.fn(() => true) }));
+
 describe("/api/resolve POST", () => {
+    it("認証されていない場合は 401 を返す", async () => {
+        vi.mocked(auth.isAuthenticated).mockReturnValueOnce(false);
+        const req = new NextRequest("http://localhost/api");
+        const res = await POST(req);
+        const data = await res.json();
+        expect(res.status).toBe(401);
+        expect(data.error).toBe("Unauthorized");
+    });
+
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
+        vi.mocked(auth.isAuthenticated).mockReturnValue(true);
     });
 
     it("doi から論文を解決する", async () => {

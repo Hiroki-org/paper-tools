@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import * as auth from "@/lib/auth";
 
 vi.mock("@paper-tools/visualizer", () => ({
     buildCitationGraph: vi.fn(),
@@ -10,9 +11,21 @@ const { GET } = await import("./route");
 
 // @vitest-environment jsdom
 
+vi.mock("@/lib/auth", () => ({ isAuthenticated: vi.fn(() => true) }));
+
 describe("/api/graph GET", () => {
+    it("認証されていない場合は 401 を返す", async () => {
+        vi.mocked(auth.isAuthenticated).mockReturnValueOnce(false);
+        const req = new NextRequest("http://localhost/api");
+        const res = await GET(req);
+        const data = await res.json();
+        expect(res.status).toBe(401);
+        expect(data.error).toBe("Unauthorized");
+    });
+
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
+        vi.mocked(auth.isAuthenticated).mockReturnValue(true);
     });
 
     it("doi が指定された場合、デフォルトの depth と direction でグラフを返す", async () => {
