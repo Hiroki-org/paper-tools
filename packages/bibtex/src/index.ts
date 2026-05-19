@@ -209,7 +209,8 @@ program
 
             const entries = splitBibtexEntries(text);
             if (entries.length === 0) {
-                throw new Error("No BibTeX entries found.");
+                console.log("No BibTeX entries found.");
+                return;
             }
 
             const report = buildValidateReport(entries);

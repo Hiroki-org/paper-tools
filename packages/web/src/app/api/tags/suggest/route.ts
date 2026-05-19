@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import {
 	getAccessToken,
@@ -5,13 +6,7 @@ import {
 	getSelectedDatabaseId,
 } from "@/lib/auth";
 import { resolveNotionDataSource } from "@/lib/notion-data-source";
-import {
-	buildCacheKey,
-	cache,
-	inFlight,
-	isCacheEntryFresh,
-	pruneExpiredEntries,
-} from "./cache";
+import { CACHE_TTL_MS, cache, setCacheWithPruning } from "./cache";
 
 export const runtime = "nodejs";
 
@@ -22,55 +17,20 @@ type NotionProperty = {
 
 const MAX_QUERY_PAGES = 8;
 
-function clampLimit(limit: number) {
-	if (!Number.isFinite(limit)) return 10;
-	return Math.max(1, Math.min(20, limit));
+const _globalEnv = globalThis as unknown as {
+	__tagSuggestInFlight?: Map<string, Promise<string[]>>;
+};
+const inFlightRequests =
+	_globalEnv.__tagSuggestInFlight ?? new Map<string, Promise<string[]>>();
+if (!_globalEnv.__tagSuggestInFlight) {
+	_globalEnv.__tagSuggestInFlight = inFlightRequests;
 }
 
-function normalizeTag(value: string) {
-	return value.trim();
-}
-
-function findTagPropertyKeys(properties: Record<string, NotionProperty>) {
-	const entries = Object.entries(properties);
-	const multiSelectEntries = entries.filter(
-		([, prop]) => prop.type === "multi_select",
-	);
-	const preferred = multiSelectEntries.filter(([name]) =>
-		/tag|タグ|label/i.test(name),
-	);
-	return (preferred.length > 0 ? preferred : multiSelectEntries).map(
-		([name]) => name,
-	);
-}
-
-function isPageRecord(
-	value: unknown,
-): value is { properties: Record<string, NotionProperty> } {
-	if (typeof value !== "object" || value === null) {
-		return false;
-	}
-	const record = value as Record<string, unknown>;
-	return (
-		record.object === "page" &&
-		typeof record.properties === "object" &&
-		record.properties !== null
-	);
-}
-
-async function loadTagsFromNotion(
+async function fetchTagsForDataSource(
 	notion: ReturnType<typeof getNotionClient>,
-	dataSourceId: string,
-) {
-	const dataSource = await resolveNotionDataSource<NotionProperty>(
-		notion,
-		dataSourceId,
-	);
-	const tagKeys = findTagPropertyKeys(dataSource.properties);
-	if (tagKeys.length === 0) {
-		return [] as string[];
-	}
-
+	dataSource: { id: string },
+	tagKeys: string[],
+): Promise<string[]> {
 	const uniqueTags = new Map<string, string>();
 	let startCursor: string | undefined;
 	let pageCount = 0;
@@ -110,6 +70,42 @@ async function loadTagsFromNotion(
 	return Array.from(uniqueTags.values());
 }
 
+function clampLimit(limit: number) {
+	if (!Number.isFinite(limit)) return 10;
+	return Math.max(1, Math.min(20, limit));
+}
+
+function normalizeTag(value: string) {
+	return value.trim();
+}
+
+function findTagPropertyKeys(properties: Record<string, NotionProperty>) {
+	const entries = Object.entries(properties);
+	const multiSelectEntries = entries.filter(
+		([, prop]) => prop.type === "multi_select",
+	);
+	const preferred = multiSelectEntries.filter(([name]) =>
+		/tag|タグ|label/i.test(name),
+	);
+	return (preferred.length > 0 ? preferred : multiSelectEntries).map(
+		([name]) => name,
+	);
+}
+
+function isPageRecord(
+	value: unknown,
+): value is { properties: Record<string, NotionProperty> } {
+	if (typeof value !== "object" || value === null) {
+		return false;
+	}
+	const record = value as Record<string, unknown>;
+	return (
+		record.object === "page" &&
+		typeof record.properties === "object" &&
+		record.properties !== null
+	);
+}
+
 export async function GET(request: NextRequest) {
 	const accessToken = getAccessToken(request.cookies);
 	const dataSourceId = getSelectedDatabaseId(request.cookies);
@@ -132,28 +128,46 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		pruneExpiredEntries();
-		const cacheKey = buildCacheKey(accessToken, dataSourceId);
+		const notion = getNotionClient(accessToken);
+		const dataSource = await resolveNotionDataSource<NotionProperty>(
+			notion,
+			dataSourceId,
+		);
+		const tagKeys = findTagPropertyKeys(dataSource.properties);
+		if (tagKeys.length === 0) {
+			return NextResponse.json({ suggestions: [] as string[] });
+		}
+
+		const cacheKey = crypto
+			.createHash("sha256")
+			.update(accessToken + dataSource.id)
+			.digest("hex");
 		let allTags: string[];
 
 		const cached = cache.get(cacheKey);
-		if (cached && isCacheEntryFresh(cached)) {
+		if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
 			allTags = cached.data;
+		} else if (inFlightRequests.has(cacheKey)) {
+			const inFlight = inFlightRequests.get(cacheKey);
+			if (!inFlight) throw new Error("In flight missing");
+			allTags = await inFlight;
 		} else {
-			let pending = inFlight.get(cacheKey);
-			if (!pending) {
-				const notion = getNotionClient(accessToken);
-				pending = loadTagsFromNotion(notion, dataSourceId)
-					.then((tags) => {
-						cache.set(cacheKey, { data: tags, timestamp: Date.now() });
-						return tags;
-					})
-					.finally(() => {
-						inFlight.delete(cacheKey);
-					});
-				inFlight.set(cacheKey, pending);
-			}
-			allTags = await pending;
+			const promise = fetchTagsForDataSource(notion, dataSource, tagKeys)
+				.then((tags) => {
+					setCacheWithPruning(
+						cacheKey,
+						{ data: tags, timestamp: Date.now() },
+						cache,
+					);
+					inFlightRequests.delete(cacheKey);
+					return tags;
+				})
+				.catch((err) => {
+					inFlightRequests.delete(cacheKey);
+					throw err;
+				});
+			inFlightRequests.set(cacheKey, promise);
+			allTags = await promise;
 		}
 
 		const normalizedQuery = q.toLowerCase();

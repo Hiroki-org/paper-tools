@@ -1,4 +1,3 @@
-import { isAuthenticated } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import {
   recommendFromSingle,
@@ -25,10 +24,6 @@ function isMultiBody(body: RecommendBody): body is MultiBody {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthenticated(request.cookies)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const body = (await request.json()) as RecommendBody;
 

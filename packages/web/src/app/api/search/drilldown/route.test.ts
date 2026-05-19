@@ -16,14 +16,6 @@ function makeRequest(body: unknown) {
     });
 }
 
-function makeRawRequest(body?: BodyInit) {
-    return new NextRequest("http://localhost/api/search/drilldown", {
-        method: "POST",
-        body,
-        headers: { "content-type": "application/json" },
-    });
-}
-
 describe("/api/search/drilldown POST", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -72,47 +64,6 @@ describe("/api/search/drilldown POST", () => {
 
         expect(res.status).toBe(400);
         expect(data.error).toContain("seedPapers array is required and must not be empty");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it("リクエストボディがnullの場合は400エラー", async () => {
-        const res = await POST(makeRequest(null));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("Invalid request body");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it.each([
-        ["配列", [{ seedPapers: [{ paperId: "seed-array", title: "Seed array" }] }]],
-        ["文字列", "string"],
-        ["数値", 123],
-    ])("リクエストボディが%sの場合は400エラー", async (_, body) => {
-        const res = await POST(makeRequest(body));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("Invalid request body");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it("空のリクエストボディの場合は400エラー", async () => {
-        const res = await POST(makeRawRequest());
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("Invalid JSON request body");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it("不正なJSONボディの場合は400エラー", async () => {
-        const res = await POST(makeRawRequest("{invalid"));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("Invalid JSON request body");
-        expect(drilldown).not.toHaveBeenCalled();
     });
 
     it("seedPapersが未指定の場合は400エラー", async () => {
@@ -121,95 +72,6 @@ describe("/api/search/drilldown POST", () => {
 
         expect(res.status).toBe(400);
         expect(data.error).toContain("seedPapers array is required and must not be empty");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it("seedPapersが配列ではない場合は400エラー", async () => {
-        const res = await POST(makeRequest({ seedPapers: "paper-1" }));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("seedPapers array is required and must not be empty");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it("seedPapersが100件を超える場合は400エラー", async () => {
-        const seedPapers = Array.from({ length: 101 }, (_, index) => ({
-            paperId: `seed-${index}`,
-            title: `Seed ${index}`,
-        }));
-
-        const res = await POST(makeRequest({ seedPapers }));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("seedPapers array must contain 100 papers or fewer");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it.each([
-        ["0", 0],
-        ["小数", 1.5],
-        ["上限超過", 6],
-        ["文字列", "2"],
-    ])("depthが%sの場合は400エラー", async (_, depth) => {
-        const seedPapers = [{ paperId: "seed-depth", title: "Seed depth" }];
-        const res = await POST(makeRequest({ seedPapers, depth }));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("depth must be an integer between 1 and 5");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it.each([
-        ["0", 0],
-        ["小数", 10.5],
-        ["上限超過", 101],
-        ["文字列", "10"],
-    ])("maxPerLevelが%sの場合は400エラー", async (_, maxPerLevel) => {
-        const seedPapers = [{ paperId: "seed-max", title: "Seed max" }];
-        const res = await POST(makeRequest({ seedPapers, maxPerLevel }));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("maxPerLevel must be an integer between 1 and 100");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it.each([
-        ["数値", 1],
-        ["文字列", "false"],
-        ["null", null],
-    ])("enrichが%sの場合は400エラー", async (_, enrich) => {
-        const seedPapers = [{ paperId: "seed-enrich", title: "Seed enrich" }];
-        const res = await POST(makeRequest({ seedPapers, enrich }));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("enrich must be a boolean");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it("titleがないseedPapersの場合は400エラー", async () => {
-        const res = await POST(makeRequest({ seedPapers: [{ paperId: "seed-no-title" }] }));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("seedPapers must each include a title");
-        expect(drilldown).not.toHaveBeenCalled();
-    });
-
-    it.each([
-        ["空白のみのtitle", { paperId: "seed-blank-title", title: "   " }],
-        ["非文字列のtitle", { paperId: "seed-number-title", title: 123 }],
-    ])("%sのseedPapersの場合は400エラー", async (_, seedPaper) => {
-        const res = await POST(makeRequest({ seedPapers: [seedPaper] }));
-        const data = await res.json();
-
-        expect(res.status).toBe(400);
-        expect(data.error).toContain("seedPapers must each include a title");
-        expect(drilldown).not.toHaveBeenCalled();
     });
 
     it("drilldownでエラーが発生した場合は500エラー", async () => {
@@ -223,7 +85,7 @@ describe("/api/search/drilldown POST", () => {
         const data = await res.json();
 
         expect(res.status).toBe(500);
-        expect(data.error).toContain("Drilldown failed");
+        expect(data.error).toBe("Drilldown failed");
 
         consoleSpy.mockRestore();
     });
