@@ -1,3 +1,4 @@
+import { isAuthenticated } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { getPaper, searchPapers } from "@paper-tools/core";
 
@@ -12,6 +13,10 @@ function normalizeDoi(input: string) {
 }
 
 export async function POST(request: NextRequest) {
+    if (!isAuthenticated(request.cookies)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         const body = (await request.json()) as ResolveBody;
         const doi = body.doi?.trim();
