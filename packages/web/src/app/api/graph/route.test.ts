@@ -10,6 +10,8 @@ const { GET } = await import("./route");
 
 // @vitest-environment jsdom
 
+vi.mock("@/lib/auth", () => ({ isAuthenticated: vi.fn(() => true) }));
+
 describe("/api/graph GET", () => {
     beforeEach(() => {
         vi.clearAllMocks();
