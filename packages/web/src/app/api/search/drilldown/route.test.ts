@@ -84,6 +84,19 @@ describe("/api/search/drilldown POST", () => {
         expect(drilldown).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ["配列", [{ seedPapers: [{ paperId: "seed-array", title: "Seed array" }] }]],
+        ["文字列", "string"],
+        ["数値", 123],
+    ])("リクエストボディが%sの場合は400エラー", async (_, body) => {
+        const res = await POST(makeRequest(body));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("Invalid request body");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
     it("空のリクエストボディの場合は400エラー", async () => {
         const res = await POST(makeRawRequest());
         const data = await res.json();
@@ -143,6 +156,18 @@ describe("/api/search/drilldown POST", () => {
         expect(drilldown).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ["空白のみのtitle", { paperId: "seed-blank-title", title: "   " }],
+        ["非文字列のtitle", { paperId: "seed-number-title", title: 123 }],
+    ])("%sのseedPapersの場合は400エラー", async (_, seedPaper) => {
+        const res = await POST(makeRequest({ seedPapers: [seedPaper] }));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("seedPapers must each include a title");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
     it("drilldownでエラーが発生した場合は500エラー", async () => {
         vi.mocked(drilldown).mockRejectedValueOnce(new Error("Drilldown failed"));
 
@@ -154,7 +179,7 @@ describe("/api/search/drilldown POST", () => {
         const data = await res.json();
 
         expect(res.status).toBe(500);
-        expect(data.error).toBe("Drilldown failed");
+        expect(data.error).toContain("Drilldown failed");
 
         consoleSpy.mockRestore();
     });

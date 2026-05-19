@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { drilldown } from "@paper-tools/drilldown";
-import type { DrilldownBody } from "./route.types";
+import type { DrilldownBody } from "./route.types.js";
+
+const DRILLDOWN_CONTEXT = "[drilldown]";
+
+function drilldownValidationError(message: string) {
+    return `${DRILLDOWN_CONTEXT} Validation failed: ${message}`;
+}
+
+function drilldownOperationError(message: string) {
+    return `${DRILLDOWN_CONTEXT} Operation failed: ${message}`;
+}
 
 function hasTitle(value: unknown): value is { title: string } {
     return (
@@ -18,14 +28,14 @@ export async function POST(request: NextRequest) {
             payload = await request.json();
         } catch {
             return NextResponse.json(
-                { error: "Invalid JSON request body" },
+                { error: drilldownValidationError("Invalid JSON request body") },
                 { status: 400 },
             );
         }
 
         if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
             return NextResponse.json(
-                { error: "Invalid request body" },
+                { error: drilldownValidationError("Invalid request body") },
                 { status: 400 },
             );
         }
@@ -35,19 +45,31 @@ export async function POST(request: NextRequest) {
 
         if (!Array.isArray(seedPapers) || seedPapers.length === 0) {
             return NextResponse.json(
-                { error: "seedPapers array is required and must not be empty" },
+                {
+                    error: drilldownValidationError(
+                        "seedPapers array is required and must not be empty",
+                    ),
+                },
                 { status: 400 },
             );
         }
         if (seedPapers.length > 100) {
             return NextResponse.json(
-                { error: "seedPapers array must contain 100 papers or fewer" },
+                {
+                    error: drilldownValidationError(
+                        "seedPapers array must contain 100 papers or fewer",
+                    ),
+                },
                 { status: 400 },
             );
         }
         if (!seedPapers.every(hasTitle)) {
             return NextResponse.json(
-                { error: "seedPapers must each include a title" },
+                {
+                    error: drilldownValidationError(
+                        "seedPapers must each include a title",
+                    ),
+                },
                 { status: 400 },
             );
         }
@@ -56,6 +78,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ results });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        return NextResponse.json(
+            { error: drilldownOperationError(message) },
+            { status: 500 },
+        );
     }
 }
