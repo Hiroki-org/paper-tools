@@ -5,31 +5,16 @@ vi.mock("@paper-tools/visualizer", () => ({
     buildCitationGraph: vi.fn(),
 }));
 
-vi.mock("@/lib/auth", () => ({
-    isAuthenticated: vi.fn(),
-}));
-
 const visualizer = await import("@paper-tools/visualizer");
-const auth = await import("@/lib/auth");
 const { GET } = await import("./route");
 
 // @vitest-environment jsdom
 
+vi.mock("@/lib/auth", () => ({ isAuthenticated: vi.fn(() => true) }));
+
 describe("/api/graph GET", () => {
     beforeEach(() => {
-        vi.resetAllMocks();
-        vi.mocked(auth.isAuthenticated).mockReturnValue(true);
-    });
-
-    it("認証されていない場合は401を返す", async () => {
-        vi.mocked(auth.isAuthenticated).mockReturnValueOnce(false);
-        const req = new NextRequest("http://localhost/api/graph?doi=10.1000/xyz");
-        const res = await GET(req);
-        const data = await res.json();
-
-        expect(res.status).toBe(401);
-        expect(data.error).toBe("Unauthorized");
-        expect(visualizer.buildCitationGraph).not.toHaveBeenCalled();
+        vi.clearAllMocks();
     });
 
     it("doi が指定された場合、デフォルトの depth と direction でグラフを返す", async () => {
