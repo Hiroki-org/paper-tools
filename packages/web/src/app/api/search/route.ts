@@ -1,36 +1,25 @@
+import { NextRequest, NextResponse } from "next/server";
 import { searchByKeyword } from "@paper-tools/drilldown";
-import { type NextRequest, NextResponse } from "next/server";
-import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-	if (!isAuthenticated(request.cookies)) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
+    const { searchParams } = new URL(request.url);
+    const q = searchParams.get("q");
+    const parsedMaxResults = Number(searchParams.get("maxResults") ?? "30");
+    const maxResults = Number.isFinite(parsedMaxResults)
+        ? Math.max(1, Math.min(100, parsedMaxResults))
+        : 30;
 
-	const { searchParams } = new URL(request.url);
-	const q = searchParams.get("q");
-	const parsedMaxResults = Number(searchParams.get("maxResults") ?? "30");
-	const maxResults = Number.isFinite(parsedMaxResults)
-		? Math.max(1, Math.min(100, parsedMaxResults))
-		: 30;
+    if (!q) {
+        return NextResponse.json({ error: "q parameter is required" }, { status: 400 });
+    }
 
-	if (!q) {
-		return NextResponse.json(
-			{ error: "q parameter is required" },
-			{ status: 400 },
-		);
-	}
-
-	try {
-		const papers = await searchByKeyword(q, maxResults);
-		return NextResponse.json({ papers, total: papers.length });
-	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unknown error";
-		return NextResponse.json(
-			{ error: `Search backend failed: ${message}` },
-			{ status: 502 },
-		);
-	}
+    try {
+        const papers = await searchByKeyword(q, maxResults);
+        return NextResponse.json({ papers, total: papers.length });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return NextResponse.json({ error: `Search backend failed: ${message}` }, { status: 502 });
+    }
 }
