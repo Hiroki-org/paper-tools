@@ -72,6 +72,30 @@ describe("/api/search/drilldown POST", () => {
 
         expect(res.status).toBe(400);
         expect(data.error).toContain("seedPapers array is required and must not be empty");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
+    it("seedPapersが配列ではない場合は400エラー", async () => {
+        const res = await POST(makeRequest({ seedPapers: "paper-1" }));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("seedPapers array is required and must not be empty");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
+    it("seedPapersが100件を超える場合は400エラー", async () => {
+        const seedPapers = Array.from({ length: 101 }, (_, index) => ({
+            paperId: `seed-${index}`,
+            title: `Seed ${index}`,
+        }));
+
+        const res = await POST(makeRequest({ seedPapers }));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("seedPapers array must contain 100 papers or fewer");
+        expect(drilldown).not.toHaveBeenCalled();
     });
 
     it("drilldownでエラーが発生した場合は500エラー", async () => {

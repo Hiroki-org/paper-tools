@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { drilldown } from "@paper-tools/drilldown";
-import type { Paper } from "@paper-tools/core";
-
-interface DrilldownBody {
-    seedPapers: Paper[];
-    depth?: number;
-    maxPerLevel?: number;
-    enrich?: boolean;
-}
+import type { DrilldownBody } from "./route.types";
 
 export async function POST(request: NextRequest) {
     try {
-        const body = (await request.json()) as DrilldownBody;
+        const payload = await request.json();
+        const body = payload as unknown as DrilldownBody;
         const { seedPapers, depth = 1, maxPerLevel = 10, enrich = false } = body;
 
-        if (!seedPapers || seedPapers.length === 0) {
+        if (!Array.isArray(seedPapers) || seedPapers.length === 0) {
             return NextResponse.json(
                 { error: "seedPapers array is required and must not be empty" },
+                { status: 400 },
+            );
+        }
+        if (seedPapers.length > 100) {
+            return NextResponse.json(
+                { error: "seedPapers array must contain 100 papers or fewer" },
                 { status: 400 },
             );
         }
