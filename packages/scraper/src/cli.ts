@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { parsePositiveInt, searchVenuePublications } from "@paper-tools/core";
+import { parsePositiveInt } from "@paper-tools/core";
 
 import { Command } from "commander";
 import { scrapeConference, scrapeAcceptedPapers } from "./researchr-scraper.js";
-import { enrichWithDblp } from "./dblp-integration.js";
+import { enrichWithDblp, searchConferencePapers } from "./dblp-integration.js";
 
 const program = new Command();
 
@@ -37,8 +37,7 @@ program
             if (options.dblp) {
                 console.error(`Enriching with DBLP data for venue: ${options.dblp}`);
                 const maxPapers = parsePositiveInt(options.maxPapers || "100", "--max-papers");
-                const papers = await searchVenuePublications(options.dblp, conference.year, maxPapers);
-                conference = await enrichWithDblp(conference, papers);
+                conference = await enrichWithDblp(conference, options.dblp, maxPapers);
             }
 
             await outputJson(conference, options.output);
@@ -61,7 +60,7 @@ program
             const year = options.year ? parsePositiveInt(options.year, "--year") : undefined;
             const max = parsePositiveInt(options.max || "100", "--max");
 
-            const papers = await searchVenuePublications(venue, year, max);
+            const papers = await searchConferencePapers(venue, year, max);
             await outputJson(papers, options.output);
 
             console.error(`Found ${papers.length} papers`);

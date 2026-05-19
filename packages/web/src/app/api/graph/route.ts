@@ -1,13 +1,8 @@
-import { isAuthenticated } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { buildCitationGraph } from "@paper-tools/visualizer";
 import type { Direction } from "@paper-tools/visualizer";
 
 export async function GET(request: NextRequest) {
-    if (!isAuthenticated(request.cookies)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const doi = searchParams.get("doi");
     const depth = Number(searchParams.get("depth") ?? "1");

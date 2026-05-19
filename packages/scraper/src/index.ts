@@ -1,2 +1,2 @@
 export { scrapeConference, scrapeAcceptedPapers } from "./researchr-scraper.js";
-export { enrichWithDblp } from "./dblp-integration.js";
+export { enrichWithDblp, searchConferencePapers } from "./dblp-integration.js";
