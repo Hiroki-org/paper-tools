@@ -24,7 +24,7 @@ function makeRequest(body: unknown) {
 
 describe("/api/resolve POST", () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
+		vi.resetAllMocks();
 		vi.mocked(auth.isAuthenticated).mockReturnValue(true);
 	});
 
