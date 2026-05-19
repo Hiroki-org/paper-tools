@@ -147,6 +147,36 @@ describe("/api/search/drilldown POST", () => {
         expect(drilldown).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ["0", 0],
+        ["小数", 1.5],
+        ["上限超過", 6],
+        ["文字列", "2"],
+    ])("depthが%sの場合は400エラー", async (_, depth) => {
+        const seedPapers = [{ paperId: "seed-depth", title: "Seed depth" }];
+        const res = await POST(makeRequest({ seedPapers, depth }));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("depth must be an integer between 1 and 5");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ["0", 0],
+        ["小数", 10.5],
+        ["上限超過", 101],
+        ["文字列", "10"],
+    ])("maxPerLevelが%sの場合は400エラー", async (_, maxPerLevel) => {
+        const seedPapers = [{ paperId: "seed-max", title: "Seed max" }];
+        const res = await POST(makeRequest({ seedPapers, maxPerLevel }));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("maxPerLevel must be an integer between 1 and 100");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
     it("titleがないseedPapersの場合は400エラー", async () => {
         const res = await POST(makeRequest({ seedPapers: [{ paperId: "seed-no-title" }] }));
         const data = await res.json();

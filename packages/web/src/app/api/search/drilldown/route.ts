@@ -3,6 +3,10 @@ import { drilldown } from "@paper-tools/drilldown";
 import type { DrilldownBody } from "./route.types.js";
 
 const DRILLDOWN_CONTEXT = "[drilldown]";
+const MIN_DEPTH = 1;
+const MAX_DEPTH = 5;
+const MIN_MAX_PER_LEVEL = 1;
+const MAX_MAX_PER_LEVEL = 100;
 
 function drilldownValidationError(message: string) {
     return `${DRILLDOWN_CONTEXT} Validation failed: ${message}`;
@@ -19,6 +23,10 @@ function hasTitle(value: unknown): value is { title: string } {
         typeof (value as { title?: unknown }).title === "string" &&
         (value as { title: string }).title.trim().length > 0
     );
+}
+
+function isBoundedInteger(value: unknown, min: number, max: number) {
+    return Number.isInteger(value) && (value as number) >= min && (value as number) <= max;
 }
 
 export async function POST(request: NextRequest) {
@@ -42,6 +50,27 @@ export async function POST(request: NextRequest) {
 
         const body = payload as DrilldownBody;
         const { seedPapers, depth = 1, maxPerLevel = 10, enrich = false } = body;
+
+        if (!isBoundedInteger(depth, MIN_DEPTH, MAX_DEPTH)) {
+            return NextResponse.json(
+                {
+                    error: drilldownValidationError(
+                        `depth must be an integer between ${MIN_DEPTH} and ${MAX_DEPTH}`,
+                    ),
+                },
+                { status: 400 },
+            );
+        }
+        if (!isBoundedInteger(maxPerLevel, MIN_MAX_PER_LEVEL, MAX_MAX_PER_LEVEL)) {
+            return NextResponse.json(
+                {
+                    error: drilldownValidationError(
+                        `maxPerLevel must be an integer between ${MIN_MAX_PER_LEVEL} and ${MAX_MAX_PER_LEVEL}`,
+                    ),
+                },
+                { status: 400 },
+            );
+        }
 
         if (!Array.isArray(seedPapers) || seedPapers.length === 0) {
             return NextResponse.json(
