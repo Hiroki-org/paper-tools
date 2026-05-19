@@ -38,7 +38,7 @@ describe("author-client", () => {
 	};
 
 	beforeEach(() => {
-		vi.resetAllMocks();
+		vi.clearAllMocks();
 		vi.stubEnv("NOTION_API_KEY", "test-api-key");
 		vi.stubEnv("NOTION_AUTHOR_DATABASE_ID", "test-db-id");
 
@@ -50,6 +50,7 @@ describe("author-client", () => {
 
 	afterEach(() => {
 		vi.unstubAllEnvs();
+		vi.restoreAllMocks();
 	});
 
 	describe("findExistingAuthorPage", () => {

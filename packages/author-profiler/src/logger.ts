@@ -1,6 +1,7 @@
 export interface Logger {
 	log(message: string): void;
 	table(data: unknown): void;
+	error(message: string): void;
 }
 
 export const defaultLogger: Logger = {
@@ -9,5 +10,8 @@ export const defaultLogger: Logger = {
 	},
 	table: (data: unknown) => {
 		console.table(data);
+	},
+	error: (message: string) => {
+		console.error(message);
 	},
 };

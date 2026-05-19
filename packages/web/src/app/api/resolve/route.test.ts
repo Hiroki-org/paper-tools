@@ -17,8 +17,6 @@ function makeRequest(body: unknown) {
     });
 }
 
-vi.mock("@/lib/auth", () => ({ isAuthenticated: vi.fn(() => true) }));
-
 describe("/api/resolve POST", () => {
     beforeEach(() => {
         vi.clearAllMocks();

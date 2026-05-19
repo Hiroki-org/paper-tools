@@ -159,7 +159,7 @@ describe("aggregateCoauthorsFromPapers", () => {
 
 describe("buildCoauthorNetwork", () => {
 	beforeEach(() => {
-		vi.resetAllMocks();
+		vi.restoreAllMocks();
 	});
 
 	it("fetches papers and aggregates coauthors correctly", async () => {

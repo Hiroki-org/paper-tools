@@ -33,6 +33,7 @@ describe("author-profiler command handlers", () => {
 		mockLogger = {
 			log: vi.fn(),
 			table: vi.fn(),
+			error: vi.fn(),
 		};
 		vi.mocked(resolveAuthorId).mockResolvedValue({
 			authorId: "123",
