@@ -16,6 +16,14 @@ function makeRequest(body: unknown) {
     });
 }
 
+function makeRawRequest(body?: BodyInit) {
+    return new NextRequest("http://localhost/api/search/drilldown", {
+        method: "POST",
+        body,
+        headers: { "content-type": "application/json" },
+    });
+}
+
 describe("/api/search/drilldown POST", () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -73,6 +81,24 @@ describe("/api/search/drilldown POST", () => {
 
         expect(res.status).toBe(400);
         expect(data.error).toContain("Invalid request body");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
+    it("空のリクエストボディの場合は400エラー", async () => {
+        const res = await POST(makeRawRequest());
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("Invalid JSON request body");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
+    it("不正なJSONボディの場合は400エラー", async () => {
+        const res = await POST(makeRawRequest("{invalid"));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("Invalid JSON request body");
         expect(drilldown).not.toHaveBeenCalled();
     });
 

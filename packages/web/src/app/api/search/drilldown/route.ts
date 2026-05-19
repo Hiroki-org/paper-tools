@@ -13,7 +13,16 @@ function hasTitle(value: unknown): value is { title: string } {
 
 export async function POST(request: NextRequest) {
     try {
-        const payload: unknown = await request.json();
+        let payload: unknown;
+        try {
+            payload = await request.json();
+        } catch {
+            return NextResponse.json(
+                { error: "Invalid JSON request body" },
+                { status: 400 },
+            );
+        }
+
         if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
             return NextResponse.json(
                 { error: "Invalid request body" },
