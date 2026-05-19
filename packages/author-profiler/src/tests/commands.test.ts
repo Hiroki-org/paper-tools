@@ -25,7 +25,7 @@ vi.mock("../notion/author-client.js", () => ({
 }));
 
 describe("author-profiler command handlers", () => {
-    const mockLog = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
     const mockTable = vi.spyOn(console, "table").mockImplementation(() => {});
 
     beforeEach(() => {
