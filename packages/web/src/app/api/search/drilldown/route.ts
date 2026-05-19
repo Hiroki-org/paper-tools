@@ -51,6 +51,12 @@ export async function POST(request: NextRequest) {
         const body = payload as DrilldownBody;
         const { seedPapers, depth = 1, maxPerLevel = 10, enrich = false } = body;
 
+        if (typeof enrich !== "boolean") {
+            return NextResponse.json(
+                { error: drilldownValidationError("enrich must be a boolean") },
+                { status: 400 },
+            );
+        }
         if (!isBoundedInteger(depth, MIN_DEPTH, MAX_DEPTH)) {
             return NextResponse.json(
                 {

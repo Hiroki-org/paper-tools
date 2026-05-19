@@ -177,6 +177,20 @@ describe("/api/search/drilldown POST", () => {
         expect(drilldown).not.toHaveBeenCalled();
     });
 
+    it.each([
+        ["数値", 1],
+        ["文字列", "false"],
+        ["null", null],
+    ])("enrichが%sの場合は400エラー", async (_, enrich) => {
+        const seedPapers = [{ paperId: "seed-enrich", title: "Seed enrich" }];
+        const res = await POST(makeRequest({ seedPapers, enrich }));
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("enrich must be a boolean");
+        expect(drilldown).not.toHaveBeenCalled();
+    });
+
     it("titleがないseedPapersの場合は400エラー", async () => {
         const res = await POST(makeRequest({ seedPapers: [{ paperId: "seed-no-title" }] }));
         const data = await res.json();
