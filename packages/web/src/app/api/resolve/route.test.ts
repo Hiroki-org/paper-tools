@@ -24,7 +24,7 @@ function makeRequest(body: unknown) {
 
 describe("/api/resolve POST", () => {
 	beforeEach(() => {
-		vi.resetAllMocks();
+		vi.clearAllMocks();
 		vi.mocked(auth.isAuthenticated).mockReturnValue(true);
 	});
 
@@ -34,7 +34,7 @@ describe("/api/resolve POST", () => {
 		const data = await res.json();
 
 		expect(res.status).toBe(401);
-		expect(data.error).toBe("認証が必要です");
+		expect(data.error).toBe("Unauthorized");
 	});
 
 	it("doi から論文を解決する", async () => {
