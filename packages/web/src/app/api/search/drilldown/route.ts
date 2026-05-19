@@ -1,6 +1,6 @@
 import { drilldown } from "@paper-tools/drilldown";
 import { type NextRequest, NextResponse } from "next/server";
-import type { DrilldownBody } from "./route.types";
+import type { DrilldownBody } from "./route.utils";
 
 export async function POST(request: NextRequest) {
 	try {
