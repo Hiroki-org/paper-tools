@@ -34,7 +34,7 @@ describe("/api/resolve POST", () => {
 		const data = await res.json();
 
 		expect(res.status).toBe(401);
-		expect(data.error).toBe("Unauthorized");
+		expect(data.error).toBe("認証が必要です");
 	});
 
 	it("doi から論文を解決する", async () => {

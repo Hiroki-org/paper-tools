@@ -14,7 +14,7 @@ function normalizeDoi(input: string) {
 
 export async function POST(request: NextRequest) {
 	if (!isAuthenticated(request.cookies)) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 	}
 
 	try {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
 		if (!s2Id) {
 			return NextResponse.json(
-				{ error: "Invalid request state" },
+				{ error: "doi, title, s2Id のいずれか1つが必要です" },
 				{ status: 400 },
 			);
 		}
