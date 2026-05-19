@@ -5,7 +5,13 @@ import {
 	getSelectedDatabaseId,
 } from "@/lib/auth";
 import { resolveNotionDataSource } from "@/lib/notion-data-source";
-import { CACHE_TTL_MS, cache } from "./cache";
+import {
+	buildCacheKey,
+	cache,
+	inFlight,
+	isCacheEntryFresh,
+	pruneExpiredEntries,
+} from "./cache";
 
 export const runtime = "nodejs";
 
@@ -52,6 +58,58 @@ function isPageRecord(
 	);
 }
 
+async function loadTagsFromNotion(
+	notion: ReturnType<typeof getNotionClient>,
+	dataSourceId: string,
+) {
+	const dataSource = await resolveNotionDataSource<NotionProperty>(
+		notion,
+		dataSourceId,
+	);
+	const tagKeys = findTagPropertyKeys(dataSource.properties);
+	if (tagKeys.length === 0) {
+		return [] as string[];
+	}
+
+	const uniqueTags = new Map<string, string>();
+	let startCursor: string | undefined;
+	let pageCount = 0;
+
+	do {
+		const response = await notion.dataSources.query({
+			data_source_id: dataSource.id,
+			page_size: 100,
+			start_cursor: startCursor,
+		});
+		pageCount += 1;
+
+		for (const record of response.results) {
+			if (!isPageRecord(record)) continue;
+			for (const key of tagKeys) {
+				const items = record.properties[key]?.multi_select;
+				if (!items) continue;
+				for (const item of items) {
+					const normalized = normalizeTag(item.name ?? "");
+					if (!normalized) continue;
+					const dedupeKey = normalized.toLowerCase();
+					if (!uniqueTags.has(dedupeKey)) {
+						uniqueTags.set(dedupeKey, normalized);
+					}
+				}
+			}
+		}
+
+		startCursor = response.has_more
+			? (response.next_cursor ?? undefined)
+			: undefined;
+		if (pageCount >= MAX_QUERY_PAGES) {
+			startCursor = undefined;
+		}
+	} while (startCursor);
+
+	return Array.from(uniqueTags.values());
+}
+
 export async function GET(request: NextRequest) {
 	const accessToken = getAccessToken(request.cookies);
 	const dataSourceId = getSelectedDatabaseId(request.cookies);
@@ -74,61 +132,28 @@ export async function GET(request: NextRequest) {
 	}
 
 	try {
-		const notion = getNotionClient(accessToken);
-		const dataSource = await resolveNotionDataSource<NotionProperty>(
-			notion,
-			dataSourceId,
-		);
-		const tagKeys = findTagPropertyKeys(dataSource.properties);
-		if (tagKeys.length === 0) {
-			return NextResponse.json({ suggestions: [] as string[] });
-		}
-
-		const cacheKey = dataSource.id;
+		pruneExpiredEntries();
+		const cacheKey = buildCacheKey(accessToken, dataSourceId);
 		let allTags: string[];
 
 		const cached = cache.get(cacheKey);
-		if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+		if (cached && isCacheEntryFresh(cached)) {
 			allTags = cached.data;
 		} else {
-			const uniqueTags = new Map<string, string>();
-			let startCursor: string | undefined;
-			let pageCount = 0;
-
-			do {
-				const response = await notion.dataSources.query({
-					data_source_id: dataSource.id,
-					page_size: 100,
-					start_cursor: startCursor,
-				});
-				pageCount += 1;
-
-				for (const record of response.results) {
-					if (!isPageRecord(record)) continue;
-					for (const key of tagKeys) {
-						const items = record.properties[key]?.multi_select;
-						if (!items) continue;
-						for (const item of items) {
-							const normalized = normalizeTag(item.name ?? "");
-							if (!normalized) continue;
-							const dedupeKey = normalized.toLowerCase();
-							if (!uniqueTags.has(dedupeKey)) {
-								uniqueTags.set(dedupeKey, normalized);
-							}
-						}
-					}
-				}
-
-				startCursor = response.has_more
-					? (response.next_cursor ?? undefined)
-					: undefined;
-				if (pageCount >= MAX_QUERY_PAGES) {
-					startCursor = undefined;
-				}
-			} while (startCursor);
-
-			allTags = Array.from(uniqueTags.values());
-			cache.set(cacheKey, { data: allTags, timestamp: Date.now() });
+			let pending = inFlight.get(cacheKey);
+			if (!pending) {
+				const notion = getNotionClient(accessToken);
+				pending = loadTagsFromNotion(notion, dataSourceId)
+					.then((tags) => {
+						cache.set(cacheKey, { data: tags, timestamp: Date.now() });
+						return tags;
+					})
+					.finally(() => {
+						inFlight.delete(cacheKey);
+					});
+				inFlight.set(cacheKey, pending);
+			}
+			allTags = await pending;
 		}
 
 		const normalizedQuery = q.toLowerCase();
