@@ -37,7 +37,7 @@ const PROPERTY_SPECS: Record<string, PropertySpec> = {
 
 const PROPERTY_SPECS_ENTRIES = Object.entries(PROPERTY_SPECS);
 
-function createNotionClient(): Client {
+export function createNotionClient(): Client {
 	const apiKey = process.env["NOTION_API_KEY"];
 	if (!apiKey) {
 		throw new Error("NOTION_API_KEY が未設定です");
@@ -229,7 +229,9 @@ export async function createPaperPage(
 	const { properties } = validation ?? (await getDatabase(databaseId, client));
 
 	const has = (name: string) => !!properties[name];
-	const authors = (paper.authors ?? []).map((a) => a.name).join(", ");
+	const authors = (paper.authors ?? [])
+		.map((a: any) => (typeof a === "string" ? a : a.name))
+		.join(", ");
 	const doi = paper.externalIds?.DOI ?? "";
 	const fieldsOfStudy = paper.fieldsOfStudy ?? [];
 
