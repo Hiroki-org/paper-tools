@@ -137,3 +137,26 @@ describe("recommendFromMultiple", () => {
         expect(core.getRecommendations).not.toHaveBeenCalled();
     });
 });
+describe("recommendFromSingle", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("1つのIDから推薦結果を取得できる", async () => {
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec1", title: "R1" } as any],
+        });
+
+        const results = await recommendFromSingle("s2id-123");
+        expect(results).toHaveLength(1);
+        expect(results[0].paperId).toBe("rec1");
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("s2id-123", { limit: 10, from: "recent" });
+    });
+
+    it("recommendedPapers が未定義の場合は空配列を返す", async () => {
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({} as any);
+
+        const results = await recommendFromSingle("s2id-123");
+        expect(results).toEqual([]);
+    });
+});
