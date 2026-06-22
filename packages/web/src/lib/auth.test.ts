@@ -10,6 +10,7 @@ import {
 import { NextResponse } from "next/server";
 
 describe("auth", () => {
+
     describe("sealCookieValue and unsealCookieValue", () => {
         beforeEach(() => {
             vi.stubEnv("COOKIE_SECRET", "super-secret-key-12345");
@@ -55,6 +56,49 @@ describe("auth", () => {
             const tampered = `${invalidJsonPayload}.${sig}`;
             const unsealed = unsealCookieValue(tampered);
             expect(unsealed).toBeNull();
+        });
+
+        it("should handle sealCookieValue for different data types", () => {
+            const types = [
+                "string",
+                123,
+                true,
+                null,
+                [1, 2, 3],
+                { complex: { nested: true } }
+            ];
+
+            types.forEach(data => {
+                const sealed = sealCookieValue(data);
+                expect(unsealCookieValue(sealed)).toEqual(data);
+            });
+        });
+
+        it("should return null for malformed cookie value missing dot", () => {
+            expect(unsealCookieValue("nodothere")).toBeNull();
+        });
+
+        it("should return null for signatures of different length", () => {
+            const data = { test: true };
+            const sealed = sealCookieValue(data);
+
+            const [payload, sig] = sealed.split(".");
+            const tampered = `${payload}.${sig}A`; // Add an extra character
+
+            expect(unsealCookieValue(tampered)).toBeNull();
+        });
+
+        it("should return null for signatures of same length but invalid", () => {
+            const data = { test: true };
+            const sealed = sealCookieValue(data);
+
+            const [payload, sig] = sealed.split(".");
+            // change the last character
+            const lastChar = sig.charAt(sig.length - 1);
+            const newLastChar = lastChar === 'a' ? 'b' : 'a';
+            const tampered = `${payload}.${sig.slice(0, -1)}${newLastChar}`;
+
+            expect(unsealCookieValue(tampered)).toBeNull();
         });
 
         it("should throw error if secret is missing", () => {
