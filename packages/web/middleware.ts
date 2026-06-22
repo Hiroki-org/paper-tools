@@ -1,90 +1,95 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { ACCESS_TOKEN_COOKIE, DATABASE_ID_COOKIE } from "@/lib/auth-cookies";
+import { getBaseUrl } from "@/lib/utils/url";
 
 function isPublicPath(pathname: string) {
-    return pathname === "/privacy" || pathname === "/terms";
+	return pathname === "/privacy" || pathname === "/terms";
 }
 
 function decodeBase64Url(input: string) {
-    const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
-    const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
-    return atob(normalized + padding);
+	const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
+	const padding =
+		normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+	return atob(normalized + padding);
 }
 
 function hasValidAccessTokenShape(rawCookieValue?: string) {
-    if (!rawCookieValue) return false;
-    const [payload, signature] = rawCookieValue.split(".");
-    if (!payload || !signature) return false;
-    try {
-        const parsed = JSON.parse(decodeBase64Url(payload)) as { token?: unknown };
-        return typeof parsed.token === "string" && parsed.token.length > 0;
-    } catch {
-        return false;
-    }
+	if (!rawCookieValue) return false;
+	const [payload, signature] = rawCookieValue.split(".");
+	if (!payload || !signature) return false;
+	try {
+		const parsed = JSON.parse(decodeBase64Url(payload)) as { token?: unknown };
+		return typeof parsed.token === "string" && parsed.token.length > 0;
+	} catch {
+		return false;
+	}
 }
 
 export function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
-    const isApiRoute = pathname.startsWith("/api/");
+	const { pathname } = request.nextUrl;
+	const isApiRoute = pathname.startsWith("/api/");
 
-    if (
-        pathname.startsWith("/_next") ||
-        pathname.startsWith("/favicon.ico") ||
-        pathname.startsWith("/api/auth")
-    ) {
-        return NextResponse.next();
-    }
+	if (
+		pathname.startsWith("/_next") ||
+		pathname.startsWith("/favicon.ico") ||
+		pathname.startsWith("/api/auth")
+	) {
+		return NextResponse.next();
+	}
 
-    if (
-        pathname.startsWith("/api/search") ||
-        pathname.startsWith("/api/graph") ||
-        pathname.startsWith("/api/recommend") ||
-        pathname.startsWith("/api/resolve")
-    ) {
-        return NextResponse.next();
-    }
+	if (
+		pathname.startsWith("/api/search") ||
+		pathname.startsWith("/api/graph") ||
+		pathname.startsWith("/api/recommend") ||
+		pathname.startsWith("/api/resolve")
+	) {
+		return NextResponse.next();
+	}
 
-    if (isPublicPath(pathname)) {
-        return NextResponse.next();
-    }
+	if (isPublicPath(pathname)) {
+		return NextResponse.next();
+	}
 
-    const accessTokenRaw = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
-    const databaseId = request.cookies.get(DATABASE_ID_COOKIE)?.value;
-    const hasAccessToken = hasValidAccessTokenShape(accessTokenRaw);
+	const accessTokenRaw = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+	const databaseId = request.cookies.get(DATABASE_ID_COOKIE)?.value;
+	const hasAccessToken = hasValidAccessTokenShape(accessTokenRaw);
 
-    // Redirect authenticated users away from /login
-    if (pathname === "/login") {
-        if (hasAccessToken) {
-            if (databaseId) {
-                return NextResponse.redirect(new URL("/", request.url));
-            }
-            return NextResponse.redirect(new URL("/setup", request.url));
-        }
-        return NextResponse.next();
-    }
+	// Redirect authenticated users away from /login
+	if (pathname === "/login") {
+		if (hasAccessToken) {
+			if (databaseId) {
+				return NextResponse.redirect(new URL("/", getBaseUrl()));
+			}
+			return NextResponse.redirect(new URL("/setup", getBaseUrl()));
+		}
+		return NextResponse.next();
+	}
 
-    // Require authentication for all other routes
-    if (!hasAccessToken) {
-        if (isApiRoute) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-        return NextResponse.redirect(new URL("/login", request.url));
-    }
+	// Require authentication for all other routes
+	if (!hasAccessToken) {
+		if (isApiRoute) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+		}
+		return NextResponse.redirect(new URL("/login", getBaseUrl()));
+	}
 
-    if (!databaseId) {
-        if (pathname === "/setup" || pathname.startsWith("/api/databases")) {
-            return NextResponse.next();
-        }
-        if (isApiRoute) {
-            return NextResponse.json({ error: "Database is not selected" }, { status: 400 });
-        }
-        return NextResponse.redirect(new URL("/setup", request.url));
-    }
+	if (!databaseId) {
+		if (pathname === "/setup" || pathname.startsWith("/api/databases")) {
+			return NextResponse.next();
+		}
+		if (isApiRoute) {
+			return NextResponse.json(
+				{ error: "Database is not selected" },
+				{ status: 400 },
+			);
+		}
+		return NextResponse.redirect(new URL("/setup", getBaseUrl()));
+	}
 
-    return NextResponse.next();
+	return NextResponse.next();
 }
 
 export const config = {
-    matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+	matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
