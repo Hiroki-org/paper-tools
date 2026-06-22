@@ -109,12 +109,12 @@ describe("additional coverage", () => {
     it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
-            title: [{ plain_text: "Test" }, {}, null, { plain_text: " DB" }],
+            object: "database", id: "db-1", title: [{ plain_text: "Test" }, {}, null, { plain_text: " DB" }]
         });
         const clientWithUsers = {
             ...mockClient,
             users: {
-                me: vi.fn().mockResolvedValueOnce({ name: "Test User" }),
+                me: vi.fn().mockResolvedValueOnce({ object: "user", id: "user-1", type: "person", person: {}, name: "Test User" }),
             }
         };
 
