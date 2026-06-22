@@ -107,6 +107,13 @@ describe("author-resolver", () => {
 
             await expect(resolveAuthorId("12345")).rejects.toThrow("Author not found: 12345");
         });
+
+        it("should bubble up errors from getAuthor", async () => {
+            const apiError = new Error("API Failure");
+            vi.mocked(getAuthor).mockRejectedValueOnce(apiError);
+
+            await expect(resolveAuthorId("12345")).rejects.toThrow("API Failure");
+        });
     });
 
     describe("resolveAuthorId - single candidate search", () => {
@@ -170,6 +177,13 @@ describe("author-resolver", () => {
             mockPromptsResponse("some_id");
 
             await expect(resolveAuthorId("John Doe")).rejects.toThrow("著者IDが取得できませんでした");
+        });
+
+        it("should bubble up errors from searchAuthors", async () => {
+            const apiError = new Error("Search API Failure");
+            vi.mocked(searchAuthors).mockRejectedValueOnce(apiError);
+
+            await expect(resolveAuthorId("John Doe")).rejects.toThrow("Search API Failure");
         });
     });
 });
