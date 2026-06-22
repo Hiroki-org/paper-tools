@@ -35,24 +35,62 @@ describe("profile-builder helpers", () => {
         });
     });
 
-    it("mergeAffiliations deduplicates by name/year", () => {
-        const merged = mergeAffiliations(
-            [
+    describe("mergeAffiliations", () => {
+        it("deduplicates by name and year, ignoring case", () => {
+            const merged = mergeAffiliations(
+                [
+                    { name: "University A" },
+                    { name: "University B", year: 2021 },
+                ],
+                [
+                    { name: "university a" },
+                    { name: "University B", year: 2021 },
+                    { name: "University B", year: 2022 },
+                ],
+            );
+
+            expect(merged).toEqual([
                 { name: "University A" },
                 { name: "University B", year: 2021 },
-            ],
-            [
-                { name: "university a" },
-                { name: "University B", year: 2021 },
                 { name: "University B", year: 2022 },
-            ],
-        );
+            ]);
+        });
 
-        expect(merged).toEqual([
-            { name: "University A" },
-            { name: "University B", year: 2021 },
-            { name: "University B", year: 2022 },
-        ]);
+        it("handles empty arrays", () => {
+            expect(mergeAffiliations([], [])).toEqual([]);
+            expect(mergeAffiliations([{ name: "A" }], [])).toEqual([{ name: "A" }]);
+            expect(mergeAffiliations([], [{ name: "B" }])).toEqual([{ name: "B" }]);
+        });
+
+        it("treats missing year and undefined year as the same", () => {
+            const merged = mergeAffiliations(
+                [{ name: "A" }],
+                [{ name: "A", year: undefined }]
+            );
+            expect(merged).toEqual([{ name: "A" }]);
+        });
+
+        it("does not deduplicate when names match but years differ", () => {
+            const merged = mergeAffiliations(
+                [{ name: "A", year: 2020 }],
+                [{ name: "A", year: 2021 }]
+            );
+            expect(merged).toEqual([
+                { name: "A", year: 2020 },
+                { name: "A", year: 2021 }
+            ]);
+        });
+
+        it("does not deduplicate when names differ but years match", () => {
+            const merged = mergeAffiliations(
+                [{ name: "A", year: 2020 }],
+                [{ name: "B", year: 2020 }]
+            );
+            expect(merged).toEqual([
+                { name: "A", year: 2020 },
+                { name: "B", year: 2020 }
+            ]);
+        });
     });
 
     it("buildTopicTimelineFromPapers creates per-year topic distributions", () => {
