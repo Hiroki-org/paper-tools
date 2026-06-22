@@ -22,3 +22,39 @@ describe("bibtex-formatter additional tests", () => {
         expect(formatted).toContain("@inproceedings{test");
     });
 });
+
+describe("bibtex-formatter missing author logic tests", () => {
+    it("handles normalizing missing or empty author", () => {
+        const raw = `@article{test, title={A title}}`;
+        const result = deriveBibtexKey(raw, "short");
+        expect(result).toBeDefined();
+    });
+
+    it("formats with empty author", () => {
+        const raw = `@article{test, title={A title}}`;
+        const { formatted } = formatBibtex(raw);
+        expect(formatted).not.toContain("author");
+    });
+});
+
+describe("bibtex-formatter author normalizing tests", () => {
+    it("handles author with comma", () => {
+        const raw = `@article{test, title={A title}, author={Smith, Alice}}`;
+        const result = deriveBibtexKey(raw, "short");
+        expect(result).toBeDefined();
+    });
+});
+
+describe("bibtex-formatter string wrapping tests", () => {
+    it("handles fields wrapped with quotes", () => {
+        const raw = `@article{test, title="A title"}`;
+        const { formatted } = formatBibtex(raw);
+        expect(formatted).toContain("title = {A title}");
+    });
+
+    it("handles fields wrapped without braces or quotes", () => {
+        const raw = `@article{test, year=2024}`;
+        const { formatted } = formatBibtex(raw);
+        expect(formatted).toContain("year = {2024}");
+    });
+});
