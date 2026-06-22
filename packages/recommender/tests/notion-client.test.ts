@@ -223,3 +223,81 @@ describe("additional coverage 2", () => {
         expect(info.databaseName).toBe("(untitled database)");
     });
 });
+
+describe("additional coverage 3", () => {
+    it("createNotionClient should throw error when NOTION_API_KEY is missing", async () => {
+        const originalKey = process.env.NOTION_API_KEY;
+        delete process.env.NOTION_API_KEY;
+
+        try {
+            // Need to get access to unexported createNotionClient indirectly
+            // by calling a function that falls back to it
+            const { getDatabase } = await import("../src/notion-client.js");
+            // clear the module cache to force re-evaluation if needed, but in vitest it might not be easy.
+            // Just calling it without a client argument should trigger it.
+            await expect(getDatabase("db-1")).rejects.toThrow("NOTION_API_KEY が未設定です");
+        } finally {
+            if (originalKey) {
+                process.env.NOTION_API_KEY = originalKey;
+            }
+        }
+    });
+
+    it("getDatabase should throw error on invalid property type", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            properties: {
+                "タイトル": { type: "number" }, // expected title
+                "DOI": { type: "rich_text" }
+            },
+        });
+
+        const { getDatabase } = await import("../src/notion-client.js");
+        await expect(getDatabase("db-1", mockClient as any)).rejects.toThrow("Notion DBプロパティ型が不正です: タイトル expected=title actual=number");
+    });
+});
+
+describe("additional coverage 4", () => {
+
+
+    it("getDatabaseInfo should fall back to default workspaceName when API fails", async () => {
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: "Test DB" }]
+        });
+        const clientWithFailingUser = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockRejectedValue(new Error("API Error"))
+            }
+        };
+
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const info = await getDatabaseInfo("db-1", clientWithFailingUser as any);
+        expect(info.workspaceName).toBe("Notion Workspace");
+    });
+});
+
+describe("notion-client extra coverage", () => {
+    it("truncateRichTextContent should handle short strings", async () => {
+        const { createPaperPage } = await import("../src/notion-client.js");
+
+        const mockClient = {
+            databases: { retrieve: vi.fn() },
+            pages: { create: vi.fn() }
+        };
+
+        const validation = {
+            properties: {
+                "タイトル": { type: "title" },
+                "DOI": { type: "rich_text" },
+                "要約": { type: "rich_text" }
+            },
+            missingOptional: []
+        };
+
+        await createPaperPage("db-1", { paperId: "s2", title: "test", abstract: "short" }, mockClient as any, validation);
+
+        expect(mockClient.pages.create).toHaveBeenCalled();
+        const call = mockClient.pages.create.mock.calls[0]?.[0];
+        expect(call.properties["要約"].rich_text[0].text.content).toBe("short");
+    });
+});
