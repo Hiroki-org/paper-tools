@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import type { DatabaseObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { getAccessToken, getNotionClient } from "@/lib/auth";
 
 type DbItem = {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
             for (const result of response.results) {
                 if (result.object !== "data_source") continue;
-                const ds = result as any;
+                const ds = result as unknown as DatabaseObjectResponse;
 
                 const title = (ds.title ?? [])
                     .map((item: { plain_text?: string }) => item.plain_text ?? "")
