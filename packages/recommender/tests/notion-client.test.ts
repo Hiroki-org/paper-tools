@@ -106,6 +106,32 @@ describe("notion-client", () => {
     });
 });
 describe("additional coverage", () => {
+
+    it("getDatabaseInfo should rethrow critical errors", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        const { APIErrorCode, APIResponseError } = await import("@notionhq/client");
+
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: "Test" }],
+        });
+
+        const error = new APIResponseError({
+            code: APIErrorCode.Unauthorized,
+            status: 401,
+            message: 'API token is invalid.',
+            headers: {}
+        });
+
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockRejectedValueOnce(error),
+            }
+        };
+
+        await expect(getDatabaseInfo("db-1", clientWithUsers as any)).rejects.toThrow();
+    });
+
     it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
