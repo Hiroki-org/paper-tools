@@ -2,297 +2,329 @@ import { Client } from "@notionhq/client";
 import type { S2Paper } from "@paper-tools/core";
 
 export interface NotionPaperRecord {
-    pageId: string;
-    title: string;
-    doi?: string;
-    semanticScholarId?: string;
+	pageId: string;
+	title: string;
+	doi?: string;
+	semanticScholarId?: string;
 }
 
 type NotionPropertyType =
-    | "title"
-    | "rich_text"
-    | "number"
-    | "multi_select"
-    | "select"
-    | "url";
+	| "title"
+	| "rich_text"
+	| "number"
+	| "multi_select"
+	| "select"
+	| "url";
 
 interface PropertySpec {
-    type: NotionPropertyType;
-    required: boolean;
+	type: NotionPropertyType;
+	required: boolean;
 }
 
 const PROPERTY_SPECS: Record<string, PropertySpec> = {
-    "タイトル": { type: "title", required: true },
-    "DOI": { type: "rich_text", required: true },
-    "著者": { type: "rich_text", required: false },
-    "年": { type: "number", required: false },
-    "会議/ジャーナル": { type: "rich_text", required: false },
-    "被引用数": { type: "number", required: false },
-    "分野": { type: "multi_select", required: false },
-    "ソース": { type: "select", required: false },
-    "Open Access PDF": { type: "url", required: false },
-    "Semantic Scholar ID": { type: "rich_text", required: false },
-    "要約": { type: "rich_text", required: false },
+	タイトル: { type: "title", required: true },
+	DOI: { type: "rich_text", required: true },
+	著者: { type: "rich_text", required: false },
+	年: { type: "number", required: false },
+	"会議/ジャーナル": { type: "rich_text", required: false },
+	被引用数: { type: "number", required: false },
+	分野: { type: "multi_select", required: false },
+	ソース: { type: "select", required: false },
+	"Open Access PDF": { type: "url", required: false },
+	"Semantic Scholar ID": { type: "rich_text", required: false },
+	要約: { type: "rich_text", required: false },
 };
 
 const PROPERTY_SPECS_ENTRIES = Object.entries(PROPERTY_SPECS);
 
 function createNotionClient(): Client {
-    const apiKey = process.env["NOTION_API_KEY"];
-    if (!apiKey) {
-        throw new Error("NOTION_API_KEY が未設定です");
-    }
-    return new Client({ auth: apiKey });
+	const apiKey = process.env["NOTION_API_KEY"];
+	if (!apiKey) {
+		throw new Error("NOTION_API_KEY が未設定です");
+	}
+	return new Client({ auth: apiKey });
 }
 
 type NotionDatabase = {
-    properties: Record<string, { type: string }>;
+	properties: Record<string, { type: string }>;
 };
 
 export interface DatabaseValidationResult {
-    properties: Record<string, { type: string }>;
-    missingOptional: string[];
+	properties: Record<string, { type: string }>;
+	missingOptional: string[];
 }
 
 export interface NotionDatabaseInfo {
-    databaseId: string;
-    databaseName: string;
-    workspaceName: string;
+	databaseId: string;
+	databaseName: string;
+	workspaceName: string;
 }
 
 export interface NotionRichTextItem {
-    plain_text?: string;
+	plain_text?: string;
 }
 
 function truncateRichTextContent(text: string, maxLength = 2000): string {
-    const chars = Array.from(text);
-    if (chars.length <= maxLength) {
-        return text;
-    }
-    return `${chars.slice(0, maxLength - 1).join("")}…`;
+	const chars = Array.from(text);
+	if (chars.length <= maxLength) {
+		return text;
+	}
+	return `${chars.slice(0, maxLength - 1).join("")}…`;
 }
 
 export async function getDatabase(
-    databaseId: string,
-    client: Client = createNotionClient(),
+	databaseId: string,
+	client: Client = createNotionClient(),
 ): Promise<DatabaseValidationResult> {
-    const database = await client.databases.retrieve({ database_id: databaseId }) as unknown as NotionDatabase;
-    const properties = database.properties ?? {};
+	const database = (await client.databases.retrieve({
+		database_id: databaseId,
+	})) as unknown as NotionDatabase;
+	const properties = database.properties ?? {};
 
-    const missingRequired: string[] = [];
-    const missingOptional: string[] = [];
+	const missingRequired: string[] = [];
+	const missingOptional: string[] = [];
 
-    for (const [name, spec] of PROPERTY_SPECS_ENTRIES) {
-        const actual = properties[name];
-        if (!actual) {
-            if (spec.required) {
-                missingRequired.push(name);
-            } else {
-                missingOptional.push(name);
-            }
-            continue;
-        }
-        if (actual.type !== spec.type) {
-            throw new Error(`Notion DBプロパティ型が不正です: ${name} expected=${spec.type} actual=${actual.type}`);
-        }
-    }
+	for (const [name, spec] of PROPERTY_SPECS_ENTRIES) {
+		const actual = properties[name];
+		if (!actual) {
+			if (spec.required) {
+				missingRequired.push(name);
+			} else {
+				missingOptional.push(name);
+			}
+			continue;
+		}
+		if (actual.type !== spec.type) {
+			throw new Error(
+				`Notion DBプロパティ型が不正です: ${name} expected=${spec.type} actual=${actual.type}`,
+			);
+		}
+	}
 
-    if (missingRequired.length > 0) {
-        throw new Error(`必須プロパティが不足しています: ${missingRequired.join(", ")}`);
-    }
+	if (missingRequired.length > 0) {
+		throw new Error(
+			`必須プロパティが不足しています: ${missingRequired.join(", ")}`,
+		);
+	}
 
-    return {
-        properties,
-        missingOptional,
-    };
+	return {
+		properties,
+		missingOptional,
+	};
 }
 
 function extractPlainText(items: unknown): string {
-    if (!Array.isArray(items)) {
-        return "";
-    }
-    return items
-        .filter((t): t is NotionRichTextItem => typeof t === "object" && t !== null && "plain_text" in t)
-        .map((t) => typeof t.plain_text === "string" ? t.plain_text : "")
-        .join("")
-        .trim();
+	if (!Array.isArray(items)) {
+		return "";
+	}
+	return items
+		.filter(
+			(t): t is NotionRichTextItem =>
+				typeof t === "object" && t !== null && "plain_text" in t,
+		)
+		.map((t) => (typeof t.plain_text === "string" ? t.plain_text : ""))
+		.join("")
+		.trim();
 }
 
 export async function getDatabaseInfo(
-    databaseId: string,
-    client: Client = createNotionClient(),
+	databaseId: string,
+	client: Client = createNotionClient(),
 ): Promise<NotionDatabaseInfo> {
-    const database = await client.databases.retrieve({ database_id: databaseId }) as any;
-    const databaseName = extractPlainText(database?.title) || "(untitled database)";
+	const database = await client.databases.retrieve({ database_id: databaseId });
 
-    let workspaceName = "Notion Workspace";
-    try {
-        const me = await client.users.me({});
-        workspaceName = (me as any)?.name?.trim() || workspaceName;
-    } catch (e) {
-        console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
-    }
+	// Notion API types are not perfectly unified, we need to assert or narrow.
+	// But using `any` is a code health issue, so we'll do proper narrowing.
+	const titleProperty =
+		"title" in database && Array.isArray(database.title)
+			? database.title
+			: undefined;
 
-    return {
-        databaseId,
-        databaseName,
-        workspaceName,
-    };
+	const databaseName = extractPlainText(titleProperty) || "(untitled database)";
+
+	let workspaceName = "Notion Workspace";
+	try {
+		const me = await client.users.me({});
+		workspaceName =
+			("name" in me && typeof me.name === "string" ? me.name.trim() : null) ||
+			workspaceName;
+	} catch (e) {
+		console.warn(
+			"Failed to retrieve Notion workspace name, falling back to default:",
+			e,
+		);
+	}
+
+	return {
+		databaseId,
+		databaseName,
+		workspaceName,
+	};
 }
 
 type NotionPage = {
-    id: string;
-    properties: Record<string, any>;
+	id: string;
+	properties: Record<
+		string,
+		{ type: string; title?: unknown; rich_text?: unknown }
+	>;
 };
 
 function readTitle(page: NotionPage): string {
-    const prop = page.properties["タイトル"];
-    if (!prop || prop.type !== "title") {
-        return "";
-    }
-    const text = extractPlainText(prop.title);
-    return text;
+	const prop = page.properties["タイトル"];
+	if (!prop || prop.type !== "title") {
+		return "";
+	}
+	const text = extractPlainText(prop.title);
+	return text;
 }
 
 function readRichText(page: NotionPage, propertyName: string): string {
-    const prop = page.properties[propertyName];
-    if (!prop || prop.type !== "rich_text") {
-        return "";
-    }
-    return extractPlainText(prop.rich_text);
+	const prop = page.properties[propertyName];
+	if (!prop || prop.type !== "rich_text") {
+		return "";
+	}
+	return extractPlainText(prop.rich_text);
 }
 
 export async function queryPapers(
-    databaseId: string,
-    client: Client = createNotionClient(),
+	databaseId: string,
+	client: Client = createNotionClient(),
 ): Promise<NotionPaperRecord[]> {
-    const papers: NotionPaperRecord[] = [];
-    let cursor: string | undefined;
+	const papers: NotionPaperRecord[] = [];
+	let cursor: string | undefined;
 
-    do {
-        const response = await client.databases.query({
-            database_id: databaseId,
-            start_cursor: cursor,
-            page_size: 100,
-        });
+	do {
+		const response = await client.databases.query({
+			database_id: databaseId,
+			start_cursor: cursor,
+			page_size: 100,
+		});
 
-        for (const row of response.results as unknown as NotionPage[]) {
-            papers.push({
-                pageId: row.id,
-                title: readTitle(row),
-                doi: readRichText(row, "DOI") || undefined,
-                semanticScholarId: readRichText(row, "Semantic Scholar ID") || undefined,
-            });
-        }
+		for (const row of response.results as unknown as NotionPage[]) {
+			papers.push({
+				pageId: row.id,
+				title: readTitle(row),
+				doi: readRichText(row, "DOI") || undefined,
+				semanticScholarId:
+					readRichText(row, "Semantic Scholar ID") || undefined,
+			});
+		}
 
-        cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
-    } while (cursor);
+		cursor = response.has_more
+			? (response.next_cursor ?? undefined)
+			: undefined;
+	} while (cursor);
 
-    return papers;
+	return papers;
 }
 
 function richText(content: string) {
-    return [{ text: { content } }];
+	return [{ text: { content } }];
 }
 
 export async function createPaperPage(
-    databaseId: string,
-    paper: S2Paper,
-    client: Client = createNotionClient(),
-    validation?: DatabaseValidationResult,
+	databaseId: string,
+	paper: S2Paper,
+	client: Client = createNotionClient(),
+	validation?: DatabaseValidationResult,
 ): Promise<void> {
-    const { properties } = validation ?? await getDatabase(databaseId, client);
+	const { properties } = validation ?? (await getDatabase(databaseId, client));
 
-    const has = (name: string) => !!properties[name];
-    const authors = (paper.authors ?? []).map((a) => a.name).join(", ");
-    const doi = paper.externalIds?.DOI ?? "";
-    const fieldsOfStudy = paper.fieldsOfStudy ?? [];
+	const has = (name: string) => !!properties[name];
+	const authors = (paper.authors ?? []).map((a) => a.name).join(", ");
+	const doi = paper.externalIds?.DOI ?? "";
+	const fieldsOfStudy = paper.fieldsOfStudy ?? [];
 
-    const notionProperties: Record<string, unknown> = {
-        "タイトル": {
-            title: [{ text: { content: paper.title || "(untitled)" } }],
-        },
-        "DOI": {
-            rich_text: richText(doi),
-        },
-    };
+	const notionProperties: Record<string, unknown> = {
+		タイトル: {
+			title: [{ text: { content: paper.title || "(untitled)" } }],
+		},
+		DOI: {
+			rich_text: richText(doi),
+		},
+	};
 
-    if (has("著者") && authors) {
-        notionProperties["著者"] = { rich_text: richText(authors) };
-    }
-    if (has("年") && typeof paper.year === "number") {
-        notionProperties["年"] = { number: paper.year };
-    }
-    if (has("会議/ジャーナル") && paper.venue) {
-        notionProperties["会議/ジャーナル"] = { rich_text: richText(paper.venue) };
-    }
-    if (has("被引用数") && typeof paper.citationCount === "number") {
-        notionProperties["被引用数"] = { number: paper.citationCount };
-    }
-    if (has("分野") && fieldsOfStudy.length > 0) {
-        notionProperties["分野"] = {
-            multi_select: fieldsOfStudy.map((name) => ({ name })),
-        };
-    }
-    if (has("ソース")) {
-        notionProperties["ソース"] = { select: { name: "recommendation" } };
-    }
-    if (has("Open Access PDF") && paper.openAccessPdf?.url) {
-        notionProperties["Open Access PDF"] = { url: paper.openAccessPdf.url };
-    }
-    if (has("Semantic Scholar ID") && paper.paperId) {
-        notionProperties["Semantic Scholar ID"] = { rich_text: richText(paper.paperId) };
-    }
-    if (has("要約") && paper.abstract) {
-        notionProperties["要約"] = { rich_text: richText(truncateRichTextContent(paper.abstract, 2000)) };
-    }
+	if (has("著者") && authors) {
+		notionProperties["著者"] = { rich_text: richText(authors) };
+	}
+	if (has("年") && typeof paper.year === "number") {
+		notionProperties["年"] = { number: paper.year };
+	}
+	if (has("会議/ジャーナル") && paper.venue) {
+		notionProperties["会議/ジャーナル"] = { rich_text: richText(paper.venue) };
+	}
+	if (has("被引用数") && typeof paper.citationCount === "number") {
+		notionProperties["被引用数"] = { number: paper.citationCount };
+	}
+	if (has("分野") && fieldsOfStudy.length > 0) {
+		notionProperties["分野"] = {
+			multi_select: fieldsOfStudy.map((name) => ({ name })),
+		};
+	}
+	if (has("ソース")) {
+		notionProperties["ソース"] = { select: { name: "recommendation" } };
+	}
+	if (has("Open Access PDF") && paper.openAccessPdf?.url) {
+		notionProperties["Open Access PDF"] = { url: paper.openAccessPdf.url };
+	}
+	if (has("Semantic Scholar ID") && paper.paperId) {
+		notionProperties["Semantic Scholar ID"] = {
+			rich_text: richText(paper.paperId),
+		};
+	}
+	if (has("要約") && paper.abstract) {
+		notionProperties["要約"] = {
+			rich_text: richText(truncateRichTextContent(paper.abstract, 2000)),
+		};
+	}
 
-    await client.pages.create({
-        parent: { database_id: databaseId },
-        properties: notionProperties as any,
-    });
+	await client.pages.create({
+		parent: { database_id: databaseId },
+		properties: notionProperties as never,
+	});
 }
 
 export interface DuplicateResult {
-    duplicateDois: Set<string>;
-    duplicateTitles: Set<string>;
+	duplicateDois: Set<string>;
+	duplicateTitles: Set<string>;
 }
 
 export async function findDuplicates(
-    databaseId: string,
-    papers: S2Paper[],
-    client: Client = createNotionClient(),
+	databaseId: string,
+	papers: S2Paper[],
+	client: Client = createNotionClient(),
 ): Promise<DuplicateResult> {
-    const duplicateDois = new Set<string>();
-    const duplicateTitles = new Set<string>();
+	const duplicateDois = new Set<string>();
+	const duplicateTitles = new Set<string>();
 
-    const existing = await queryPapers(databaseId, client);
-    const existingTitles = new Set<string>();
-    const existingDois = new Set<string>();
+	const existing = await queryPapers(databaseId, client);
+	const existingTitles = new Set<string>();
+	const existingDois = new Set<string>();
 
-    for (const p of existing) {
-        if (p.title) {
-            const trimmedTitle = p.title.trim().toLowerCase();
-            if (trimmedTitle) {
-                existingTitles.add(trimmedTitle);
-            }
-        }
-        if (p.doi) {
-            existingDois.add(p.doi);
-        }
-    }
+	for (const p of existing) {
+		if (p.title) {
+			const trimmedTitle = p.title.trim().toLowerCase();
+			if (trimmedTitle) {
+				existingTitles.add(trimmedTitle);
+			}
+		}
+		if (p.doi) {
+			existingDois.add(p.doi);
+		}
+	}
 
-    for (const paper of papers) {
-        const doi = paper.externalIds?.DOI;
-        if (doi && existingDois.has(doi)) {
-            duplicateDois.add(doi);
-        }
+	for (const paper of papers) {
+		const doi = paper.externalIds?.DOI;
+		if (doi && existingDois.has(doi)) {
+			duplicateDois.add(doi);
+		}
 
-        const key = (paper.title ?? "").trim().toLowerCase();
-        if (key && existingTitles.has(key)) {
-            duplicateTitles.add(key);
-        }
-    }
+		const key = (paper.title ?? "").trim().toLowerCase();
+		if (key && existingTitles.has(key)) {
+			duplicateTitles.add(key);
+		}
+	}
 
-    return { duplicateDois, duplicateTitles };
+	return { duplicateDois, duplicateTitles };
 }
