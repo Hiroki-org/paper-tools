@@ -175,8 +175,7 @@ const STOP_WORDS = new Set([
 ]);
 
 const NON_ALPHANUMERIC_REGEX = /[^a-z0-9\s-]/g;
-const WHITESPACE_REGEX = /\s+/;
-const MULTIPLE_WHITESPACE_REGEX = /\s+/g;
+const WHITESPACE_REGEX = /\s+/g;
 
 /**
  * drilldown 結果の型
@@ -212,7 +211,7 @@ export async function drilldown(
 			const normalizedTitle = p.title
 				.toLowerCase()
 				.trim()
-				.replace(MULTIPLE_WHITESPACE_REGEX, " ");
+				.replace(WHITESPACE_REGEX, " ");
 			seenTitles.add(normalizedTitle);
 		}
 	}
@@ -237,7 +236,7 @@ export async function drilldown(
 				const normalizedTitle = p.title
 					.toLowerCase()
 					.trim()
-					.replace(MULTIPLE_WHITESPACE_REGEX, " ");
+					.replace(WHITESPACE_REGEX, " ");
 				if (seenTitles.has(normalizedTitle)) return false;
 				seenTitles.add(normalizedTitle);
 			}
@@ -324,7 +323,11 @@ export function extractKeywords(papers: Paper[], topN = 10): string[] {
  * @param text - トークン化対象のテキスト
  * @returns ストップワードが除去されたトークン配列
  */
-function tokenize(text: string): string[] {
+function tokenize(text: string | undefined | null): string[] {
+	if (!text) {
+		return [];
+	}
+
 	return text
 		.toLowerCase()
 		.replace(NON_ALPHANUMERIC_REGEX, " ")

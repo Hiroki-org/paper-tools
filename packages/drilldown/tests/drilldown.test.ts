@@ -296,7 +296,7 @@ describe("drilldown", () => {
             { title: "Software Testing with AI", authors: [{ name: "Alice" }], doi: "10.1234/seed" },
         ];
 
-        const results = await drilldown(seedPapers, 1, 10, true);
+        await drilldown(seedPapers, 1, 10, true);
 
         expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[drilldown] Enrichment failed at level 1: String error"));
 
