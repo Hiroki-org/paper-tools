@@ -8,6 +8,7 @@ describe("setCacheWithPruning", () => {
 	beforeEach(() => {
 		mockCache = new Map();
 		vi.useFakeTimers();
+		vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
 	});
 
 	afterEach(() => {
@@ -60,11 +61,12 @@ describe("setCacheWithPruning", () => {
 			mockCache.set(`key${i}`, { data: `data${i}`, timestamp: now });
 		}
 
+		const existingKey = `key${Math.floor(MAX_CACHE_SIZE / 2)}`;
 		const updatedEntry = { data: "updated", timestamp: now };
-		setCacheWithPruning("key5", updatedEntry, mockCache);
+		setCacheWithPruning(existingKey, updatedEntry, mockCache);
 
 		expect(mockCache.size).toBe(MAX_CACHE_SIZE);
 		expect(mockCache.has("key0")).toBe(true); // Should not evict key0
-		expect(mockCache.get("key5")).toEqual(updatedEntry);
+		expect(mockCache.get(existingKey)).toEqual(updatedEntry);
 	});
 });
