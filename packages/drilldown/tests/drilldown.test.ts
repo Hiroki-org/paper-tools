@@ -200,6 +200,109 @@ describe("drilldown", () => {
         expect(hasDuplicate).toBe(false);
     });
 
+
+    it("should deduplicate papers by title when DOI is missing", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    title: " Seed Paper ",
+                                    authors: { author: [{ text: "Alice" }] },
+                                    year: "2024",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const seedPapers = [
+            { title: "Seed   Paper", authors: [{ name: "Alice" }] },
+        ];
+
+        const results = await drilldown(seedPapers, 1, 10);
+        expect(results.length).toBe(1);
+    });
+
+
+
+    it("should fallback to exact title deduplication if missing DOI and normal deduplication misses", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    title: "Exact Title Match",
+                                    authors: { author: [{ text: "Alice" }] },
+                                    year: "2024",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const seedPapers = [
+            { title: "Exact Title Match", authors: [{ name: "Alice" }] },
+        ];
+
+        const results = await drilldown(seedPapers, 1, 10);
+        expect(results.length).toBe(1);
+    });
+
+
+
+    it("should handle background enrichment failures when promise rejects completely", async () => {
+        const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+        mockFetch.mockImplementationOnce(async () => ({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    title: "Level 1 Paper",
+                                    authors: { author: [{ text: "Bob" }] },
+                                    doi: "10.5678/level1",
+                                    year: "2024",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        }));
+
+        // Mock crossref fail
+        mockFetch.mockImplementation(async () => {
+            throw "String error";
+        });
+
+        const seedPapers = [
+            { title: "Software Testing with AI", authors: [{ name: "Alice" }], doi: "10.1234/seed" },
+        ];
+
+        const results = await drilldown(seedPapers, 1, 10, true);
+
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[drilldown] Enrichment failed at level 1: String error"));
+
+        errorSpy.mockRestore();
+    }, 15000);
+
     it("should keep original results when background enrichment fails", async () => {
         const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
