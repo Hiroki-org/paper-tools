@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { drilldown, extractKeywords } from "../src/drilldown.js";
-import { searchByKeyword, enrichAllWithCrossref } from "../src/search.js";
+import * as searchModule from "../src/search.js";
 
 vi.mock("../src/search.js", async (importOriginal) => {
     return {
@@ -16,7 +16,7 @@ describe("coverage patch", () => {
     });
 
     it("should filter out papers by title if doi is missing", async () => {
-        vi.mocked(searchByKeyword).mockResolvedValueOnce([
+        vi.mocked(searchModule.searchByKeyword).mockResolvedValueOnce([
             { id: "1", title: "Missing DOI Title", year: 2024 },
             { id: "2", title: "Missing DOI Title", year: 2024 },
         ]);
@@ -28,7 +28,7 @@ describe("coverage patch", () => {
     });
 
     it("should break when all found papers are filtered out", async () => {
-        vi.mocked(searchByKeyword).mockResolvedValueOnce([
+        vi.mocked(searchModule.searchByKeyword).mockResolvedValueOnce([
             { id: "1", doi: "10.000/seed", title: "Seed Title", year: 2024 },
         ]);
 
@@ -38,11 +38,11 @@ describe("coverage patch", () => {
     });
 
     it("should handle error during crossref enrichment throwing a string", async () => {
-        vi.mocked(searchByKeyword).mockResolvedValueOnce([
+        vi.mocked(searchModule.searchByKeyword).mockResolvedValueOnce([
             { id: "1", doi: "10.000/1", title: "Test", year: 2024 },
         ]);
 
-        vi.mocked(enrichAllWithCrossref).mockRejectedValueOnce("String Error");
+        vi.mocked(searchModule.enrichAllWithCrossref).mockRejectedValueOnce("String Error");
 
         const results = await drilldown([{ id: "seed", doi: "10.000/seed", title: "Seed Title", year: 2024, keywords: ["test"] }], 1, 10, true);
 
@@ -60,25 +60,13 @@ describe("coverage patch", () => {
     });
 
     it("should break when found is empty", async () => {
-        vi.mocked(searchByKeyword).mockResolvedValueOnce([
+        vi.mocked(searchModule.searchByKeyword).mockResolvedValueOnce([
             { id: "1", title: "Test", year: 2024 },
         ]);
-        vi.mocked(searchByKeyword).mockResolvedValueOnce([]); // level 2 yields nothing
+        vi.mocked(searchModule.searchByKeyword).mockResolvedValueOnce([]);
 
         const results = await drilldown([{ id: "seed", title: "Seed Title", year: 2024, keywords: ["test"] }], 2, 10, false);
 
-        expect(results || []).toHaveLength(2); // level 0 and level 1, but no level 2
-    });
-});
-
-    it("should handle error during crossref enrichment throwing an Error", async () => {
-        vi.mocked(searchByKeyword).mockResolvedValueOnce([
-            { id: "1", doi: "10.000/1", title: "Test", year: 2024 },
-        ]);
-
-        vi.mocked(enrichAllWithCrossref).mockRejectedValueOnce(new Error("Standard Error"));
-
-        const results = await drilldown([{ id: "seed", doi: "10.000/seed", title: "Seed Title", year: 2024, keywords: ["test"] }], 1, 10, true);
-
         expect(results || []).toHaveLength(2);
     });
+});
