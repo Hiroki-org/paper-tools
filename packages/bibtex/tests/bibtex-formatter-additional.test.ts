@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBibtex, deriveBibtexKey } from "../src/bibtex-formatter.js";
+import { formatBibtex, deriveBibtexKey, splitBibtexEntries } from "../src/bibtex-formatter.js";
 
 describe("bibtex-formatter additional tests", () => {
     it("preserves ordering of non-priority fields alphabetically", () => {
@@ -56,5 +56,26 @@ describe("bibtex-formatter string wrapping tests", () => {
         const raw = `@article{test, year=2024}`;
         const { formatted } = formatBibtex(raw);
         expect(formatted).toContain("year = {2024}");
+    });
+});
+
+describe("bibtex-formatter entry split and format coverage", () => {
+    it("handles break at braceStart -1", () => {
+        const entries = splitBibtexEntries(`@article`);
+        expect(entries).toHaveLength(0);
+    });
+
+    it("handles missing entryType in options gracefully", () => {
+        const raw = `@article{test, }`;
+        const { formatted } = formatBibtex(raw, { key: "test" });
+        expect(formatted).toContain("@article{test");
+    });
+});
+
+describe("bibtex-formatter year parsing tests", () => {
+    it("handles parsing non-numeric year gracefully", () => {
+        const raw = `@article{test, year="n.d."}`;
+        const result = deriveBibtexKey(raw, "short");
+        expect(result).toBeDefined();
     });
 });
