@@ -35,6 +35,25 @@ describe("profile-builder helpers", () => {
         });
     });
 
+    it("toCorePaper handles missing optional fields like authors", () => {
+        const mapped = toCorePaper({
+            title: "Partial Paper",
+        } as any);
+
+        expect(mapped).toEqual({
+            title: "Partial Paper",
+            authors: [],
+            doi: undefined,
+            year: undefined,
+            venue: undefined,
+            abstract: undefined,
+            url: undefined,
+            citationCount: undefined,
+            referenceCount: undefined,
+            keywords: undefined,
+        });
+    });
+
     it("mergeAffiliations deduplicates by name/year", () => {
         const merged = mergeAffiliations(
             [
