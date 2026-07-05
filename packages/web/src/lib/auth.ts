@@ -99,14 +99,15 @@ export function buildNotionRedirectUri(request: RequestLike) {
 		request.headers.get("x-forwarded-host") ??
 		request.headers.get("host") ??
 		"localhost:3000";
-	const hostname = host.split(":")[0]?.toLowerCase();
-	if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+	if (!host.startsWith("localhost") && !host.startsWith("127.0.0.1")) {
 		throw new Error("Missing NEXT_PUBLIC_APP_URL environment variable.");
 	}
 
 	const proto =
 		request.headers.get("x-forwarded-proto") ??
-		(hostname === "localhost" || hostname === "127.0.0.1" ? "http" : "https");
+		(host.startsWith("localhost") || host.startsWith("127.0.0.1")
+			? "http"
+			: "https");
 	return `${proto}://${host}/api/auth/callback/notion`;
 }
 

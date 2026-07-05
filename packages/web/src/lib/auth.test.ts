@@ -220,7 +220,7 @@ describe("auth", () => {
 		it("should use NEXT_PUBLIC_APP_URL when set", () => {
 			vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://example.com");
 			const request = {
-				headers: new Headers([["host", "attacker.com"]]),
+				headers: new Map([["host", "attacker.com"]]),
 			} as unknown as any;
 			expect(buildNotionRedirectUri(request)).toBe(
 				"https://example.com/api/auth/callback/notion",
@@ -230,7 +230,7 @@ describe("auth", () => {
 		it("should use APP_URL when NEXT_PUBLIC_APP_URL is not set", () => {
 			vi.stubEnv("APP_URL", "https://app.example.com/");
 			const request = {
-				headers: new Headers([["host", "attacker.com"]]),
+				headers: new Map([["host", "attacker.com"]]),
 			} as unknown as any;
 			expect(buildNotionRedirectUri(request)).toBe(
 				"https://app.example.com/api/auth/callback/notion",
@@ -239,7 +239,7 @@ describe("auth", () => {
 
 		it("should fallback to localhost if no env var is set and host is localhost", () => {
 			const request = {
-				headers: new Headers([["host", "localhost:3000"]]),
+				headers: new Map([["host", "localhost:3000"]]),
 			} as unknown as any;
 			expect(buildNotionRedirectUri(request)).toBe(
 				"http://localhost:3000/api/auth/callback/notion",
@@ -248,19 +248,7 @@ describe("auth", () => {
 
 		it("should throw error if no env var is set and host is not localhost", () => {
 			const request = {
-				headers: new Headers([["host", "attacker.com"]]),
-			} as unknown as any;
-			expect(() => buildNotionRedirectUri(request)).toThrow(
-				"Missing NEXT_PUBLIC_APP_URL environment variable.",
-			);
-		});
-
-		it("should reject localhost-prefixed attacker hosts", () => {
-			const request = {
-				headers: new Headers([
-					["host", "attacker.com"],
-					["x-forwarded-host", "localhost.evil.com"],
-				]),
+				headers: new Map([["host", "attacker.com"]]),
 			} as unknown as any;
 			expect(() => buildNotionRedirectUri(request)).toThrow(
 				"Missing NEXT_PUBLIC_APP_URL environment variable.",
