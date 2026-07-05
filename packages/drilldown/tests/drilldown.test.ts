@@ -56,6 +56,26 @@ describe("extractKeywords", () => {
         expect(keywords).not.toContain("in");
     });
 
+
+    it("should sort keywords by frequency and slice to topN", () => {
+        const papers = [
+            { title: "apple banana apple", authors: [] },
+            { title: "banana cherry apple apple", authors: [] },
+        ];
+        // frequencies: apple: 4, banana: 2, cherry: 1
+        const keywords = extractKeywords(papers, 2);
+        expect(keywords).toEqual(["apple", "banana"]);
+    });
+
+    it("should handle undefined title, keywords, and abstract safely", () => {
+        const papers = [
+            { title: "", authors: [] },
+            { title: "valid", authors: [], keywords: undefined, abstract: undefined },
+        ];
+        const keywords = extractKeywords(papers, 5);
+        expect(keywords).toEqual(["valid"]);
+    });
+
     it("should return empty array for empty input", () => {
         const keywords = extractKeywords([], 10);
         expect(keywords).toEqual([]);
@@ -262,6 +282,51 @@ describe("drilldown", () => {
     });
 
 
+
+
+    it("should handle successful background enrichment", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    title: "Level 1 Paper",
+                                    authors: { author: [{ text: "Bob" }] },
+                                    doi: "10.5678/level1",
+                                    year: "2024",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        // Mock crossref success
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                message: {
+                    URL: "http://dx.doi.org/10.5678/level1",
+                    "container-title": ["Journal of Testing"],
+                    "is-referenced-by-count": 42,
+                },
+            }),
+        });
+
+        const seedPapers = [
+            { title: "Software Testing", authors: [{ name: "Alice" }], doi: "10.1234/seed" },
+        ];
+
+        const results = await drilldown(seedPapers, 1, 10, true);
+
+        expect(results[1].papers[0].citationCount).toBe(42);
+    });
 
     it("should handle background enrichment failures when promise rejects completely", async () => {
         const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
