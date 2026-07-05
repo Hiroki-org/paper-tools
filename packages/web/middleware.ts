@@ -36,14 +36,6 @@ export function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    if (
-        pathname.startsWith("/api/search") ||
-        pathname.startsWith("/api/graph") ||
-        pathname.startsWith("/api/recommend") ||
-        pathname.startsWith("/api/resolve")
-    ) {
-        return NextResponse.next();
-    }
 
     if (isPublicPath(pathname)) {
         return NextResponse.next();
