@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken } from "./auth";
+import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken, setOauthStateCookie } from "./auth";
 import {
     ACCESS_TOKEN_COOKIE,
     REFRESH_TOKEN_COOKIE,
@@ -194,6 +194,90 @@ describe("auth", () => {
                 get: vi.fn().mockReturnValue({ value: sealed }),
             };
             expect(getAccessToken(cookieStore as any)).toBeNull();
+        });
+    });
+
+    describe("setOauthStateCookie", () => {
+        let mockResponse: any;
+
+        beforeEach(() => {
+            mockResponse = {
+                cookies: {
+                    set: vi.fn(),
+                },
+            };
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            vi.restoreAllMocks();
+        });
+
+        it("should set oauth state cookie with secure flag false in development on localhost", () => {
+            vi.stubEnv("NODE_ENV", "development");
+
+            const mockRequest = {
+                url: "http://localhost:3000",
+                headers: new Headers({
+                    "host": "localhost:3000"
+                })
+            };
+
+            setOauthStateCookie(mockResponse as NextResponse, "test-state", mockRequest);
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledTimes(1);
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(OAUTH_STATE_COOKIE, "test-state", {
+                httpOnly: true,
+                secure: false,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 10,
+            });
+        });
+
+        it("should set oauth state cookie with secure flag true in production", () => {
+            vi.stubEnv("NODE_ENV", "production");
+
+            const mockRequest = {
+                url: "https://example.com",
+                headers: new Headers({
+                    "host": "example.com"
+                })
+            };
+
+            setOauthStateCookie(mockResponse as NextResponse, "test-state", mockRequest);
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledTimes(1);
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(OAUTH_STATE_COOKIE, "test-state", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 10,
+            });
+        });
+
+        it("should set oauth state cookie with secure flag true if x-forwarded-proto is https", () => {
+            vi.stubEnv("NODE_ENV", "development");
+
+            const mockRequest = {
+                url: "https://example.com",
+                headers: new Headers({
+                    "host": "example.com",
+                    "x-forwarded-proto": "https"
+                })
+            };
+
+            setOauthStateCookie(mockResponse as NextResponse, "test-state", mockRequest);
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledTimes(1);
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(OAUTH_STATE_COOKIE, "test-state", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 10,
+            });
         });
     });
 });
