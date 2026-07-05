@@ -66,6 +66,14 @@ describe("profile-builder helpers", () => {
             expect(merged).toEqual([{ name: "University A" }]);
         });
 
+        it("deduplicates case-insensitively when year is also present", () => {
+            const merged = mergeAffiliations(
+                [{ name: "University A", year: 2022 }],
+                [{ name: "university a", year: 2022 }]
+            );
+            expect(merged).toEqual([{ name: "University A", year: 2022 }]);
+        });
+
         it("treats same name with and without year as distinct", () => {
             const merged = mergeAffiliations(
                 [{ name: "University A" }],
