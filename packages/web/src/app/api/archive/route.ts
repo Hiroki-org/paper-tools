@@ -161,6 +161,7 @@ export async function POST(request: NextRequest) {
             if (tagsType === "multi_select") {
                 const tagMap = new Map<string, string>();
                 for (const rawTag of body.tags) {
+                    if (typeof rawTag !== "string") continue;
                     const normalized = rawTag.trim();
                     if (!normalized) continue;
                     const dedupeKey = normalized.toLowerCase();
