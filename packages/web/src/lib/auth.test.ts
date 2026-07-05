@@ -235,9 +235,7 @@ describe("auth", () => {
             });
         });
 
-        it("should set oauth state cookie with secure flag true in production", () => {
-            vi.stubEnv("NODE_ENV", "production");
-
+        it("should set oauth state cookie with secure flag true on non-localhost hosts", () => {
             const mockRequest = {
                 url: "https://example.com",
                 headers: new Headers({
@@ -258,12 +256,10 @@ describe("auth", () => {
         });
 
         it("should set oauth state cookie with secure flag true if x-forwarded-proto is https", () => {
-            vi.stubEnv("NODE_ENV", "development");
-
             const mockRequest = {
-                url: "https://example.com",
+                url: "http://localhost:3000",
                 headers: new Headers({
-                    "host": "example.com",
+                    "host": "localhost:3000",
                     "x-forwarded-proto": "https"
                 })
             };
