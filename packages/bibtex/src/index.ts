@@ -43,11 +43,15 @@ function deriveCustomKey(rawBibtex: string, keyFormat: BibtexKeyFormat): string 
 }
 
 async function readStdinText(): Promise<string> {
-    const chunks: Buffer[] = [];
-    for await (const chunk of input) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    return Buffer.concat(chunks).toString("utf8");
+    return new Promise((resolve, reject) => {
+        let result = "";
+        input.setEncoding("utf8");
+        input.on("data", (chunk) => {
+            result += chunk;
+        });
+        input.on("error", reject);
+        input.on("end", () => resolve(result));
+    });
 }
 
 function buildValidateReport(entries: string[]): { issues: ValidateIssue[]; total: number } {
