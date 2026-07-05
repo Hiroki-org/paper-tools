@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken } from "./auth";
+import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken, setDatabaseCookie } from "./auth";
 import {
     ACCESS_TOKEN_COOKIE,
     REFRESH_TOKEN_COOKIE,
@@ -194,6 +194,118 @@ describe("auth", () => {
                 get: vi.fn().mockReturnValue({ value: sealed }),
             };
             expect(getAccessToken(cookieStore as any)).toBeNull();
+        });
+    });
+
+    describe("setDatabaseCookie", () => {
+        let mockResponse;
+
+        beforeEach(() => {
+            mockResponse = {
+                cookies: {
+                    set: vi.fn(),
+                },
+            };
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            vi.restoreAllMocks();
+        });
+
+        it("should set database cookie with secure: true in production without request", () => {
+            vi.stubEnv("NODE_ENV", "production");
+            setDatabaseCookie(mockResponse, "db-123");
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(DATABASE_ID_COOKIE, "db-123", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 60 * 24 * 30,
+            });
+        });
+
+        it("should set database cookie with secure: false in development without request", () => {
+            vi.stubEnv("NODE_ENV", "development");
+            setDatabaseCookie(mockResponse, "db-123");
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(DATABASE_ID_COOKIE, "db-123", {
+                httpOnly: true,
+                secure: false,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 60 * 24 * 30,
+            });
+        });
+
+        it("should set secure: true when request has x-forwarded-proto as https", () => {
+            const mockRequest = {
+                url: "http://example.com/api",
+                headers: {
+                    get: vi.fn().mockImplementation((name) => {
+                        if (name === "x-forwarded-proto") return "https";
+                        return null;
+                    }),
+                },
+            };
+
+            setDatabaseCookie(mockResponse, "db-123", mockRequest);
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(DATABASE_ID_COOKIE, "db-123", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 60 * 24 * 30,
+            });
+        });
+
+        it("should set secure: true when request host is not localhost", () => {
+            const mockRequest = {
+                url: "http://example.com/api",
+                headers: {
+                    get: vi.fn().mockImplementation((name) => {
+                        if (name === "x-forwarded-proto") return null;
+                        if (name === "host") return "example.com";
+                        return null;
+                    }),
+                },
+            };
+
+            setDatabaseCookie(mockResponse, "db-123", mockRequest);
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(DATABASE_ID_COOKIE, "db-123", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 60 * 24 * 30,
+            });
+        });
+
+        it("should set secure: false when request host is localhost", () => {
+            const mockRequest = {
+                url: "http://example.com/api",
+                headers: {
+                    get: vi.fn().mockImplementation((name) => {
+                        if (name === "x-forwarded-proto") return null;
+                        if (name === "host") return "localhost:3000";
+                        return null;
+                    }),
+                },
+            };
+            mockRequest.url = "http://localhost:3000/api";
+
+            setDatabaseCookie(mockResponse, "db-123", mockRequest);
+
+            expect(mockResponse.cookies.set).toHaveBeenCalledWith(DATABASE_ID_COOKIE, "db-123", {
+                httpOnly: true,
+                secure: false,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 60 * 60 * 24 * 30,
+            });
         });
     });
 });
