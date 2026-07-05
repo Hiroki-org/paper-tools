@@ -12,7 +12,9 @@ export const runtime = "nodejs";
 
 type NotionProperty = {
 	type?: string;
-	multi_select?: Array<{ name?: string }>;
+	multi_select?:
+		| Array<{ name?: string }>
+		| { options?: Array<{ name?: string }> };
 };
 
 const MAX_QUERY_PAGES = 8;
@@ -28,10 +30,37 @@ if (!_globalEnv.__tagSuggestInFlight) {
 
 async function fetchTagsForDataSource(
 	notion: ReturnType<typeof getNotionClient>,
-	dataSource: { id: string },
+	dataSource: { id: string; properties?: Record<string, NotionProperty> },
 	tagKeys: string[],
 ): Promise<string[]> {
 	const uniqueTags = new Map<string, string>();
+
+	if (dataSource.properties) {
+		let hasSchemaOptions = false;
+		for (const key of tagKeys) {
+			const prop = dataSource.properties[key]?.multi_select;
+			if (
+				prop &&
+				!Array.isArray(prop) &&
+				prop.options &&
+				Array.isArray(prop.options)
+			) {
+				hasSchemaOptions = true;
+				for (const opt of prop.options) {
+					const normalized = normalizeTag(opt.name ?? "");
+					if (!normalized) continue;
+					const dedupeKey = normalized.toLowerCase();
+					if (!uniqueTags.has(dedupeKey)) {
+						uniqueTags.set(dedupeKey, normalized);
+					}
+				}
+			}
+		}
+		if (hasSchemaOptions) {
+			return Array.from(uniqueTags.values());
+		}
+	}
+
 	let startCursor: string | undefined;
 	let pageCount = 0;
 
@@ -46,7 +75,9 @@ async function fetchTagsForDataSource(
 		for (const record of response.results) {
 			if (!isPageRecord(record)) continue;
 			for (const key of tagKeys) {
-				const items = record.properties[key]?.multi_select;
+				const prop = record.properties[key]?.multi_select;
+				if (!prop) continue;
+				const items = Array.isArray(prop) ? prop : prop.options;
 				if (!items) continue;
 				for (const item of items) {
 					const normalized = normalizeTag(item.name ?? "");

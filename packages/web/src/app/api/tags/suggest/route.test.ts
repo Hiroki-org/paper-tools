@@ -38,7 +38,17 @@ describe("/api/tags/suggest GET", () => {
         resolveNotionDataSourceMock.mockResolvedValueOnce({
             id: "ds-1",
             properties: {
-                Tags: { type: "multi_select" },
+                Tags: {
+                    type: "multi_select",
+                    multi_select: {
+                        options: [
+                            { name: "Machine Learning" },
+                            { name: "ML" },
+                            { name: "machine learning" },
+                            { name: "Data Mining" }
+                        ]
+                    }
+                },
             },
         });
 
