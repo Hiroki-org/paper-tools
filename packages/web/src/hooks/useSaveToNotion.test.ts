@@ -37,10 +37,8 @@ describe("useSaveToNotion", () => {
         const onSaved = vi.fn();
         const { result } = renderHook(() => useSaveToNotion({ saved: true, onSaved }));
 
-        await act(async () => {
-            await act(() => {
+        act(() => {
             result.current.save();
-        });
         });
 
         expect(fetch).not.toHaveBeenCalled();
@@ -74,6 +72,35 @@ describe("useSaveToNotion", () => {
         }));
         expect(onSaved).toHaveBeenCalledTimes(1);
         expect(result.current.error).toBeNull();
+    });
+
+    it("should do nothing after save status is done", async () => {
+        const onSaved = vi.fn();
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ success: true }),
+        } as Response);
+
+        const { result } = renderHook(() => useSaveToNotion({ paper: mockPaper, onSaved }));
+
+        act(() => {
+            result.current.save();
+        });
+
+        await waitFor(() => {
+            expect(result.current.status).toBe("done");
+        });
+
+        vi.mocked(fetch).mockClear();
+        onSaved.mockClear();
+
+        act(() => {
+            result.current.save();
+        });
+
+        expect(fetch).not.toHaveBeenCalled();
+        expect(onSaved).not.toHaveBeenCalled();
+        expect(result.current.status).toBe("done");
     });
 
     it("should resolve paper using doi if paper is not provided", async () => {
@@ -157,14 +184,15 @@ describe("useSaveToNotion", () => {
     it("should handle error when no identifiers are provided", async () => {
         const { result } = renderHook(() => useSaveToNotion({}));
 
-        await act(async () => {
-            await act(() => {
+        act(() => {
             result.current.save();
         });
+
+        await waitFor(() => {
+            expect(result.current.status).toBe("error");
         });
 
         expect(fetch).not.toHaveBeenCalled();
-        expect(result.current.status).toBe("error");
         expect(result.current.error).toBe("保存対象の DOI またはタイトルが見つかりません");
     });
 
