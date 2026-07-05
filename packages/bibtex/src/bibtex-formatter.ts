@@ -176,7 +176,11 @@ export function getValidationWarnings(parsed: ParsedBibtexEntry): string[] {
 }
 
 function createGeneratedKey(parsed: ParsedBibtexEntry, keyFormat: BibtexKeyFormat): string {
-    const authors = splitAuthors(parsed.fields.author ?? "").map(normalizeAuthor).filter(Boolean);
+    const authors = splitAuthors(parsed.fields.author ?? "").reduce((acc: string[], author) => {
+        const norm = normalizeAuthor(author);
+        if (norm) acc.push(norm);
+        return acc;
+    }, []);
     const title = normalizeWhitespace(parsed.fields.title ?? "");
     const year = parseNumericYear(parsed.fields.year);
 
@@ -248,7 +252,11 @@ export function formatBibtex(
     const parsed = parseBibtexEntry(raw);
     const warnings = getValidationWarnings(parsed);
 
-    const authors = splitAuthors(parsed.fields.author ?? "").map(normalizeAuthor).filter(Boolean);
+    const authors = splitAuthors(parsed.fields.author ?? "").reduce((acc: string[], author) => {
+        const norm = normalizeAuthor(author);
+        if (norm) acc.push(norm);
+        return acc;
+    }, []);
     const title = normalizeWhitespace(parsed.fields.title ?? "");
     const year = parseNumericYear(parsed.fields.year);
     const generatedKey = createGeneratedKey(parsed, options?.keyFormat ?? "default");
