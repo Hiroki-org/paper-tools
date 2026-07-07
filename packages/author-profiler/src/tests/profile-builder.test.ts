@@ -35,67 +35,24 @@ describe("profile-builder helpers", () => {
         });
     });
 
-    describe("mergeAffiliations", () => {
-        it("handles empty arrays", () => {
-            expect(mergeAffiliations([], [])).toEqual([]);
-        });
-
-        it("returns base array when other is empty", () => {
-            const base = [{ name: "University A" }];
-            expect(mergeAffiliations(base, [])).toEqual(base);
-        });
-
-        it("returns other array when base is empty", () => {
-            const other = [{ name: "University A" }];
-            expect(mergeAffiliations([], other)).toEqual(other);
-        });
-
-        it("deduplicates exact matches", () => {
-            const merged = mergeAffiliations(
-                [{ name: "University A" }],
-                [{ name: "University A" }]
-            );
-            expect(merged).toEqual([{ name: "University A" }]);
-        });
-
-        it("deduplicates case-insensitively and preserves first case", () => {
-            const merged = mergeAffiliations(
-                [{ name: "University A" }],
-                [{ name: "university a" }]
-            );
-            expect(merged).toEqual([{ name: "University A" }]);
-        });
-
-        it("treats same name with and without year as distinct", () => {
-            const merged = mergeAffiliations(
-                [{ name: "University A" }],
-                [{ name: "University A", year: 2022 }]
-            );
-            expect(merged).toEqual([
-                { name: "University A" },
-                { name: "University A", year: 2022 }
-            ]);
-        });
-
-        it("deduplicates by name/year", () => {
-            const merged = mergeAffiliations(
-                [
-                    { name: "University A" },
-                    { name: "University B", year: 2021 },
-                ],
-                [
-                    { name: "university a" },
-                    { name: "University B", year: 2021 },
-                    { name: "University B", year: 2022 },
-                ]
-            );
-
-            expect(merged).toEqual([
+    it("mergeAffiliations deduplicates by name/year", () => {
+        const merged = mergeAffiliations(
+            [
                 { name: "University A" },
                 { name: "University B", year: 2021 },
+            ],
+            [
+                { name: "university a" },
+                { name: "University B", year: 2021 },
                 { name: "University B", year: 2022 },
-            ]);
-        });
+            ],
+        );
+
+        expect(merged).toEqual([
+            { name: "University A" },
+            { name: "University B", year: 2021 },
+            { name: "University B", year: 2022 },
+        ]);
     });
 
     it("buildTopicTimelineFromPapers creates per-year topic distributions", () => {

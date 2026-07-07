@@ -89,18 +89,8 @@ function isSecureRequest(request?: RequestLike) {
 }
 
 export function buildNotionRedirectUri(request: RequestLike) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
-    if (appUrl) {
-        return `${appUrl.replace(/\/$/, "")}/api/auth/callback/notion`;
-    }
-
     const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "localhost:3000";
-    if (!host.startsWith("localhost") && !host.startsWith("127.0.0.1")) {
-        throw new Error("Missing NEXT_PUBLIC_APP_URL environment variable.");
-    }
-
-    const proto = request.headers.get("x-forwarded-proto") ??
-        (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+    const proto = request.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
     return `${proto}://${host}/api/auth/callback/notion`;
 }
 

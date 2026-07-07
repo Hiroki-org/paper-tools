@@ -6,15 +6,6 @@ function isPublicPath(pathname: string) {
     return pathname === "/privacy" || pathname === "/terms";
 }
 
-function isDatabaseOptionalApiPath(pathname: string) {
-    return (
-        pathname.startsWith("/api/search") ||
-        pathname.startsWith("/api/graph") ||
-        pathname.startsWith("/api/recommend") ||
-        pathname.startsWith("/api/resolve")
-    );
-}
-
 function decodeBase64Url(input: string) {
     const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
     const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
@@ -41,6 +32,15 @@ export function middleware(request: NextRequest) {
         pathname.startsWith("/_next") ||
         pathname.startsWith("/favicon.ico") ||
         pathname.startsWith("/api/auth")
+    ) {
+        return NextResponse.next();
+    }
+
+    if (
+        pathname.startsWith("/api/search") ||
+        pathname.startsWith("/api/graph") ||
+        pathname.startsWith("/api/recommend") ||
+        pathname.startsWith("/api/resolve")
     ) {
         return NextResponse.next();
     }
@@ -73,11 +73,7 @@ export function middleware(request: NextRequest) {
     }
 
     if (!databaseId) {
-        if (
-            pathname === "/setup" ||
-            pathname.startsWith("/api/databases") ||
-            isDatabaseOptionalApiPath(pathname)
-        ) {
+        if (pathname === "/setup" || pathname.startsWith("/api/databases")) {
             return NextResponse.next();
         }
         if (isApiRoute) {
