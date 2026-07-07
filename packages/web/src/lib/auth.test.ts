@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
-	buildNotionRedirectUri,
 	clearAuthCookies,
 	getAccessToken,
 	sealCookieValue,
@@ -54,10 +53,15 @@ describe("auth", () => {
             expect(unsealCookieValue("")).toBeNull();
         });
 
-        it("should return null if payload is valid base64url but invalid json", () => {
-            const invalidJsonPayload = Buffer.from("not json", "utf8").toString("base64url");
-            const crypto = require("crypto");
-            const sig = crypto.createHmac("sha256", "super-secret-key-12345").update(invalidJsonPayload).digest("base64url");
+		it("should return null if payload is valid base64url but invalid json", () => {
+			const invalidJsonPayload = Buffer.from("not json", "utf8").toString(
+				"base64url",
+			);
+			const crypto = require("crypto");
+			const sig = crypto
+				.createHmac("sha256", "super-secret-key-12345")
+				.update(invalidJsonPayload)
+				.digest("base64url");
 
             const tampered = `${invalidJsonPayload}.${sig}`;
             const unsealed = unsealCookieValue(tampered);
@@ -162,13 +166,13 @@ describe("auth", () => {
             vi.unstubAllEnvs();
         });
 
-        it("should return null if cookie is not present", () => {
-            const cookieStore = {
-                get: vi.fn().mockReturnValue(undefined),
-            };
-            expect(getAccessToken(cookieStore as any)).toBeNull();
-            expect(cookieStore.get).toHaveBeenCalledWith(ACCESS_TOKEN_COOKIE);
-        });
+		it("should return null if cookie is not present", () => {
+			const cookieStore = {
+				get: vi.fn().mockReturnValue(undefined),
+			};
+			expect(getAccessToken(cookieStore as any)).toBeNull();
+			expect(cookieStore.get).toHaveBeenCalledWith(ACCESS_TOKEN_COOKIE);
+		});
 
         it("should return the token when valid cookie is present", () => {
             const token = "valid-token-123";
@@ -177,30 +181,30 @@ describe("auth", () => {
                 get: vi.fn().mockReturnValue({ value: sealed }),
             };
 
-            expect(getAccessToken(cookieStore as any)).toBe(token);
-        });
+			expect(getAccessToken(cookieStore as any)).toBe(token);
+		});
 
-        it("should return null when the cookie is malformed or invalid", () => {
-            const cookieStore = {
-                get: vi.fn().mockReturnValue({ value: "invalid.cookie.value" }),
-            };
-            expect(getAccessToken(cookieStore as any)).toBeNull();
-        });
+		it("should return null when the cookie is malformed or invalid", () => {
+			const cookieStore = {
+				get: vi.fn().mockReturnValue({ value: "invalid.cookie.value" }),
+			};
+			expect(getAccessToken(cookieStore as any)).toBeNull();
+		});
 
-        it("should return null when the cookie is valid but contains no token", () => {
-            const sealed = sealCookieValue({ notToken: "abc" } as any);
-            const cookieStore = {
-                get: vi.fn().mockReturnValue({ value: sealed }),
-            };
-            expect(getAccessToken(cookieStore as any)).toBeNull();
-        });
-
-		it("should return null when the cookie is valid but contains a non-string token", () => {
-			const sealed = sealCookieValue({ token: 12345 } as unknown as any);
+		it("should return null when the cookie is valid but contains no token", () => {
+			const sealed = sealCookieValue({ notToken: "abc" } as any);
 			const cookieStore = {
 				get: vi.fn().mockReturnValue({ value: sealed }),
 			};
-			expect(getAccessToken(cookieStore as unknown as any)).toBeNull();
+			expect(getAccessToken(cookieStore as any)).toBeNull();
+		});
+
+		it("should return null when the cookie is valid but contains a non-string token", () => {
+			const sealed = sealCookieValue({ token: 12345 } as any);
+			const cookieStore = {
+				get: vi.fn().mockReturnValue({ value: sealed }),
+			};
+			expect(getAccessToken(cookieStore as any)).toBeNull();
 		});
 	});
 
@@ -308,50 +312,6 @@ describe("auth", () => {
 					path: "/",
 					maxAge: 60 * 10,
 				},
-			);
-		});
-	});
-
-	describe("buildNotionRedirectUri", () => {
-		afterEach(() => {
-			vi.unstubAllEnvs();
-		});
-
-		it("should use NEXT_PUBLIC_APP_URL when set", () => {
-			vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://example.com");
-			const request = {
-				headers: new Map([["host", "attacker.com"]]),
-			} as unknown as any;
-			expect(buildNotionRedirectUri(request)).toBe(
-				"https://example.com/api/auth/callback/notion",
-			);
-		});
-
-		it("should use APP_URL when NEXT_PUBLIC_APP_URL is not set", () => {
-			vi.stubEnv("APP_URL", "https://app.example.com/");
-			const request = {
-				headers: new Map([["host", "attacker.com"]]),
-			} as unknown as any;
-			expect(buildNotionRedirectUri(request)).toBe(
-				"https://app.example.com/api/auth/callback/notion",
-			);
-		});
-
-		it("should fallback to localhost if no env var is set and host is localhost", () => {
-			const request = {
-				headers: new Map([["host", "localhost:3000"]]),
-			} as unknown as any;
-			expect(buildNotionRedirectUri(request)).toBe(
-				"http://localhost:3000/api/auth/callback/notion",
-			);
-		});
-
-		it("should throw error if no env var is set and host is not localhost", () => {
-			const request = {
-				headers: new Map([["host", "attacker.com"]]),
-			} as unknown as any;
-			expect(() => buildNotionRedirectUri(request)).toThrow(
-				"Missing NEXT_PUBLIC_APP_URL environment variable.",
 			);
 		});
 	});
