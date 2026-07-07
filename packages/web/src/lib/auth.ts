@@ -83,7 +83,7 @@ function isSecureRequest(request?: RequestLike) {
         const forwardedProto = request.headers.get("x-forwarded-proto");
         if (forwardedProto) return forwardedProto === "https";
         const host = request.headers.get("host") ?? "";
-        return !host.startsWith("localhost");
+        return !host.startsWith("localhost") && !host.startsWith("127.0.0.1");
     }
     return process.env.NODE_ENV === "production";
 }

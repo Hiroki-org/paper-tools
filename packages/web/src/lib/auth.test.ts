@@ -254,6 +254,36 @@ describe("auth", () => {
 			);
 		});
 
+		it("should set oauth state cookie with secure flag false on 127.0.0.1", () => {
+			vi.stubEnv("NODE_ENV", "development");
+
+			const mockRequest = {
+				url: "http://127.0.0.1:3000",
+				headers: new Headers({
+					host: "127.0.0.1:3000",
+				}),
+			};
+
+			setOauthStateCookie(
+				mockResponse as NextResponse,
+				"test-state",
+				mockRequest,
+			);
+
+			expect(mockResponse.cookies.set).toHaveBeenCalledTimes(1);
+			expect(mockResponse.cookies.set).toHaveBeenCalledWith(
+				OAUTH_STATE_COOKIE,
+				"test-state",
+				{
+					httpOnly: true,
+					secure: false,
+					sameSite: "lax",
+					path: "/",
+					maxAge: 60 * 10,
+				},
+			);
+		});
+
 		it("should set oauth state cookie with secure flag true in production", () => {
 			vi.stubEnv("NODE_ENV", "production");
 
