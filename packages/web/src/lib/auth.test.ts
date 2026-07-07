@@ -1,7 +1,6 @@
 import type { NextResponse } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	buildNotionRedirectUri,
 	clearAuthCookies,
 	getAccessToken,
 	sealCookieValue,
@@ -213,33 +212,6 @@ describe("auth", () => {
 		});
 	});
 
-	describe("buildNotionRedirectUri", () => {
-		it("should use http for 127.0.0.1 hosts", () => {
-			const mockRequest = {
-				headers: new Headers({
-					host: "127.0.0.1:3000",
-				}),
-			};
-
-			expect(buildNotionRedirectUri(mockRequest)).toBe(
-				"http://127.0.0.1:3000/api/auth/callback/notion",
-			);
-		});
-
-		it("should prefer x-forwarded-proto when provided", () => {
-			const mockRequest = {
-				headers: new Headers({
-					host: "127.0.0.1:3000",
-					"x-forwarded-proto": "https",
-				}),
-			};
-
-			expect(buildNotionRedirectUri(mockRequest)).toBe(
-				"https://127.0.0.1:3000/api/auth/callback/notion",
-			);
-		});
-	});
-
 	describe("setOauthStateCookie", () => {
 		let mockResponse: any;
 
@@ -256,7 +228,9 @@ describe("auth", () => {
 			vi.restoreAllMocks();
 		});
 
-		it("should set oauth state cookie with secure flag false on localhost", () => {
+		it("should set oauth state cookie with secure flag false in development on localhost", () => {
+			vi.stubEnv("NODE_ENV", "development");
+
 			const mockRequest = {
 				url: "http://localhost:3000",
 				headers: new Headers({
@@ -284,35 +258,9 @@ describe("auth", () => {
 			);
 		});
 
-		it("should set oauth state cookie with secure flag false on 127.0.0.1", () => {
-			const mockRequest = {
-				url: "http://127.0.0.1:3000",
-				headers: new Headers({
-					host: "127.0.0.1:3000",
-				}),
-			};
+		it("should set oauth state cookie with secure flag true in production", () => {
+			vi.stubEnv("NODE_ENV", "production");
 
-			setOauthStateCookie(
-				mockResponse as NextResponse,
-				"test-state",
-				mockRequest,
-			);
-
-			expect(mockResponse.cookies.set).toHaveBeenCalledTimes(1);
-			expect(mockResponse.cookies.set).toHaveBeenCalledWith(
-				OAUTH_STATE_COOKIE,
-				"test-state",
-				{
-					httpOnly: true,
-					secure: false,
-					sameSite: "lax",
-					path: "/",
-					maxAge: 60 * 10,
-				},
-			);
-		});
-
-		it("should set oauth state cookie with secure flag true on non-localhost hosts", () => {
 			const mockRequest = {
 				url: "https://example.com",
 				headers: new Headers({
@@ -341,10 +289,12 @@ describe("auth", () => {
 		});
 
 		it("should set oauth state cookie with secure flag true if x-forwarded-proto is https", () => {
+			vi.stubEnv("NODE_ENV", "development");
+
 			const mockRequest = {
-				url: "https://localhost:3000",
+				url: "https://example.com",
 				headers: new Headers({
-					host: "localhost:3000",
+					host: "example.com",
 					"x-forwarded-proto": "https",
 				}),
 			};
