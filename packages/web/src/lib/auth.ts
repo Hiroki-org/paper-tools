@@ -83,14 +83,14 @@ function isSecureRequest(request?: RequestLike) {
         const forwardedProto = request.headers.get("x-forwarded-proto");
         if (forwardedProto) return forwardedProto === "https";
         const host = request.headers.get("host") ?? "";
-        return !host.startsWith("localhost");
+        return !host.startsWith("localhost") && !host.startsWith("127.0.0.1");
     }
     return process.env.NODE_ENV === "production";
 }
 
 export function buildNotionRedirectUri(request: RequestLike) {
     const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "localhost:3000";
-    const proto = request.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    const proto = request.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
     return `${proto}://${host}/api/auth/callback/notion`;
 }
 
