@@ -314,5 +314,36 @@ describe("auth", () => {
 				},
 			);
 		});
+
+		it("should set oauth state cookie with secure flag false if x-forwarded-proto is http", () => {
+			vi.stubEnv("NODE_ENV", "production");
+
+			const mockRequest = {
+				url: "http://example.com",
+				headers: new Headers({
+					host: "example.com",
+					"x-forwarded-proto": "http",
+				}),
+			};
+
+			setOauthStateCookie(
+				mockResponse as NextResponse,
+				"test-state",
+				mockRequest,
+			);
+
+			expect(mockResponse.cookies.set).toHaveBeenCalledTimes(1);
+			expect(mockResponse.cookies.set).toHaveBeenCalledWith(
+				OAUTH_STATE_COOKIE,
+				"test-state",
+				{
+					httpOnly: true,
+					secure: false,
+					sameSite: "lax",
+					path: "/",
+					maxAge: 60 * 10,
+				},
+			);
+		});
 	});
 });
