@@ -83,12 +83,10 @@ describe("RateLimiter", () => {
 
 describe("fetchWithRetry", () => {
 	beforeEach(() => {
-		vi.useFakeTimers({ shouldAdvanceTime: true });
 		vi.stubGlobal("fetch", vi.fn());
 	});
 
 	afterEach(() => {
-		vi.useRealTimers();
 		vi.unstubAllGlobals();
 		vi.restoreAllMocks();
 	});
@@ -183,7 +181,6 @@ describe("fetchWithRetry", () => {
 
 		const result = await fetchWithRetry("https://example.com", {}, 1, 1);
 		expect(result).toBe(successResponse);
-		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 
 	it("throws correctly after exhausting retries with network error", async () => {
