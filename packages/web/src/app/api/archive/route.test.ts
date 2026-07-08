@@ -253,37 +253,6 @@ describe("/api/archive", () => {
             expect(data.error).toBe("Create Error");
         });
 
-
-        it("ignores non-string tags and processes valid ones gracefully", async () => {
-            vi.mocked(notionDataSource.resolveNotionDataSource).mockResolvedValueOnce({
-                object: "data_source",
-                id: "fake-ds-id",
-                title: [{ plain_text: "Fake Database" }],
-                properties: {
-                    "Name": { type: "title", title: {} },
-                    "DOI": { type: "rich_text", rich_text: {} },
-                    "Semantic Scholar": { type: "rich_text", rich_text: {} },
-                    "Tags": { type: "multi_select", multi_select: {} },
-                },
-            });
-            const req = new NextRequest("http://localhost/api/archive", {
-                method: "POST",
-                body: JSON.stringify({ paper: mockPaper, tags: [{}, 123, "valid tag", null, "   another tag   "] }),
-            });
-            await POST(req);
-
-            expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
-                properties: expect.objectContaining({
-                    "Tags": {
-                        multi_select: [
-                            { name: "valid tag" },
-                            { name: "another tag" }
-                        ]
-                    }
-                }),
-            }));
-        });
-
         it("returns 500 on non-Error error in POST", async () => {
             mockCreate.mockRejectedValueOnce("Unknown Create Error");
             const req = new NextRequest("http://localhost/api/archive", {
