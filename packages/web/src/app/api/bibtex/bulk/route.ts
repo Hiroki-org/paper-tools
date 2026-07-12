@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
         if (papers.length === 0) {
             return NextResponse.json({ error: "papers は1件以上必要です" }, { status: 400 });
         }
+        if (papers.length > 50) {
+            return NextResponse.json({ error: "一度に処理できる論文は50件までです" }, { status: 400 });
+        }
 
         const format = parseFormat(body.format);
         const keyFormat = parseKeyFormat(body.keyFormat);

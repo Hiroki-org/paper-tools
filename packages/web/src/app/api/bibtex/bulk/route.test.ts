@@ -80,6 +80,16 @@ describe("/api/bibtex/bulk POST", () => {
         expect(data.error).toContain("papers");
     });
 
+    it("papers が50件を超える場合は 400", async () => {
+        const papers = Array.from({ length: 51 }, (_, i) => ({ title: `Paper ${i}` }));
+        const req = makeRequest({ papers });
+        const res = await POST(req);
+        const data = await res.json();
+
+        expect(res.status).toBe(400);
+        expect(data.error).toContain("50件");
+    });
+
     it("個別失敗は errors に集約する", async () => {
         vi.mocked(bibtex.fetchBibtex).mockResolvedValueOnce(null as any);
 
