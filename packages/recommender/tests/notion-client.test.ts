@@ -106,6 +106,30 @@ describe("notion-client", () => {
     });
 });
 describe("additional coverage", () => {
+
+    it("getDatabaseInfo should fallback to default workspace name on error", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            title: [{ plain_text: "Test DB" }],
+        });
+
+        const clientWithFailingUser = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockRejectedValueOnce(new Error("API Error")),
+            }
+        };
+
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const info = await getDatabaseInfo("db-1", clientWithFailingUser as any);
+
+        expect(info.workspaceName).toBe("Notion Workspace");
+        expect(consoleWarnSpy).toHaveBeenCalledWith("Failed to retrieve Notion workspace name, falling back to default:", expect.any(Error));
+
+        consoleWarnSpy.mockRestore();
+    });
+
     it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
