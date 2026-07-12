@@ -107,7 +107,9 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
+        const message = process.env.NODE_ENV === "development"
+            ? (error instanceof Error ? error.message : "Unknown error")
+            : "Internal Server Error";
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }
@@ -182,7 +184,9 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
+        const message = process.env.NODE_ENV === "development"
+            ? (error instanceof Error ? error.message : "Unknown error")
+            : "Internal Server Error";
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }
