@@ -177,6 +177,19 @@ const STOP_WORDS = new Set([
 const NON_ALPHANUMERIC_REGEX = /[^a-z0-9\s-]/g;
 const WHITESPACE_REGEX = /\s+/;
 const MULTIPLE_WHITESPACE_REGEX = /\s+/g;
+const HAS_MULTIPLE_WHITESPACE_REGEX = /\s{2,}|[^\S ]/;
+
+/**
+ * 論文のタイトルを正規化する（小文字化、トリム、複数空白の単一化）
+ * @param title - タイトル
+ * @returns 正規化されたタイトル
+ */
+function normalizeTitle(title: string): string {
+	const lower = title.toLowerCase().trim();
+	return HAS_MULTIPLE_WHITESPACE_REGEX.test(lower)
+		? lower.replace(MULTIPLE_WHITESPACE_REGEX, " ")
+		: lower;
+}
 
 /**
  * drilldown 結果の型
@@ -209,10 +222,7 @@ export async function drilldown(
 	for (const p of seedPapers) {
 		if (p.doi) seenDois.add(p.doi.toLowerCase());
 		if (p.title) {
-			const normalizedTitle = p.title
-				.toLowerCase()
-				.trim()
-				.replace(MULTIPLE_WHITESPACE_REGEX, " ");
+			const normalizedTitle = normalizeTitle(p.title);
 			seenTitles.add(normalizedTitle);
 		}
 	}
@@ -234,10 +244,7 @@ export async function drilldown(
 				if (seenDois.has(lower)) return false;
 				seenDois.add(lower);
 			} else if (p.title) {
-				const normalizedTitle = p.title
-					.toLowerCase()
-					.trim()
-					.replace(MULTIPLE_WHITESPACE_REGEX, " ");
+				const normalizedTitle = normalizeTitle(p.title);
 				if (seenTitles.has(normalizedTitle)) return false;
 				seenTitles.add(normalizedTitle);
 			}
