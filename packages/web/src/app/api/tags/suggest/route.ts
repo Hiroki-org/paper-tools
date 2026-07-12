@@ -43,13 +43,17 @@ async function fetchTagsForDataSource(
 		});
 		pageCount += 1;
 
+		const tagKeysLen = tagKeys.length;
 		for (const record of response.results) {
 			if (!isPageRecord(record)) continue;
-			for (const key of tagKeys) {
-				const items = record.properties[key]?.multi_select;
+			const properties = record.properties;
+			for (let i = 0; i < tagKeysLen; i++) {
+				const items = properties[tagKeys[i]]?.multi_select;
 				if (!items) continue;
 				for (const item of items) {
-					const normalized = normalizeTag(item.name ?? "");
+					const name = item.name;
+					if (!name) continue;
+					const normalized = normalizeTag(name);
 					if (!normalized) continue;
 					const dedupeKey = normalized.toLowerCase();
 					if (!uniqueTags.has(dedupeKey)) {
