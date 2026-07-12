@@ -66,6 +66,16 @@ describe("/api/resolve POST", () => {
         expect(data.paper.paperId).toBe("abc123");
     });
 
+    it("不正な型は400", async () => {
+        const res = await POST(makeRequest([{ doi: "10" }]));
+        expect(res.status).toBe(400);
+    });
+
+    it("フィールドの不正な型は無視される", async () => {
+        const res = await POST(makeRequest({ doi: 123 }));
+        expect(res.status).toBe(400);
+    });
+
     it("入力不足は400", async () => {
         const res = await POST(makeRequest({}));
         const data = await res.json();

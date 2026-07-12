@@ -13,10 +13,14 @@ function normalizeDoi(input: string) {
 
 export async function POST(request: NextRequest) {
     try {
-        const body = (await request.json()) as ResolveBody;
-        const doi = body.doi?.trim();
-        const title = body.title?.trim();
-        const s2Id = body.s2Id?.trim();
+        const rawBody = await request.json();
+        if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) {
+            return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+        }
+        const body = rawBody as Record<string, unknown>;
+        const doi = typeof body.doi === 'string' ? body.doi.trim() : undefined;
+        const title = typeof body.title === 'string' ? body.title.trim() : undefined;
+        const s2Id = typeof body.s2Id === 'string' ? body.s2Id.trim() : undefined;
 
         if (!doi && !title && !s2Id) {
             return NextResponse.json(
