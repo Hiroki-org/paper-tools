@@ -47,6 +47,7 @@ function createNotionClient(): Client {
 
 type NotionDatabase = {
     properties: Record<string, { type: string }>;
+    title?: unknown;
 };
 
 export interface DatabaseValidationResult {
@@ -122,13 +123,13 @@ export async function getDatabaseInfo(
     databaseId: string,
     client: Client = createNotionClient(),
 ): Promise<NotionDatabaseInfo> {
-    const database = await client.databases.retrieve({ database_id: databaseId }) as any;
-    const databaseName = extractPlainText(database?.title) || "(untitled database)";
+    const database = await client.databases.retrieve({ database_id: databaseId }) as unknown as NotionDatabase;
+    const databaseName = extractPlainText(database.title) || "(untitled database)";
 
     let workspaceName = "Notion Workspace";
     try {
         const me = await client.users.me({});
-        workspaceName = (me as any)?.name?.trim() || workspaceName;
+        workspaceName = (me as unknown as { name?: string })?.name?.trim() || workspaceName;
     } catch (e) {
         console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
     }
