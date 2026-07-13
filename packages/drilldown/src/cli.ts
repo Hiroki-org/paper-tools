@@ -39,7 +39,7 @@ async function outputJson(data: unknown, output?: string): Promise<void> {
 /**
  * 非同期アクション実行のヘルパー関数
  */
-async function runAction(fn: () => Promise<void>): Promise<void> {
+export async function runAction(fn: () => Promise<void>): Promise<void> {
     try {
         await fn();
     } catch (error) {
@@ -161,4 +161,7 @@ program
         });
     });
 
-program.parse();
+
+if (process.env.NODE_ENV !== 'test') {
+    program.parse();
+}
