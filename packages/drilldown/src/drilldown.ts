@@ -195,6 +195,22 @@ export interface DrilldownResult {
  * @param maxPerLevel - 各レベルで取得する最大論文数（デフォルト 10）
  * @param enrich - Crossref で情報を補完するか（デフォルト false）
  */
+
+function normalizeTitle(title: string): string {
+	let normalized = title.toLowerCase().trim();
+	if (
+		normalized.includes("  ") ||
+		normalized.includes("\n") ||
+		normalized.includes("\t") ||
+		normalized.includes("\r") ||
+		normalized.includes("\xA0") ||
+		normalized.includes("\u200B")
+	) {
+		normalized = normalized.replace(MULTIPLE_WHITESPACE_REGEX, " ");
+	}
+	return normalized;
+}
+
 export async function drilldown(
 	seedPapers: Paper[],
 	depth = 1,
@@ -209,11 +225,7 @@ export async function drilldown(
 	for (const p of seedPapers) {
 		if (p.doi) seenDois.add(p.doi.toLowerCase());
 		if (p.title) {
-			const normalizedTitle = p.title
-				.toLowerCase()
-				.trim()
-				.replace(MULTIPLE_WHITESPACE_REGEX, " ");
-			seenTitles.add(normalizedTitle);
+			seenTitles.add(normalizeTitle(p.title));
 		}
 	}
 
@@ -234,10 +246,7 @@ export async function drilldown(
 				if (seenDois.has(lower)) return false;
 				seenDois.add(lower);
 			} else if (p.title) {
-				const normalizedTitle = p.title
-					.toLowerCase()
-					.trim()
-					.replace(MULTIPLE_WHITESPACE_REGEX, " ");
+				const normalizedTitle = normalizeTitle(p.title);
 				if (seenTitles.has(normalizedTitle)) return false;
 				seenTitles.add(normalizedTitle);
 			}
