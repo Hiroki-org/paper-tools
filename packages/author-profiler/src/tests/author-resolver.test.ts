@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { getAuthor, searchAuthors } from "@paper-tools/core";
 import prompts from "prompts";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	looksLikeAuthorId,
 	resolveAuthorId,
@@ -30,43 +30,9 @@ const CACHE_FILE = join(CACHE_DIR, "resolver-cache.json");
 
 describe("author-resolver", () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
+		vi.resetAllMocks();
 		// By default, make readFile throw so readCache returns {}
 		vi.mocked(readFile).mockRejectedValue(new Error("File not found"));
-	});
-
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
-	describe("cache tests", () => {
-		it("should return empty object on readCache error", async () => {
-			// Make readFile reject to test catch block in readCache
-			vi.mocked(readFile).mockRejectedValueOnce(new Error("File error"));
-			mockSearchResponse([{ authorId: "id1", name: "Single Author" }]);
-			const result = await resolveAuthorId("Single Author Query");
-			expect(result).toEqual({ authorId: "id1", name: "Single Author" });
-		});
-	});
-
-	describe("candidates search single item edgecase without authorId tests", () => {
-		it('should use authorId ?? "" for resolved single candidate without authorId to throw correctly', async () => {
-			mockSearchResponse([{ name: "Single Author No ID" }]);
-			await expect(resolveAuthorId("Single Author Query")).rejects.toThrow(
-				"著者IDが取得できませんでした",
-			);
-		});
-
-		it("should handle response with null data correctly fallback to empty array", async () => {
-			vi.mocked(searchAuthors).mockResolvedValueOnce(
-				{} as unknown as import("@paper-tools/core").SearchResponse<
-					import("@paper-tools/core").AuthorSearchResult
-				>,
-			);
-			await expect(resolveAuthorId("Ghost Author")).rejects.toThrow(
-				"著者が見つかりませんでした: Ghost Author",
-			);
-		});
 	});
 
 	const mockSearchResponse = (data: unknown[]) => {
@@ -89,6 +55,27 @@ describe("author-resolver", () => {
 		} as unknown as prompts.Answers<string>);
 	};
 
+	describe("cache tests", () => {
+		it("should continue with API lookup when reading the cache fails", async () => {
+			mockSearchResponse([{ authorId: "id1", name: "Single Author" }]);
+			const result = await resolveAuthorId("Single Author Query");
+			expect(result).toEqual({ authorId: "id1", name: "Single Author" });
+		});
+	});
+
+	describe("search response edge cases", () => {
+		it("should handle response with null data correctly fallback to empty array", async () => {
+			vi.mocked(searchAuthors).mockResolvedValueOnce(
+				{} as unknown as import("@paper-tools/core").SearchResponse<
+					import("@paper-tools/core").AuthorSearchResult
+				>,
+			);
+			await expect(resolveAuthorId("Ghost Author")).rejects.toThrow(
+				"著者が見つかりませんでした: Ghost Author",
+			);
+		});
+	});
+
 	describe("looksLikeAuthorId", () => {
 		it("should return true for numeric strings", () => {
 			expect(looksLikeAuthorId("123456")).toBe(true);
@@ -98,9 +85,14 @@ describe("author-resolver", () => {
 
 		it("should return false for non-numeric strings", () => {
 			expect(looksLikeAuthorId("")).toBe(false);
+			expect(looksLikeAuthorId("   ")).toBe(false);
 			expect(looksLikeAuthorId("John Doe")).toBe(false);
 			expect(looksLikeAuthorId("123a")).toBe(false);
 			expect(looksLikeAuthorId("a123")).toBe(false);
+			expect(looksLikeAuthorId("12.3")).toBe(false);
+			expect(looksLikeAuthorId("-1")).toBe(false);
+			expect(looksLikeAuthorId("+1")).toBe(false);
+			expect(looksLikeAuthorId("1e3")).toBe(false);
 		});
 	});
 
@@ -156,6 +148,12 @@ describe("author-resolver", () => {
 				"Author not found: 12345",
 			);
 		});
+
+		it("should propagate getAuthor failures", async () => {
+			vi.mocked(getAuthor).mockRejectedValueOnce(new Error("API Failure"));
+
+			await expect(resolveAuthorId("12345")).rejects.toThrow("API Failure");
+		});
 	});
 
 	describe("resolveAuthorId - single candidate search", () => {
@@ -176,6 +174,16 @@ describe("author-resolver", () => {
 
 			await expect(resolveAuthorId("Single Author Query")).rejects.toThrow(
 				"著者IDが取得できませんでした",
+			);
+		});
+
+		it("should propagate searchAuthors failures", async () => {
+			vi.mocked(searchAuthors).mockRejectedValueOnce(
+				new Error("Search API Failure"),
+			);
+
+			await expect(resolveAuthorId("John Doe")).rejects.toThrow(
+				"Search API Failure",
 			);
 		});
 	});
