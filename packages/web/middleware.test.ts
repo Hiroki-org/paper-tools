@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { middleware } from "./middleware";
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { ACCESS_TOKEN_COOKIE, DATABASE_ID_COOKIE } from "@/lib/auth-cookies";
 
 // Mock next/server
@@ -10,9 +10,9 @@ const mockJson = vi.fn();
 
 vi.mock("next/server", () => ({
     NextResponse: {
-        next: (...args: any[]) => mockNext(...args),
-        redirect: (...args: any[]) => mockRedirect(...args),
-        json: (...args: any[]) => mockJson(...args),
+        next: (...args: unknown[]) => mockNext(...args),
+        redirect: (...args: unknown[]) => mockRedirect(...args),
+        json: (...args: unknown[]) => mockJson(...args),
     },
 }));
 
@@ -22,7 +22,7 @@ function createMockRequest(url: string, cookies: Record<string, string> = {}) {
         nextUrl,
         url: nextUrl.toString(),
         cookies: {
-            get: vi.fn((key: string) => (cookies[key] ? { value: cookies[key] } : undefined)),
+            get: vi.fn((key: string) => (key in cookies ? { value: cookies[key] } : undefined)),
         },
     } as unknown as NextRequest;
 }
@@ -166,6 +166,15 @@ describe("middleware", () => {
 
             it("should allow access to /api/databases", () => {
                 const req = createMockRequest("http://localhost:3000/api/databases", {
+                    [ACCESS_TOKEN_COOKIE]: createValidToken(),
+                });
+                const res = middleware(req);
+                expect(res).toBe("next-response");
+                expect(mockNext).toHaveBeenCalled();
+            });
+
+            it("should allow access to /api/databases subpaths", () => {
+                const req = createMockRequest("http://localhost:3000/api/databases/123", {
                     [ACCESS_TOKEN_COOKIE]: createValidToken(),
                 });
                 const res = middleware(req);
