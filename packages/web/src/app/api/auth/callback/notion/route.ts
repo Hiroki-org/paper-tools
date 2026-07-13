@@ -1,3 +1,4 @@
+import { getBaseUrl } from "@/lib/utils/url";
 import { Client } from "@notionhq/client";
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const clientId = process.env.NOTION_OAUTH_CLIENT_ID;
     const clientSecret = process.env.NOTION_OAUTH_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
-        return NextResponse.redirect(new URL("/login?error=missing_oauth_config", request.url));
+        return NextResponse.redirect(new URL("/login?error=missing_oauth_config", getBaseUrl()));
     }
 
     const url = new URL(request.url);
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     const stateInCookie = request.cookies.get(OAUTH_STATE_COOKIE)?.value;
 
     if (!code || !state || !stateInCookie || state !== stateInCookie) {
-        return NextResponse.redirect(new URL("/login?error=invalid_state", request.url));
+        return NextResponse.redirect(new URL("/login?error=invalid_state", getBaseUrl()));
     }
 
     try {
@@ -35,10 +36,10 @@ export async function GET(request: NextRequest) {
         const owner = tokenResponse.owner;
         const userName = owner.type === "user" ? (owner.user as any)?.name : undefined;
 
-        const response = NextResponse.redirect(new URL("/setup", request.url));
+        const response = NextResponse.redirect(new URL("/setup", getBaseUrl()));
         const refreshToken = (tokenResponse as any).refresh_token as string | undefined;
         if (!refreshToken) {
-            return NextResponse.redirect(new URL("/login?error=missing_refresh_token", request.url));
+            return NextResponse.redirect(new URL("/login?error=missing_refresh_token", getBaseUrl()));
         }
 
         setAuthCookies(response, {
@@ -61,6 +62,6 @@ export async function GET(request: NextRequest) {
         return response;
     } catch (error) {
         const message = error instanceof Error ? error.message : "OAuth callback failed";
-        return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, request.url));
+        return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, getBaseUrl()));
     }
 }
