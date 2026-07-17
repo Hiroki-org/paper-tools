@@ -22,7 +22,7 @@ function createMockRequest(url: string, cookies: Record<string, string> = {}) {
         nextUrl,
         url: nextUrl.toString(),
         cookies: {
-            get: vi.fn((key: string) => (cookies[key] ? { value: cookies[key] } : undefined)),
+            get: vi.fn((key: string) => (cookies[key] !== undefined ? { value: cookies[key] } : undefined)),
         },
     } as unknown as NextRequest;
 }
