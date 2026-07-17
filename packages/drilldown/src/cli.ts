@@ -44,7 +44,7 @@ async function runAction(fn: () => Promise<void>): Promise<void> {
         await fn();
     } catch (error) {
         console.error("Error:", error instanceof Error ? error.message : error);
-        process.exit(1);
+        if (process.env.NODE_ENV === "test") throw new Error("process.exit(1)"); else process.exit(1);
     }
 }
 
@@ -61,7 +61,7 @@ program
     .option("--enrich", "Crossref で情報を補完する", false)
     .option("-o, --output <file>", "出力JSONファイル")
     .action((keyword: string, options: { limit?: string; enrich?: boolean; output?: string }) => {
-        runAction(async () => {
+        return runAction(async () => {
             const limit = parsePositiveInt(options.limit || "30", "--limit");
             let papers = await searchByKeyword(keyword, limit);
             if (options.enrich) {
@@ -80,7 +80,7 @@ program
     .option("--enrich", "Crossref で情報を補完する", false)
     .option("-o, --output <file>", "出力JSONファイル")
     .action((venue: string, options: { year?: string; limit?: string; enrich?: boolean; output?: string }) => {
-        runAction(async () => {
+        return runAction(async () => {
             const limit = parsePositiveInt(options.limit || "100", "--limit");
             const year = options.year ? parsePositiveInt(options.year, "--year") : undefined;
             let papers = await searchByVenue(venue, year, limit);
@@ -98,7 +98,7 @@ program
     .option("--limit <n>", "最大取得件数", "20")
     .option("-o, --output <file>", "出力JSONファイル")
     .action((query: string, options: { limit?: string; output?: string }) => {
-        runAction(async () => {
+        return runAction(async () => {
             const limit = parsePositiveInt(options.limit || "20", "--limit");
             const papers = await searchCrossref(query, limit);
             await outputJson(papers, options.output);
@@ -121,7 +121,7 @@ program
         enrich?: boolean;
         output?: string;
     }) => {
-        runAction(async () => {
+        return runAction(async () => {
             const seedLimit = parsePositiveInt(options.seedLimit || "10", "--seed-limit");
             const depth = parsePositiveInt(options.depth || "1", "--depth");
             const maxPerLevel = parsePositiveInt(options.maxPerLevel || "10", "--max-per-level");
@@ -130,7 +130,7 @@ program
             const seedPapers = await searchByKeyword(keyword, seedLimit);
             if (seedPapers.length === 0) {
                 console.error("シード検索結果が 0 件です");
-                process.exit(1);
+                if (process.env.NODE_ENV === "test") throw new Error("process.exit(1)"); else process.exit(1);
             }
 
             const results = await drilldown(seedPapers, depth, maxPerLevel, enrich);
@@ -146,14 +146,14 @@ program
     .option("--top <n>", "出力するキーワード数", "10")
     .option("-o, --output <file>", "出力JSONファイル")
     .action((keyword: string, options: { limit?: string; top?: string; output?: string }) => {
-        runAction(async () => {
+        return runAction(async () => {
             const limit = parsePositiveInt(options.limit || "20", "--limit");
             const topN = parsePositiveInt(options.top || "10", "--top");
 
             const papers = await searchByKeyword(keyword, limit);
             if (papers.length === 0) {
                 console.error("検索結果が 0 件です");
-                process.exit(1);
+                if (process.env.NODE_ENV === "test") throw new Error("process.exit(1)"); else process.exit(1);
             }
 
             const keywords = extractKeywords(papers, topN);
@@ -161,4 +161,8 @@ program
         });
     });
 
-program.parse();
+if (process.env.NODE_ENV !== "test") {
+    program.parse();
+}
+
+export { program };
