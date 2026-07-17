@@ -284,10 +284,20 @@ export async function drilldown(
  */
 export function extractKeywords(papers: Paper[], topN = 10): string[] {
 	const freq = new Map<string, number>();
+	const tokenCache = new Map<string, string[]>();
+
+	const getTokens = (text: string) => {
+		let tokens = tokenCache.get(text);
+		if (!tokens) {
+			tokens = tokenize(text);
+			tokenCache.set(text, tokens);
+		}
+		return tokens;
+	};
 
 	for (const paper of papers) {
 		// タイトルからトークン抽出
-		const titleTokens = tokenize(paper.title);
+		const titleTokens = getTokens(paper.title);
 		for (const token of titleTokens) {
 			freq.set(token, (freq.get(token) ?? 0) + 1);
 		}
@@ -295,7 +305,7 @@ export function extractKeywords(papers: Paper[], topN = 10): string[] {
 		// 既存キーワード（tokenize適用）
 		if (paper.keywords) {
 			for (const kw of paper.keywords) {
-				const tokens = tokenize(kw);
+				const tokens = getTokens(kw);
 				for (const token of tokens) {
 					freq.set(token, (freq.get(token) ?? 0) + 2);
 				}
@@ -304,7 +314,7 @@ export function extractKeywords(papers: Paper[], topN = 10): string[] {
 
 		// abstract からもトークン抽出
 		if (paper.abstract) {
-			const abstractTokens = tokenize(paper.abstract);
+			const abstractTokens = getTokens(paper.abstract);
 			for (const token of abstractTokens) {
 				freq.set(token, (freq.get(token) ?? 0) + 1);
 			}
