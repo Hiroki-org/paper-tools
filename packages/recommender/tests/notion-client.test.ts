@@ -106,10 +106,13 @@ describe("notion-client", () => {
     });
 });
 describe("additional coverage", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     it("queryPapers should handle pagination with next_cursor", async () => {
         const { queryPapers } = await import("../src/notion-client.js");
 
-        mockClient.databases.query.mockReset(); // Make sure to reset to clear any previous calls
         mockClient.databases.query
             .mockResolvedValueOnce({
                 results: [
@@ -162,7 +165,6 @@ describe("additional coverage", () => {
     it("queryPapers should terminate if has_more is true but next_cursor is null", async () => {
         const { queryPapers } = await import("../src/notion-client.js");
 
-        mockClient.databases.query.mockReset(); // Make sure to reset to clear any previous calls
         mockClient.databases.query.mockResolvedValueOnce({
             results: [
                 {
@@ -180,6 +182,7 @@ describe("additional coverage", () => {
 
         expect(papers.length).toBe(1);
         expect(papers[0].title).toBe("Page 1");
+        expect(papers[0].pageId).toBe("page-1");
         expect(mockClient.databases.query).toHaveBeenCalledTimes(1);
     });
 
