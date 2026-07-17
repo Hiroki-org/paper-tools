@@ -43,19 +43,19 @@ async function fetchTagsForDataSource(
 		});
 		pageCount += 1;
 
-		for (const record of response.results) {
-			if (!isPageRecord(record)) continue;
-			for (const key of tagKeys) {
-				const items = record.properties[key]?.multi_select;
-				if (!items) continue;
-				for (const item of items) {
-					const normalized = normalizeTag(item.name ?? "");
-					if (!normalized) continue;
-					const dedupeKey = normalized.toLowerCase();
-					if (!uniqueTags.has(dedupeKey)) {
-						uniqueTags.set(dedupeKey, normalized);
-					}
-				}
+		const allItems = response.results.flatMap((record) => {
+			if (!isPageRecord(record)) return [];
+			return tagKeys.flatMap(
+				(key) => record.properties[key]?.multi_select ?? [],
+			);
+		});
+
+		for (const item of allItems) {
+			const normalized = normalizeTag(item.name ?? "");
+			if (!normalized) continue;
+			const dedupeKey = normalized.toLowerCase();
+			if (!uniqueTags.has(dedupeKey)) {
+				uniqueTags.set(dedupeKey, normalized);
 			}
 		}
 
