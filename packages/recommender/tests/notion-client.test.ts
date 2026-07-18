@@ -106,6 +106,83 @@ describe("notion-client", () => {
     });
 });
 describe("additional coverage", () => {
+    it("queryPapers should handle pagination with next_cursor", async () => {
+        const { queryPapers } = await import("../src/notion-client.js");
+
+        mockClient.databases.query.mockReset(); // Make sure to reset to clear any previous calls
+        mockClient.databases.query
+            .mockResolvedValueOnce({
+                results: [
+                    {
+                        id: "page-1",
+                        properties: {
+                            "タイトル": { type: "title", title: [{ plain_text: "Page 1" }] },
+                            "DOI": { type: "rich_text", rich_text: [{ plain_text: "10.1000/page1" }] },
+                        },
+                    },
+                ],
+                has_more: true,
+                next_cursor: "cursor-2",
+            })
+            .mockResolvedValueOnce({
+                results: [
+                    {
+                        id: "page-2",
+                        properties: {
+                            "タイトル": { type: "title", title: [{ plain_text: "Page 2" }] },
+                            "DOI": { type: "rich_text", rich_text: [{ plain_text: "10.1000/page2" }] },
+                        },
+                    },
+                ],
+                has_more: false,
+                next_cursor: null,
+            });
+
+        const papers = await queryPapers("db-1", mockClient as any);
+
+        expect(papers.length).toBe(2);
+        expect(papers[0].title).toBe("Page 1");
+        expect(papers[0].pageId).toBe("page-1");
+        expect(papers[1].title).toBe("Page 2");
+        expect(papers[1].pageId).toBe("page-2");
+
+        expect(mockClient.databases.query).toHaveBeenCalledTimes(2);
+        expect(mockClient.databases.query).toHaveBeenNthCalledWith(1, {
+            database_id: "db-1",
+            start_cursor: undefined,
+            page_size: 100,
+        });
+        expect(mockClient.databases.query).toHaveBeenNthCalledWith(2, {
+            database_id: "db-1",
+            start_cursor: "cursor-2",
+            page_size: 100,
+        });
+    });
+
+    it("queryPapers should terminate if has_more is true but next_cursor is null", async () => {
+        const { queryPapers } = await import("../src/notion-client.js");
+
+        mockClient.databases.query.mockReset(); // Make sure to reset to clear any previous calls
+        mockClient.databases.query.mockResolvedValueOnce({
+            results: [
+                {
+                    id: "page-1",
+                    properties: {
+                        "タイトル": { type: "title", title: [{ plain_text: "Page 1" }] },
+                    },
+                },
+            ],
+            has_more: true,
+            next_cursor: null,
+        });
+
+        const papers = await queryPapers("db-1", mockClient as any);
+
+        expect(papers.length).toBe(1);
+        expect(papers[0].title).toBe("Page 1");
+        expect(mockClient.databases.query).toHaveBeenCalledTimes(1);
+    });
+
     it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
