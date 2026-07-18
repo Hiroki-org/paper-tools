@@ -107,7 +107,6 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error("Failed to fetch archive:", error);
         const message = process.env.NODE_ENV === "development"
             ? (error instanceof Error ? error.message : "Unknown error")
             : "Internal Server Error";
@@ -185,7 +184,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error("Failed to create archive entry:", error);
         const message = process.env.NODE_ENV === "development"
             ? (error instanceof Error ? error.message : "Unknown error")
             : "Internal Server Error";
