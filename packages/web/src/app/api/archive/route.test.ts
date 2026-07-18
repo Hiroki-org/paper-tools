@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({
@@ -44,6 +44,11 @@ describe("/api/archive", () => {
                 "Semantic Scholar": { type: "rich_text", rich_text: {} },
             },
         });
+    });
+
+    afterEach(() => {
+        vi.unstubAllEnvs();
+        vi.restoreAllMocks();
     });
 
     describe("GET", () => {
@@ -126,21 +131,35 @@ describe("/api/archive", () => {
         });
 
         it("returns 500 on error", async () => {
-            mockQuery.mockRejectedValueOnce(new Error("Notion API Error"));
+            vi.stubEnv("NODE_ENV", "production");
+            const error = new Error("Notion API Error");
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            mockQuery.mockRejectedValueOnce(error);
             const req = new NextRequest("http://localhost/api/archive");
             const res = await GET(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Notion API Error" : "Internal Server Error");
+            expect(data.error).toBe("Internal Server Error");
+            expect(consoleError).toHaveBeenCalledWith("Failed to fetch archive:", error);
+        });
+
+        it("returns error details in development", async () => {
+            vi.stubEnv("NODE_ENV", "development");
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            mockQuery.mockRejectedValueOnce(new Error("Notion API Error"));
+            const res = await GET(new NextRequest("http://localhost/api/archive"));
+            expect((await res.json()).error).toBe("Notion API Error");
         });
 
         it("returns 500 on non-Error error", async () => {
+            vi.stubEnv("NODE_ENV", "production");
+            vi.spyOn(console, "error").mockImplementation(() => {});
             mockQuery.mockRejectedValueOnce("Unknown Error String");
             const req = new NextRequest("http://localhost/api/archive");
             const res = await GET(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Unknown error" : "Internal Server Error");
+            expect(data.error).toBe("Internal Server Error");
         });
     });
 
@@ -242,7 +261,10 @@ describe("/api/archive", () => {
         });
 
         it("returns 500 on error", async () => {
-            mockCreate.mockRejectedValueOnce(new Error("Create Error"));
+            vi.stubEnv("NODE_ENV", "production");
+            const error = new Error("Create Error");
+            const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+            mockCreate.mockRejectedValueOnce(error);
             const req = new NextRequest("http://localhost/api/archive", {
                 method: "POST",
                 body: JSON.stringify({ paper: mockPaper }),
@@ -250,10 +272,25 @@ describe("/api/archive", () => {
             const res = await POST(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Create Error" : "Internal Server Error");
+            expect(data.error).toBe("Internal Server Error");
+            expect(consoleError).toHaveBeenCalledWith("Failed to create archive entry:", error);
+        });
+
+        it("returns create error details in development", async () => {
+            vi.stubEnv("NODE_ENV", "development");
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            mockCreate.mockRejectedValueOnce(new Error("Create Error"));
+            const req = new NextRequest("http://localhost/api/archive", {
+                method: "POST",
+                body: JSON.stringify({ paper: mockPaper }),
+            });
+            const res = await POST(req);
+            expect((await res.json()).error).toBe("Create Error");
         });
 
         it("returns 500 on non-Error error in POST", async () => {
+            vi.stubEnv("NODE_ENV", "production");
+            vi.spyOn(console, "error").mockImplementation(() => {});
             mockCreate.mockRejectedValueOnce("Unknown Create Error");
             const req = new NextRequest("http://localhost/api/archive", {
                 method: "POST",
@@ -262,7 +299,7 @@ describe("/api/archive", () => {
             const res = await POST(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Unknown error" : "Internal Server Error");
+            expect(data.error).toBe("Internal Server Error");
         });
     });
 });
