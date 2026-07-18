@@ -131,7 +131,7 @@ describe("/api/archive", () => {
             const res = await GET(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Notion API Error");
+            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Notion API Error" : "Internal Server Error");
         });
 
         it("returns 500 on non-Error error", async () => {
@@ -140,7 +140,7 @@ describe("/api/archive", () => {
             const res = await GET(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Unknown error");
+            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Unknown error" : "Internal Server Error");
         });
     });
 
@@ -250,7 +250,7 @@ describe("/api/archive", () => {
             const res = await POST(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Create Error");
+            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Create Error" : "Internal Server Error");
         });
 
         it("returns 500 on non-Error error in POST", async () => {
@@ -262,7 +262,7 @@ describe("/api/archive", () => {
             const res = await POST(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Unknown error");
+            expect(data.error).toBe(process.env.NODE_ENV === "development" ? "Unknown error" : "Internal Server Error");
         });
     });
 });
