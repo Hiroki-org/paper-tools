@@ -137,3 +137,65 @@ describe("recommendFromMultiple", () => {
         expect(core.getRecommendations).not.toHaveBeenCalled();
     });
 });
+describe("recommendFromSingle", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("正常に単一論文から推薦を取得できる", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+
+        // Use the mocked core module
+        const core = await import("@paper-tools/core");
+
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec1", title: "R1" } as any],
+        });
+
+        const results = await recommendFromSingle("pos1");
+        expect(results).toHaveLength(1);
+        expect(results[0].paperId).toBe("rec1");
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("pos1", {
+            limit: 10,
+            from: "recent"
+        });
+    });
+
+    it("カスタムオプションが適用される", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+        const core = await import("@paper-tools/core");
+
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [],
+        });
+
+        await recommendFromSingle("pos1", { limit: 5, from: "all-cs" });
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("pos1", {
+            limit: 5,
+            from: "all-cs"
+        });
+    });
+
+    it("recommendedPapersが未定義の場合、空配列を返す", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+        const core = await import("@paper-tools/core");
+
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({} as any);
+
+        const results = await recommendFromSingle("pos1");
+        expect(results).toEqual([]);
+    });
+
+    it("resolveToS2Idを通じてIDが解決される", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+        const core = await import("@paper-tools/core");
+
+        vi.mocked(core.getPaper).mockResolvedValueOnce({ paperId: "s2-doi", title: "t" } as any);
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [],
+        });
+
+        await recommendFromSingle("DOI:10.1000/xyz");
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("s2-doi", expect.any(Object));
+    });
+});
