@@ -61,6 +61,18 @@ describe("recommend resolveToS2Id", () => {
 
         await expect(resolveToS2Id("Unknown Title")).rejects.toThrow("タイトルから論文を解決できませんでした");
     });
+
+    it("title:プレフィックス付き入力から検索してS2IDを返す", async () => {
+        vi.mocked(core.searchPapers).mockResolvedValueOnce({
+            total: 1,
+            offset: 0,
+            data: [{ paperId: "s2-title-prefix", title: "Prefix Title" }],
+        } as any);
+
+        const id = await resolveToS2Id("title:Prefix Title");
+        expect(id).toBe("s2-title-prefix");
+        expect(core.searchPapers).toHaveBeenCalledWith("Prefix Title");
+    });
 });
 
 describe("recommendFromMultiple", () => {
@@ -135,5 +147,80 @@ describe("recommendFromMultiple", () => {
 
         expect(results).toEqual([]);
         expect(core.getRecommendations).not.toHaveBeenCalled();
+    });
+});
+
+describe("recommendFromSingle", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("1つのIDから推薦を取得できる(デフォルトオプション)", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec-single-1", title: "Single R1" } as any],
+        });
+
+        const results = await recommendFromSingle("single-id");
+        expect(results).toHaveLength(1);
+        expect(results[0].paperId).toBe("rec-single-1");
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("single-id", {
+            limit: 10,
+            from: "recent",
+        });
+    });
+
+    it("1つのIDから推薦を取得できる(カスタムオプション)", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec-single-2", title: "Single R2" } as any],
+        });
+
+        const results = await recommendFromSingle("single-id", { limit: 5, from: "all-cs" });
+        expect(results).toHaveLength(1);
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith("single-id", {
+            limit: 5,
+            from: "all-cs",
+        });
+    });
+
+    it("recommendedPapersがない場合は空配列を返す", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({} as any);
+
+        const results = await recommendFromSingle("single-id");
+        expect(results).toEqual([]);
+    });
+});
+
+describe("recommendFromMultiple (Edge Cases)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("resolveToS2Idが失敗した場合は結果に含まれない", async () => {
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+
+        vi.mocked(core.searchPapers).mockImplementation(async (query) => {
+            if (query === "bad") throw new Error("mock error");
+            return { total: 0, offset: 0, data: [] } as any;
+        });
+
+        const results = await recommendFromMultiple(["title:bad"], ["title:bad2"]);
+        expect(results).toEqual([]);
+    });
+
+    it("推薦結果がundefinedの場合は空配列を返す", async () => {
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+
+        vi.mocked(core.getRecommendations).mockResolvedValueOnce({
+            recommendedPapers: undefined,
+        });
+
+        const results = await recommendFromMultiple(["direct-id"], []);
+        expect(results).toEqual([]);
     });
 });
