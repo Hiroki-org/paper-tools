@@ -30,6 +30,17 @@ describe("auth", () => {
             expect(unsealed).toEqual(data);
         });
 
+        it("should return null if signature length does not match (prevent length extension)", () => {
+            const data = { test: true };
+            const sealed = sealCookieValue(data);
+
+            // Append extra characters to a valid signature
+            const tampered = `${sealed}abc`;
+
+            const unsealed = unsealCookieValue(tampered);
+            expect(unsealed).toBeNull();
+        });
+
         it("should return null for invalid signature", () => {
             const data = { test: true };
             const sealed = sealCookieValue(data);
