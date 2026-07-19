@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken, setDatabaseCookie } from "./auth";
+import { sealCookieValue, unsealCookieValue, clearAuthCookies, getAccessToken, setDatabaseCookie, createStateToken } from "./auth";
 import {
     ACCESS_TOKEN_COOKIE,
     REFRESH_TOKEN_COOKIE,
@@ -10,6 +10,21 @@ import {
 import { NextResponse } from "next/server";
 
 describe("auth", () => {
+    describe("createStateToken", () => {
+        it("should return a 32-character hex string", () => {
+            const token = createStateToken();
+            expect(typeof token).toBe("string");
+            expect(token).toHaveLength(32);
+            expect(/^[0-9a-f]{32}$/.test(token)).toBe(true);
+        });
+
+        it("should return unique tokens on subsequent calls", () => {
+            const token1 = createStateToken();
+            const token2 = createStateToken();
+            expect(token1).not.toBe(token2);
+        });
+    });
+
     describe("sealCookieValue and unsealCookieValue", () => {
         beforeEach(() => {
             vi.stubEnv("COOKIE_SECRET", "super-secret-key-12345");
