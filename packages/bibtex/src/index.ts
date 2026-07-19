@@ -6,6 +6,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { stdin as input } from "node:process";
 import { fetchBibtex } from "./bibtex-fetcher.js";
 import { deriveBibtexKey, formatBibtex, getValidationWarnings, parseBibtexEntry, splitBibtexEntries } from "./bibtex-formatter.js";
+import { mapWithConcurrency } from "@paper-tools/core";
 import type { BibtexFormat, BibtexKeyFormat, ValidateIssue } from "./types.js";
 import { queryPapers } from "@paper-tools/recommender";
 
@@ -156,33 +157,29 @@ program
                 console.error(`Warning: --tag はタイトル文字列ベースの簡易フィルタです (${targets.length}/${records.length})`);
             }
 
-            const results: (string | null)[] = [];
-            const BATCH_SIZE = 10;
-            for (let i = 0; i < targets.length; i += BATCH_SIZE) {
-                const batch = targets.slice(i, i + BATCH_SIZE);
-                const batchResults = await Promise.all(
-                    batch.map(async (record) => {
-                        const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
-                        if (!fetched) {
-                            console.error(`Warning: BibTeX取得失敗: ${record.title}`);
-                            return null;
-                        }
+            const results: (string | null)[] = await mapWithConcurrency(
+                targets,
+                async (record) => {
+                    const fetched = await fetchBibtex({ doi: record.doi, title: record.title });
+                    if (!fetched) {
+                        console.error(`Warning: BibTeX取得失敗: ${record.title}`);
+                        return null;
+                    }
 
-                        const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
-                        const formatted = formatBibtex(fetched.bibtex, {
-                            format,
-                            key: customKey,
-                            keyFormat,
-                        });
+                    const customKey = deriveCustomKey(fetched.bibtex, keyFormat);
+                    const formatted = formatBibtex(fetched.bibtex, {
+                        format,
+                        key: customKey,
+                        keyFormat,
+                    });
 
-                        if (formatted.warnings.length > 0) {
-                            console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
-                        }
-                        return formatted.formatted;
-                    })
-                );
-                results.push(...batchResults);
-            }
+                    if (formatted.warnings.length > 0) {
+                        console.error(`Warning (${record.title}): ${formatted.warnings.join("; ")}`);
+                    }
+                    return formatted.formatted;
+                },
+                10
+            );
             const chunks = results.filter((c): c is string => c !== null);
 
             const outputText = chunks.join("\n\n");
