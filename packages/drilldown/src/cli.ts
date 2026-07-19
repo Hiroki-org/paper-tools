@@ -19,6 +19,23 @@ const packageJson = JSON.parse(
 );
 const version = packageJson.version;
 
+
+/**
+ * 入力文字列を検証・サニタイズする
+ * @param input 検証する文字列
+ * @returns サニタイズされた文字列
+ */
+function sanitizeInput(input: string): string {
+    const trimmed = input.trim().replace(/[\x00-\x1F\x7F]/g, '');
+    if (!trimmed) {
+        throw new Error("入力が空、または無効な文字のみで構成されています");
+    }
+    if (trimmed.length > 500) {
+        throw new Error("入力が長すぎます（最大500文字）");
+    }
+    return trimmed;
+}
+
 /**
  * データを JSON フォーマットで出力する
  * 出力先ファイルが指定されている場合はファイルに書き込み、そうでない場合は stdout に出力する
@@ -63,7 +80,8 @@ program
     .action((keyword: string, options: { limit?: string; enrich?: boolean; output?: string }) => {
         runAction(async () => {
             const limit = parsePositiveInt(options.limit || "30", "--limit");
-            let papers = await searchByKeyword(keyword, limit);
+            const sanitizedKeyword = sanitizeInput(keyword);
+            let papers = await searchByKeyword(sanitizedKeyword, limit);
             if (options.enrich) {
                 papers = await enrichAllWithCrossref(papers);
             }
@@ -83,7 +101,8 @@ program
         runAction(async () => {
             const limit = parsePositiveInt(options.limit || "100", "--limit");
             const year = options.year ? parsePositiveInt(options.year, "--year") : undefined;
-            let papers = await searchByVenue(venue, year, limit);
+            const sanitizedVenue = sanitizeInput(venue);
+            let papers = await searchByVenue(sanitizedVenue, year, limit);
             if (options.enrich) {
                 papers = await enrichAllWithCrossref(papers);
             }
@@ -100,7 +119,8 @@ program
     .action((query: string, options: { limit?: string; output?: string }) => {
         runAction(async () => {
             const limit = parsePositiveInt(options.limit || "20", "--limit");
-            const papers = await searchCrossref(query, limit);
+            const sanitizedQuery = sanitizeInput(query);
+            const papers = await searchCrossref(sanitizedQuery, limit);
             await outputJson(papers, options.output);
         });
     });
@@ -127,7 +147,8 @@ program
             const maxPerLevel = parsePositiveInt(options.maxPerLevel || "10", "--max-per-level");
             const enrich = options.enrich ?? false;
 
-            const seedPapers = await searchByKeyword(keyword, seedLimit);
+            const sanitizedKeyword = sanitizeInput(keyword);
+            const seedPapers = await searchByKeyword(sanitizedKeyword, seedLimit);
             if (seedPapers.length === 0) {
                 console.error("シード検索結果が 0 件です");
                 process.exit(1);
@@ -150,14 +171,15 @@ program
             const limit = parsePositiveInt(options.limit || "20", "--limit");
             const topN = parsePositiveInt(options.top || "10", "--top");
 
-            const papers = await searchByKeyword(keyword, limit);
+            const sanitizedKeyword = sanitizeInput(keyword);
+            const papers = await searchByKeyword(sanitizedKeyword, limit);
             if (papers.length === 0) {
                 console.error("検索結果が 0 件です");
                 process.exit(1);
             }
 
             const keywords = extractKeywords(papers, topN);
-            await outputJson({ query: keyword, papersAnalyzed: papers.length, keywords }, options.output);
+            await outputJson({ query: sanitizedKeyword, papersAnalyzed: papers.length, keywords }, options.output);
         });
     });
 
