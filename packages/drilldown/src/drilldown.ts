@@ -174,8 +174,6 @@ const STOP_WORDS = new Set([
 	"various",
 ]);
 
-const NON_ALPHANUMERIC_REGEX = /[^a-z0-9\s-]/g;
-const WHITESPACE_REGEX = /\s+/;
 const MULTIPLE_WHITESPACE_REGEX = /\s+/g;
 
 /**
@@ -325,9 +323,16 @@ export function extractKeywords(papers: Paper[], topN = 10): string[] {
  * @returns ストップワードが除去されたトークン配列
  */
 function tokenize(text: string): string[] {
-	return text
-		.toLowerCase()
-		.replace(NON_ALPHANUMERIC_REGEX, " ")
-		.split(WHITESPACE_REGEX)
-		.filter((w) => w.length > 2 && !STOP_WORDS.has(w));
+	const tokens: string[] = [];
+	const lower = text.toLowerCase();
+	// Avoid chained array allocations (.split().filter()) by doing a single pass
+	// Regex matches alphanumeric words with hyphens
+	const regex = /[a-z0-9-]+/g;
+	for (const match of lower.matchAll(regex)) {
+		const w = match[0];
+		if (w.length > 2 && !STOP_WORDS.has(w)) {
+			tokens.push(w);
+		}
+	}
+	return tokens;
 }
