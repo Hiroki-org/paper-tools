@@ -232,11 +232,13 @@ export function splitBibtexEntries(input: string): string[] {
     return entries;
 }
 
+const PRIORITY_FIELDS = ["author", "title", "journal", "booktitle", "year", "doi", "url"];
+const PRIORITY_SET = new Set(PRIORITY_FIELDS);
+
 function orderedFields(fields: Record<string, string>): string[] {
-    const priority = ["author", "title", "journal", "booktitle", "year", "doi", "url"];
-    const ordered = priority.filter((name) => fields[name]);
+    const ordered = PRIORITY_FIELDS.filter((name) => fields[name]);
     const rest = Object.keys(fields)
-        .filter((name) => !priority.includes(name))
+        .filter((name) => !PRIORITY_SET.has(name))
         .sort((a, b) => a.localeCompare(b));
     return [...ordered, ...rest];
 }
