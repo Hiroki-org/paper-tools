@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { cache, CACHE_TTL_MS } from "./cache";
+import { cache } from "./cache";
 
 describe("cache", () => {
     beforeEach(() => {
