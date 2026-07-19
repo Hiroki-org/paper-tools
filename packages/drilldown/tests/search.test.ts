@@ -87,6 +87,18 @@ describe("search", () => {
         expect(enriched.citationCount).toBe(42);
     });
 
+
+    it("enrichWithCrossref should return paper as-is if Crossref returns null", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+        });
+
+        const paper = { title: "No Crossref Paper", authors: [{ name: "Alice" }], doi: "10.1234/missing" };
+        const result = await enrichWithCrossref(paper);
+        expect(result).toEqual(paper);
+    });
+
     it("enrichWithCrossref should return paper as-is if no DOI", async () => {
         const paper = { title: "No DOI Paper", authors: [{ name: "Alice" }] };
         const result = await enrichWithCrossref(paper);
