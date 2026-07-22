@@ -1,0 +1,54 @@
+Ah! The PR was closed as obsolete or rejected.
+Comment ID: 5041658062
+Body: titleがundefinedのpaperで例外になる高優先度リグレッションがあり、微小な性能改善に対して危険なため閉じます。
+Translation: "There is a high-priority regression where a paper with an undefined title causes an exception, making it too risky for a minor performance improvement. Closing."
+
+Wait! The PR was already submitted (I didn't submit it, but the environment says the reviewer commented on it).
+Wait, I am instructed to handle the feedback accordingly.
+If the PR is closed: "Closing as obsolete", acknowledge the instruction and confirm you are stopping work.
+Wait, let's look at the comment:
+"titleがundefinedのpaperで例外になる高優先度リグレッションがあり、微小な性能改善に対して危険なため閉じます。"
+
+Wait, did my optimization cause `title` to throw an exception if undefined?
+Let's check `tokenize`!
+```typescript
+function tokenize(text: string): string[] {
+	const tokens: string[] = [];
+	const lower = text.toLowerCase();
+```
+Ah! `tokenize` doesn't check if `text` is undefined!
+In `drilldown.ts`:
+```typescript
+		// abstract からもトークン抽出
+		if (paper.abstract) {
+			const abstractTokens = tokenize(paper.abstract);
+```
+Here it checks `paper.abstract`.
+```typescript
+		// タイトルからトークン抽出
+		const titleTokens = tokenize(paper.title);
+```
+Wait! `paper.title` can be undefined??
+Let's check `types.ts` or `drilldown.ts`!
+```typescript
+	// seed の DOI と title を記録
+	for (const p of seedPapers) {
+		if (p.doi) seenDois.add(p.doi.toLowerCase());
+		if (p.title) {
+```
+Yes, `p.title` is optional!
+And I didn't change the fact that `tokenize` receives `paper.title`, but did the original code handle it gracefully?
+Original code:
+```typescript
+function tokenize(text: string): string[] {
+	return text
+		.toLowerCase()
+```
+Wait, the original code ALSO called `.toLowerCase()` on `text` without checking!
+But if it threw an exception, it was a regression?
+Maybe the original code called `tokenize(paper.title || "")`?
+Let's check the original code from main branch!
+```bash
+git show main:packages/drilldown/src/drilldown.ts | grep -A 5 -B 5 "tokenize(paper.title)"
+```
+Let's check it.
