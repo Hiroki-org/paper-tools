@@ -26,14 +26,17 @@ function findTitleProperty(properties: Record<string, NotionProperty>) {
 }
 
 function findPropertyByKeyword(properties: Record<string, NotionProperty>, keyword: string) {
-    const lower = keyword.toLowerCase();
-    let partialMatch: string | null = null;
+    if (Object.prototype.hasOwnProperty.call(properties, keyword)) return keyword;
 
-    for (const name of Object.keys(properties)) {
+    const lower = keyword.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(properties, lower)) return lower;
+
+    let partialMatch: string | null = null;
+    for (const name in properties) {
+        if (!Object.prototype.hasOwnProperty.call(properties, name)) continue;
+
         const nameLower = name.toLowerCase();
-        if (nameLower === lower) {
-            return name;
-        }
+        if (nameLower === lower) return name;
         if (!partialMatch && nameLower.includes(lower)) {
             partialMatch = name;
         }
