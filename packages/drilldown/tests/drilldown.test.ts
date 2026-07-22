@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock global fetch
+import type { Paper } from "@paper-tools/core";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
@@ -9,7 +10,7 @@ const { extractKeywords, drilldown } = await import("../src/drilldown.js");
 
 describe("extractKeywords", () => {
     it("should extract keywords from paper titles", () => {
-        const papers = [
+        const papers: Paper[] = [
             { title: "Machine Learning for Software Engineering", authors: [] },
             { title: "Deep Learning Applications in Software Testing", authors: [] },
             { title: "Machine Learning Techniques for Bug Detection", authors: [] },
@@ -25,7 +26,7 @@ describe("extractKeywords", () => {
     });
 
     it("should give higher weight to paper keywords", () => {
-        const papers = [
+        const papers: Paper[] = [
             {
                 title: "A Paper About Cats",
                 authors: [],
@@ -46,7 +47,7 @@ describe("extractKeywords", () => {
     });
 
     it("should filter out stopwords", () => {
-        const papers = [
+        const papers: Paper[] = [
             { title: "The Impact of Using Machine Learning in the Field", authors: [] },
         ];
 
@@ -62,7 +63,7 @@ describe("extractKeywords", () => {
     });
 
     it("should extract keywords from abstract field content", () => {
-        const papers = [
+        const papers: Paper[] = [
             {
                 title: "A Study",
                 authors: [],
@@ -78,13 +79,25 @@ describe("extractKeywords", () => {
     });
 
     it("should return empty array for titles/abstracts with stopwords and symbols only", () => {
-        const papers = [
+        const papers: Paper[] = [
             { title: "The and of a in", authors: [], abstract: "!@#$%^&*() is to for be" },
             { title: "a to at on it", authors: [], abstract: "!!! ??? ###" },
         ];
 
         const keywords = extractKeywords(papers, 10);
         expect(keywords).toEqual([]);
+    });
+
+    it("should sort keywords by frequency in descending order and respect topN", () => {
+        const papers: Paper[] = [
+            { title: "Apple Banana Apple", authors: [] },
+            { title: "Apple Banana Cherry", authors: [] },
+            { title: "Cherry Cherry Cherry Cherry", authors: [] },
+        ];
+        // Frequencies after tokenization: cherry: 5, apple: 3, banana: 2
+        const keywords = extractKeywords(papers, 2);
+        expect(keywords).toEqual(["cherry", "apple"]);
+        expect(keywords).not.toContain("banana");
     });
 });
 
