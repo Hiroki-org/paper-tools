@@ -30,6 +30,16 @@ describe("auth", () => {
             expect(unsealed).toEqual(data);
         });
 
+        it("should correctly seal data into payload.signature format", () => {
+            const data = { test: true };
+            const sealed = sealCookieValue(data);
+
+            // Expected output with the stubbed secret "super-secret-key-12345"
+            // Payload: {"test":true} base64url encoded -> eyJ0ZXN0Ijp0cnVlfQ
+            // Signature: HMAC-SHA256 of payload with secret base64url encoded -> xDZiIw7yT8p-9ZGtL-c3wCPQS724YbX4WlmKUlqn13k
+            expect(sealed).toBe("eyJ0ZXN0Ijp0cnVlfQ.xDZiIw7yT8p-9ZGtL-c3wCPQS724YbX4WlmKUlqn13k");
+        });
+
         it("should return null for invalid signature", () => {
             const data = { test: true };
             const sealed = sealCookieValue(data);
