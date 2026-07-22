@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-import { getOpenAlexAuthor, resolveOpenAlexAuthorId } from "../src/openalex-client.js";
+import { resolveOpenAlexAuthorId } from "../src/openalex-client.js";
 
 describe("OpenAlex Client", () => {
     beforeEach(() => {
