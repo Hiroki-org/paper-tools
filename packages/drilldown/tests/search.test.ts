@@ -52,6 +52,7 @@ describe("search", () => {
         });
 
         await searchByKeyword("machine learning");
+        expect(mockFetch).toHaveBeenCalledTimes(1);
         const calledUrl = mockFetch.mock.calls[0][0] as string;
         expect(calledUrl).toContain("q=machine+learning");
         expect(calledUrl).toContain("h=30");
@@ -119,6 +120,7 @@ describe("search", () => {
         };
 
         const enriched = await enrichWithCrossref(paper);
+        expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(enriched).toEqual(paper);
     });
 
@@ -132,6 +134,7 @@ describe("search", () => {
 
     it("enrichAllWithCrossref should return empty array if input is empty", async () => {
         const enriched = await enrichAllWithCrossref([]);
+        expect(mockFetch).not.toHaveBeenCalled();
         expect(enriched).toHaveLength(0);
         expect(enriched).toEqual([]);
     });
