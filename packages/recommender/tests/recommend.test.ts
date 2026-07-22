@@ -12,7 +12,7 @@ const { resolveToS2Id, recommendFromMultiple, recommendFromSingle } = await impo
 
 describe("recommend resolveToS2Id", () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
     });
 
     it("DOIをS2IDに変換できる", async () => {
@@ -77,7 +77,7 @@ describe("recommend resolveToS2Id", () => {
 
 describe("recommendFromMultiple", () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
     });
 
     it("positiveIdsが空の場合は空配列を返す", async () => {
