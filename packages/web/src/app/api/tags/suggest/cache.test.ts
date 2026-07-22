@@ -61,16 +61,17 @@ describe("cache", () => {
         it("should not remove oldest entry if updating an existing key when at max size", () => {
             const map = new Map();
             const now = Date.now();
+            const existingKey = `key${Math.floor(MAX_CACHE_SIZE / 2)}`;
 
             for (let i = 0; i < MAX_CACHE_SIZE; i++) {
                 map.set(`key${i}`, { data: `data${i}`, timestamp: now - 5000 + i });
             }
 
-            setCacheWithPruning("key50", { data: "updatedData", timestamp: now }, map);
+            setCacheWithPruning(existingKey, { data: "updatedData", timestamp: now }, map);
 
             expect(map.size).toBe(MAX_CACHE_SIZE);
             expect(map.has("key0")).toBe(true);
-            expect(map.get("key50")?.data).toBe("updatedData");
+            expect(map.get(existingKey)?.data).toBe("updatedData");
         });
     });
 });
