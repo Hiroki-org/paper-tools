@@ -41,6 +41,51 @@ describe("search", () => {
         expect(papers[0].doi).toBe("10.1234/dl");
     });
 
+    it("searchByVenue should return empty array if no hits", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: { hits: { hit: [] } },
+            }),
+        });
+
+        const papers = await searchByVenue("ICSE", 2024, 50);
+        expect(papers).toHaveLength(0);
+    });
+
+    it("searchByVenue should return mapped papers when hits are present", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    title: "Venue Paper",
+                                    authors: { author: [{ text: "Bob" }] },
+                                    doi: "10.1234/venue",
+                                    year: "2024",
+                                    venue: "ICSE",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const papers = await searchByVenue("ICSE");
+        expect(papers).toHaveLength(1);
+        expect(papers[0].title).toBe("Venue Paper");
+        expect(papers[0].doi).toBe("10.1234/venue");
+        expect(papers[0].year).toBe(2024);
+        expect(papers[0].venue).toBe("ICSE");
+        expect(papers[0].authors[0].name).toBe("Bob");
+    });
+
     it("searchByVenue should pass venue and year to DBLP", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
