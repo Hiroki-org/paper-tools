@@ -152,7 +152,7 @@ describe("recommendFromMultiple", () => {
 
 describe("recommendFromSingle", () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
     });
 
     it("1つのIDから推薦を取得できる(デフォルトオプション)", async () => {
@@ -198,7 +198,7 @@ describe("recommendFromSingle", () => {
 
 describe("recommendFromMultiple (Edge Cases)", () => {
     beforeEach(() => {
-        vi.clearAllMocks();
+        vi.resetAllMocks();
     });
 
     it("resolveToS2Idが失敗した場合は結果に含まれない", async () => {
