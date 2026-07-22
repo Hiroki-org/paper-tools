@@ -94,6 +94,12 @@ describe("search", () => {
         expect(mockFetch).not.toHaveBeenCalled();
     });
 
+
+    it("enrichAllWithCrossref should return empty array if input is empty", async () => {
+        const result = await enrichAllWithCrossref([]);
+        expect(result).toEqual([]);
+    });
+
     it("enrichAllWithCrossref should honor the requested concurrency", async () => {
         let activeRequests = 0;
         let peakConcurrency = 0;
