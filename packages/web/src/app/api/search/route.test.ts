@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@paper-tools/drilldown", () => ({
@@ -6,7 +6,7 @@ vi.mock("@paper-tools/drilldown", () => ({
 }));
 
 const { searchByKeyword } = await import("@paper-tools/drilldown");
-const { GET } = await import("./route");
+const { GET } = await import("./route.js");
 
 function makeRequest(url: string) {
     return new NextRequest(url);
@@ -18,8 +18,10 @@ describe("/api/search GET", () => {
     });
 
     it("qパラメータのみ指定でsearchByKeywordがデフォルトmaxResults(30)で呼ばれる", async () => {
-        const mockPapers = [{ paperId: "paper1", title: "Paper 1" }];
-        vi.mocked(searchByKeyword).mockResolvedValueOnce(mockPapers as any);
+        const mockPapers: Awaited<ReturnType<typeof searchByKeyword>> = [
+            { title: "Paper 1", authors: [] },
+        ];
+        vi.mocked(searchByKeyword).mockResolvedValueOnce(mockPapers);
 
         const res = await GET(makeRequest("http://localhost/api/search?q=test"));
         const data = await res.json();
@@ -31,8 +33,10 @@ describe("/api/search GET", () => {
     });
 
     it("maxResultsを指定した場合、正しく渡される", async () => {
-        const mockPapers = [{ paperId: "paper2", title: "Paper 2" }];
-        vi.mocked(searchByKeyword).mockResolvedValueOnce(mockPapers as any);
+        const mockPapers: Awaited<ReturnType<typeof searchByKeyword>> = [
+            { title: "Paper 2", authors: [] },
+        ];
+        vi.mocked(searchByKeyword).mockResolvedValueOnce(mockPapers);
 
         const res = await GET(makeRequest("http://localhost/api/search?q=test2&maxResults=50"));
         const data = await res.json();
