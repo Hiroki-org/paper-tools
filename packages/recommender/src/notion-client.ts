@@ -122,13 +122,17 @@ export async function getDatabaseInfo(
     databaseId: string,
     client: Client = createNotionClient(),
 ): Promise<NotionDatabaseInfo> {
-    const database = await client.databases.retrieve({ database_id: databaseId }) as any;
-    const databaseName = extractPlainText(database?.title) || "(untitled database)";
+    const database = await client.databases.retrieve({ database_id: databaseId });
+    const databaseName = 'title' in database && Array.isArray(database.title)
+        ? extractPlainText(database.title) || "(untitled database)"
+        : "(untitled database)";
 
     let workspaceName = "Notion Workspace";
     try {
         const me = await client.users.me({});
-        workspaceName = (me as any)?.name?.trim() || workspaceName;
+        if (me && 'name' in me && typeof me.name === 'string' && me.name.trim()) {
+            workspaceName = me.name.trim();
+        }
     } catch (e) {
         console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
     }
