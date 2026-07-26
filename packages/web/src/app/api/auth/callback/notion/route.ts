@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
         });
 
         const owner = tokenResponse.owner;
-        const userName = owner.type === "user" ? (owner.user as any)?.name : undefined;
+        const userName = owner.type === "user" && "name" in owner.user ? (owner.user as { name?: string | null }).name ?? undefined : undefined;
 
         const response = NextResponse.redirect(new URL("/setup", request.url));
-        const refreshToken = (tokenResponse as any).refresh_token as string | undefined;
+        const refreshToken = (tokenResponse as { refresh_token?: string | null }).refresh_token ?? undefined;
         if (!refreshToken) {
             return NextResponse.redirect(new URL("/login?error=missing_refresh_token", request.url));
         }
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
             userInfo: {
                 name: userName,
                 workspaceName: tokenResponse.workspace_name ?? undefined,
-                workspaceIcon: tokenResponse.workspace_icon,
+                workspaceIcon: tokenResponse.workspace_icon ?? undefined,
             },
             request,
         });
