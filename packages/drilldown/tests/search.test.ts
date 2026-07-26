@@ -41,6 +41,23 @@ describe("search", () => {
         expect(papers[0].doi).toBe("10.1234/dl");
     });
 
+
+    it("searchByKeyword should use default maxResults if not provided", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: { hits: { hit: [] } },
+            }),
+        });
+
+        await searchByKeyword("machine learning");
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        const calledUrl = mockFetch.mock.calls[0][0] as string;
+        expect(calledUrl).toContain("q=machine+learning");
+        expect(calledUrl).toContain("h=30");
+    });
+
     it("searchByVenue should pass venue and year to DBLP", async () => {
         mockFetch.mockResolvedValueOnce({
             ok: true,
@@ -87,10 +104,38 @@ describe("search", () => {
         expect(enriched.citationCount).toBe(42);
     });
 
+
+    it("enrichWithCrossref should return original paper if crossref returns null", async () => {
+        // Mock Crossref API response as error / null equivalent
+        mockFetch.mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+            statusText: "Not Found",
+        });
+
+        const paper = {
+            title: "Original Title",
+            authors: [{ name: "Alice" }],
+            doi: "10.1234/missing",
+        };
+
+        const enriched = await enrichWithCrossref(paper);
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(enriched).toEqual(paper);
+    });
+
     it("enrichWithCrossref should return paper as-is if no DOI", async () => {
         const paper = { title: "No DOI Paper", authors: [{ name: "Alice" }] };
         const result = await enrichWithCrossref(paper);
         expect(result).toEqual(paper);
+        expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+
+    it("enrichAllWithCrossref should return empty array if input is empty", async () => {
+        const enriched = await enrichAllWithCrossref([]);
+        expect(enriched).toHaveLength(0);
+        expect(enriched).toEqual([]);
         expect(mockFetch).not.toHaveBeenCalled();
     });
 
