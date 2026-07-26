@@ -208,7 +208,8 @@ export async function createPaperPage(
     const doi = paper.externalIds?.DOI ?? "";
     const fieldsOfStudy = paper.fieldsOfStudy ?? [];
 
-    const notionProperties: Record<string, unknown> = {
+    type PageProperties = Parameters<InstanceType<typeof Client>["pages"]["create"]>[0]["properties"];
+    const notionProperties: PageProperties = {
         "タイトル": {
             title: [{ text: { content: paper.title || "(untitled)" } }],
         },
@@ -249,7 +250,7 @@ export async function createPaperPage(
 
     await client.pages.create({
         parent: { database_id: databaseId },
-        properties: notionProperties as any,
+        properties: notionProperties,
     });
 }
 
