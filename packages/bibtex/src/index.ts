@@ -221,11 +221,6 @@ program
             console.log(`Errors: ${errors.length}`);
             console.log(`Warnings: ${warnings.length}`);
 
-            for (const issue of report.issues) {
-                const prefix = issue.level.toUpperCase();
-                const keyInfo = issue.key ? ` [${issue.key}]` : "";
-                console.log(`${prefix}${keyInfo}: ${issue.message}`);
-            }
 
             if (errors.length > 0) {
                 process.exit(1);
