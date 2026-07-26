@@ -5,7 +5,7 @@ const CROSSREF_API_BASE = "https://api.crossref.org";
 const APP_USER_AGENT = "paper-tools";
 
 // Crossref Polite Pool: ~50 req/s with mailto, ~1 req/s without
-const rateLimiter = new RateLimiter(10, 1000);
+const rateLimiter = new RateLimiter(5, 1000);
 
 function getMailto(): string | undefined {
     return process.env["CROSSREF_MAILTO"];

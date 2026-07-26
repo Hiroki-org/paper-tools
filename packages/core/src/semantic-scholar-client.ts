@@ -115,7 +115,7 @@ function getRateLimiter(): RateLimiter {
     }
     cachedKeyState = state;
     cachedLimiter = hasApiKey
-        ? new RateLimiter(10, 1000)
+        ? new RateLimiter(5, 1000)
         : new RateLimiter(1, 3000);
     return cachedLimiter;
 }

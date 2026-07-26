@@ -50,7 +50,7 @@ async function syncPapers(
         return { added, skipped, errors };
     }
 
-    const CONCURRENCY_LIMIT = 5;
+    const CONCURRENCY_LIMIT = 2;
     await mapWithConcurrency(
         toProcess,
         async (paper) => {

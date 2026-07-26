@@ -28,6 +28,10 @@ export class RateLimiter {
         }
     }
 
+    getQueueLength(): number {
+        return this.queue.length;
+    }
+
     async acquire(): Promise<void> {
         return new Promise((resolve) => {
             this.queue.push(resolve);
