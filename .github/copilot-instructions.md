@@ -1141,7 +1141,13 @@ node --version  # >= 20.0.0 required
 
 ### Web UI Debugging
 
-**"Pages are not being found" in Next.js dev mode**
+**"Pages are not being found" or ECONNREFUSED in Next.js dev mode**
+
+```json
+{
+  "error": "ECONNREFUSED"
+}
+```
 
 ```bash
 # Fix: Ensure server is running
@@ -1151,6 +1157,13 @@ pnpm --filter @paper-tools/web dev
 pnpm --filter @paper-tools/web clean
 rm -rf packages/web/.next
 pnpm --filter @paper-tools/web dev
+```
+
+**Hydration mismatch**
+
+```typescript
+// Issue: Server-rendered HTML doesn't match client HTML
+// Fix: Use next/dynamic with ssr: false for browser-only components
 ```
 
 **API routes returning 500 with vague errors**
