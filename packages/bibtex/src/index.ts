@@ -209,7 +209,6 @@ program
 
             const entries = splitBibtexEntries(text);
             if (entries.length === 0) {
-                console.log("No BibTeX entries found.");
                 return;
             }
 
