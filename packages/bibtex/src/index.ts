@@ -217,9 +217,6 @@ program
             const errors = report.issues.filter((i) => i.level === "error");
             const warnings = report.issues.filter((i) => i.level === "warning");
 
-            console.log(`Entries: ${report.total}`);
-            console.log(`Errors: ${errors.length}`);
-            console.log(`Warnings: ${warnings.length}`);
 
             for (const issue of report.issues) {
                 const prefix = issue.level.toUpperCase();
