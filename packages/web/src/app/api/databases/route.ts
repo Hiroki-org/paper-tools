@@ -8,6 +8,16 @@ type DbItem = {
     description: string;
 };
 
+// The Notion API might return DataSource objects depending on the integration
+type DataSourceObjectResponse = {
+    id: string;
+    object: "data_source";
+    title?: Array<{ plain_text?: string }>;
+    description?: Array<{ plain_text?: string }>;
+    icon?: { type: "emoji"; emoji: string } | { type: "external"; external?: { url: string } } | { type: "file"; file?: { url: string } } | null;
+};
+
+
 export async function GET(request: NextRequest) {
     const accessToken = getAccessToken(request.cookies);
     if (!accessToken) {
@@ -28,7 +38,7 @@ export async function GET(request: NextRequest) {
 
             for (const result of response.results) {
                 if (result.object !== "data_source") continue;
-                const ds = result as any;
+                const ds = result as unknown as DataSourceObjectResponse;
 
                 const title = (ds.title ?? [])
                     .map((item: { plain_text?: string }) => item.plain_text ?? "")
