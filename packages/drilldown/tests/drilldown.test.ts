@@ -56,6 +56,30 @@ describe("extractKeywords", () => {
         expect(keywords).not.toContain("in");
     });
 
+    it("should truncate the returned keywords to the topN value specified", () => {
+        const papers = [
+            {
+                title: "One Two Three Four Five Six",
+                authors: [],
+                keywords: ["Seven Eight Nine Ten"],
+            }
+        ];
+        // topN = 3
+        const keywords = extractKeywords(papers, 3);
+        expect(keywords.length).toBe(3);
+    });
+
+    it("should handle default parameter topN=10 properly", () => {
+        const papers = [
+            {
+                title: "WordOne WordTwo WordThree WordFour WordFive WordSix WordSeven WordEight WordNine WordTen WordEleven WordTwelve",
+                authors: []
+            }
+        ];
+        const keywords = extractKeywords(papers);
+        expect(keywords.length).toBe(10);
+    });
+
     it("should return empty array for empty input", () => {
         const keywords = extractKeywords([], 10);
         expect(keywords).toEqual([]);
@@ -85,6 +109,26 @@ describe("extractKeywords", () => {
 
         const keywords = extractKeywords(papers, 10);
         expect(keywords).toEqual([]);
+    });
+
+
+    it("should extract keywords from keywords array and prioritize frequency", () => {
+        const papers = [
+            {
+                title: "One",
+                authors: [],
+                keywords: ["first-keyword second-keyword"],
+            },
+            {
+                title: "Two",
+                authors: [],
+                keywords: ["first-keyword"],
+            },
+        ];
+
+        const keywords = extractKeywords(papers, 10);
+        expect(keywords[0]).toBe("first-keyword");
+        expect(keywords[1]).toBe("second-keyword");
     });
 });
 
