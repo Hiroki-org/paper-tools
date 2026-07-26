@@ -8,6 +8,13 @@ type DbItem = {
     description: string;
 };
 
+
+
+
+function isDataSource(obj: any): obj is { id: string, title?: any[], description?: any[], icon?: any } {
+    return obj && typeof obj === 'object' && obj.object === "data_source";
+}
+
 export async function GET(request: NextRequest) {
     const accessToken = getAccessToken(request.cookies);
     if (!accessToken) {
@@ -27,8 +34,8 @@ export async function GET(request: NextRequest) {
             });
 
             for (const result of response.results) {
-                if (result.object !== "data_source") continue;
-                const ds = result as any;
+                if (!isDataSource(result)) continue;
+                const ds = result;
 
                 const title = (ds.title ?? [])
                     .map((item: { plain_text?: string }) => item.plain_text ?? "")
