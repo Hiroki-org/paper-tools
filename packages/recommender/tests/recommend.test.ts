@@ -136,4 +136,85 @@ describe("recommendFromMultiple", () => {
         expect(results).toEqual([]);
         expect(core.getRecommendations).not.toHaveBeenCalled();
     });
+
+
+    it("一部のID解決がエラーになった場合でも、成功したIDだけで推薦APIを呼び出す", async () => {
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+
+        vi.mocked(core.getPaper).mockImplementation(async (id) => {
+            if (id === "DOI:10.1000/error") {
+                throw new Error("Failed to fetch");
+            }
+            return { paperId: `s2-${id.split("DOI:")[1]}` } as any;
+        });
+
+        vi.mocked(core.getRecommendations).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec-error-test", title: "R-Error" } as any],
+        });
+
+        const results = await recommendFromMultiple(
+            ["10.1000/success", "10.1000/error"],
+            []
+        );
+
+        expect(results).toHaveLength(1);
+        expect(core.getRecommendations).toHaveBeenCalledWith(
+            ["s2-10.1000/success"],
+            [],
+            { limit: 20 }
+        );
+    });
+
+    it("すべてのID解決がエラーになった場合、空配列を返す", async () => {
+        const { recommendFromMultiple } = await import("../src/recommend.js");
+
+        vi.mocked(core.getPaper).mockRejectedValue(new Error("Network Error"));
+
+        const results = await recommendFromMultiple(
+            ["10.1000/error1", "10.1000/error2"],
+            []
+        );
+
+        expect(results).toEqual([]);
+        expect(core.getRecommendations).not.toHaveBeenCalled();
+    });
+});
+
+
+describe("recommendFromSingle", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("単一のIDから推薦を取得できる", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+
+        vi.mocked(core.getPaper).mockResolvedValueOnce({ paperId: "s2-single", title: "T" } as any);
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec-single", title: "R-Single" } as any],
+        });
+
+        const results = await recommendFromSingle("10.1000/single");
+        expect(results).toHaveLength(1);
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith(
+            "s2-single",
+            { limit: 10, from: "recent" }
+        );
+    });
+
+    it("オプションを指定して推薦を取得できる", async () => {
+        const { recommendFromSingle } = await import("../src/recommend.js");
+
+        vi.mocked(core.getPaper).mockResolvedValueOnce({ paperId: "s2-single2", title: "T" } as any);
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [],
+        });
+
+        const results = await recommendFromSingle("10.1000/single2", { limit: 50, from: "all-cs" });
+        expect(results).toEqual([]);
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith(
+            "s2-single2",
+            { limit: 50, from: "all-cs" }
+        );
+    });
 });
