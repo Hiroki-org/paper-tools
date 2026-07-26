@@ -63,16 +63,39 @@ export class RateLimiter {
  */
 export async function fetchWithRetry(
     url: string,
-    options: RequestInit = {},
+    options: RequestInit & { timeout?: number } = {},
     maxRetries = 3,
     baseDelayMs = 1000,
 ): Promise<Response> {
+    const { timeout, ...fetchOptions } = options;
+
     let lastError: Error | undefined;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         let response: Response;
+        let controller: AbortController | undefined;
+        let timeoutId: NodeJS.Timeout | undefined;
+
         try {
-            response = await fetch(url, options);
+            const init: RequestInit = { ...fetchOptions };
+
+            if (timeout) {
+                controller = new AbortController();
+                init.signal = controller.signal;
+
+                // Use AbortSignal.any if there's already a signal provided
+                if (fetchOptions.signal) {
+                    init.signal = AbortSignal.any([controller.signal, fetchOptions.signal]);
+                }
+
+                timeoutId = setTimeout(() => {
+                    controller!.abort(new Error("Operation timed out"));
+                }, timeout);
+            }
+
+            response = await fetch(url, init);
+            if (timeoutId) clearTimeout(timeoutId);
         } catch (error) {
+            if (timeoutId) clearTimeout(timeoutId);
             // Network error — retry
             lastError = error instanceof Error ? error : new Error(String(error));
             if (attempt < maxRetries) {
