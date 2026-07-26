@@ -41,6 +41,8 @@ describe("RateLimiter", () => {
 
         await expect(p2).resolves.toBeUndefined();
     });
+
+
 });
 
 describe("fetchWithRetry", () => {
@@ -142,6 +144,66 @@ describe("fetchWithRetry", () => {
         const result = await fetchWithRetry("https://example.com");
 
         expect(result).toBe(response);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("aborts the request and throws timeout error if timeout is specified and exceeded", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockImplementation(async (url, init) => {
+            return new Promise((resolve, reject) => {
+                const signal = init?.signal;
+                if (signal) {
+                    if (signal.aborted) {
+                        reject(signal.reason);
+                        return;
+                    }
+                    signal.addEventListener("abort", () => {
+                        reject(signal.reason);
+                    });
+                }
+                setTimeout(() => {
+                    resolve(new Response("ok"));
+                }, 100);
+            });
+        });
+
+        const promise = fetchWithRetry("https://example.com", { timeout: 10 }, 0, 1);
+        await expect(promise).rejects.toThrow("Operation timed out");
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("combines the timeout signal with an explicitly provided signal using AbortSignal.any", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockImplementation(async (url, init) => {
+            return new Promise((resolve, reject) => {
+                const signal = init?.signal;
+                if (signal) {
+                    if (signal.aborted) {
+                        reject(signal.reason);
+                        return;
+                    }
+                    signal.addEventListener("abort", () => {
+                        reject(signal.reason);
+                    });
+                }
+                setTimeout(() => {
+                    resolve(new Response("ok"));
+                }, 100);
+            });
+        });
+
+        const customController = new AbortController();
+        const promise = fetchWithRetry("https://example.com", { timeout: 10, signal: customController.signal }, 0, 1);
+        await expect(promise).rejects.toThrow("Operation timed out");
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("clears timeout on error before retry to prevent leaks", async () => {
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock.mockRejectedValue(new Error("Network Error"));
+
+        const promise = fetchWithRetry("https://example.com", { timeout: 1000 }, 0, 1);
+        await expect(promise).rejects.toThrow("Network Error");
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 });

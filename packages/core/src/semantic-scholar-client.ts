@@ -158,7 +158,7 @@ export async function getRecommendationsForPaper(
     }
 
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/recommendations/v1/papers/forpaper/${encodeURIComponent(paperId)}?${params}`;
-    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    const response = await fetchWithRetry(url, { headers: buildHeaders(), timeout: 30000 });
     return parseResponse<S2RecommendationsResponse>(response);
 }
 
@@ -182,6 +182,7 @@ export async function getRecommendations(
             positivePaperIds,
             negativePaperIds,
         }),
+        timeout: 30000
     });
     return parseResponse<S2RecommendationsResponse>(response);
 }
@@ -194,7 +195,7 @@ export async function getPaper(
 
     const params = new URLSearchParams({ fields });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/paper/${encodeURIComponent(paperId)}?${params}`;
-    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    const response = await fetchWithRetry(url, { headers: buildHeaders(), timeout: 30000 });
     return parseResponse<S2Paper>(response);
 }
 
@@ -211,7 +212,7 @@ export async function searchPapers(
         limit: String(limit),
     });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/paper/search?${params}`;
-    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    const response = await fetchWithRetry(url, { headers: buildHeaders(), timeout: 30000 });
     return parseResponse<S2SearchResponse>(response);
 }
 
@@ -227,7 +228,7 @@ export async function searchAuthors(
         fields: "authorId,name,affiliations,paperCount,citationCount,hIndex,homepage,externalIds",
     });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/search?${params}`;
-    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    const response = await fetchWithRetry(url, { headers: buildHeaders(), timeout: 30000 });
     return parseResponse<S2AuthorSearchResponse>(response);
 }
 
@@ -259,7 +260,7 @@ export async function getAuthor(
 
     const params = new URLSearchParams({ fields: fields.join(",") });
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/${encodeURIComponent(authorId)}?${params}`;
-    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    const response = await fetchWithRetry(url, { headers: buildHeaders(), timeout: 30000 });
     return parseResponse<S2AuthorDetail>(response);
 }
 
@@ -278,6 +279,6 @@ export async function getAuthorPapers(
     }
 
     const url = `${SEMANTIC_SCHOLAR_API_BASE}/graph/v1/author/${encodeURIComponent(authorId)}/papers?${params}`;
-    const response = await fetchWithRetry(url, { headers: buildHeaders() });
+    const response = await fetchWithRetry(url, { headers: buildHeaders(), timeout: 30000 });
     return parseResponse<S2AuthorPapersResponse>(response);
 }
