@@ -6,6 +6,20 @@ import {
 } from "../services/profile-builder.js";
 
 describe("profile-builder helpers", () => {
+    it("mergeAffiliations deduplicates within base array as well", () => {
+        const merged = mergeAffiliations(
+            [
+                { name: "University A" },
+                { name: "university a" },
+            ],
+            []
+        );
+
+        expect(merged).toEqual([
+            { name: "University A" },
+        ]);
+    });
+
     it("toCorePaper maps S2Paper into core Paper", () => {
         const mapped = toCorePaper({
             paperId: "p1",
