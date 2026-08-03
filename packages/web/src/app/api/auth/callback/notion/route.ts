@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         });
         return response;
     } catch (error) {
-        const message = error instanceof Error ? error.message : "OAuth callback failed";
-        return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}`, request.url));
+        console.error("Notion OAuth callback error:", error);
+        return NextResponse.redirect(new URL("/login?error=oauth_callback_failed", request.url));
     }
 }
