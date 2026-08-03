@@ -63,7 +63,16 @@ export function mergeAffiliations(base: Affiliation[], other: Affiliation[]): Af
     const keys = new Set<string>();
     const merged: Affiliation[] = [];
 
-    for (const item of [...base, ...other]) {
+    for (const item of base) {
+        const key = `${item.name.toLowerCase()}#${item.year ?? ""}`;
+        if (keys.has(key)) {
+            continue;
+        }
+        keys.add(key);
+        merged.push(item);
+    }
+
+    for (const item of other) {
         const key = `${item.name.toLowerCase()}#${item.year ?? ""}`;
         if (keys.has(key)) {
             continue;
