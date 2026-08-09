@@ -1009,16 +1009,11 @@ beforeEach(() => {
 const result = await limiter.schedule(async () => {...});
 ```
 
-**"ReferenceError: describe is not defined"**
-
-```bash
-# Fix: Ensure vitest.config.ts has globals: true, environment: "node"
-```
-
 **"Cannot find module .js"**
 
 ```bash
 # Cause: TypeScript test file isn't transpiled
+# Fix: Ensure vitest.config.ts has globals: true, environment: "node"
 # Or: Use tsx loader for Node.js files
 ```
 
