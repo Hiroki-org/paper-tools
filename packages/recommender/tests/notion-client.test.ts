@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { S2Paper } from "@paper-tools/core";
+import type { Client } from "@notionhq/client";
 
 const mockClient = {
     databases: {
@@ -135,15 +136,23 @@ describe("additional coverage", () => {
                 me: vi.fn().mockRejectedValueOnce(new Error("API Error")),
             }
         };
-        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-        const info = await getDatabaseInfo("db-1", clientWithFailingUsers as any);
+        try {
+            const info = await getDatabaseInfo(
+                "db-1",
+                clientWithFailingUsers as unknown as Client,
+            );
 
-        expect(info.databaseName).toBe("Test DB");
-        expect(info.workspaceName).toBe("Notion Workspace");
-        expect(consoleSpy).toHaveBeenCalled();
-
-        consoleSpy.mockRestore();
+            expect(info.databaseName).toBe("Test DB");
+            expect(info.workspaceName).toBe("Notion Workspace");
+            expect(consoleSpy).toHaveBeenCalledWith(
+                "Failed to retrieve Notion workspace name, falling back to default:",
+                expect.objectContaining({ message: "API Error" }),
+            );
+        } finally {
+            consoleSpy.mockRestore();
+        }
     });
 
     it("readTitle and readRichText should handle NotionRichTextItem mapping", async () => {
