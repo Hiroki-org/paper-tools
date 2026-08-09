@@ -143,6 +143,30 @@ describe("additional coverage", () => {
         expect(info.workspaceName).toBe("Notion Workspace");
     });
 
+
+    it("getDatabaseInfo should handle errors when fetching user info", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            object: "database", id: "db-1", title: [{ plain_text: "Test DB" }], url: "", properties: {}
+        });
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockRejectedValueOnce(new Error("API Error")),
+            }
+        };
+
+        const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const info = await getDatabaseInfo("db-1", clientWithUsers as any);
+
+        expect(info.workspaceName).toBe("Notion Workspace");
+        expect(consoleSpy).toHaveBeenCalledWith(
+            "Failed to retrieve Notion workspace name, falling back to default:",
+            expect.any(Error)
+        );
+        consoleSpy.mockRestore();
+    });
+
     it("readTitle and readRichText should handle NotionRichTextItem mapping", async () => {
         const { queryPapers } = await import("../src/notion-client.js");
         mockClient.databases.query.mockResolvedValueOnce({
