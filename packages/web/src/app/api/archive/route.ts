@@ -25,18 +25,12 @@ function findTitleProperty(properties: Record<string, NotionProperty>) {
     return entry?.[0] ?? "Name";
 }
 
-function getPropertyKeys(properties: Record<string, NotionProperty>) {
-    return Object.keys(properties).map(name => ({
-        name,
-        lower: name.toLowerCase()
-    }));
-}
-
-function findPropertyByKeyword(keysInfo: Array<{name: string, lower: string}>, keyword: string) {
+function findPropertyByKeyword(properties: Record<string, NotionProperty>, keyword: string) {
     const lower = keyword.toLowerCase();
     let partialMatch: string | null = null;
 
-    for (const { name, lower: nameLower } of keysInfo) {
+    for (const name of Object.keys(properties)) {
+        const nameLower = name.toLowerCase();
         if (nameLower === lower) {
             return name;
         }
@@ -53,10 +47,9 @@ function mapPageRecord(page: {
     properties: Record<string, NotionProperty>;
 }) {
     const props = page.properties;
-    const keysInfo = getPropertyKeys(props);
     const titleKey = findTitleProperty(props);
-    const doiKey = findPropertyByKeyword(keysInfo, "doi");
-    const s2Key = findPropertyByKeyword(keysInfo, "semantic scholar") ?? findPropertyByKeyword(keysInfo, "s2");
+    const doiKey = findPropertyByKeyword(props, "doi");
+    const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");
 
     const titleProp = props[titleKey];
     const doiProp = doiKey ? props[doiKey] : undefined;
@@ -136,11 +129,10 @@ export async function POST(request: NextRequest) {
         const notion = getNotionClient(auth.accessToken);
         const dataSource: ArchiveNotionDataSource = await resolveNotionDataSource<NotionProperty>(notion, auth.dataSourceId);
         const props = dataSource.properties;
-        const keysInfo = getPropertyKeys(props);
         const titleKey = findTitleProperty(props);
-        const doiKey = findPropertyByKeyword(keysInfo, "doi");
-        const s2Key = findPropertyByKeyword(keysInfo, "semantic scholar") ?? findPropertyByKeyword(keysInfo, "s2");
-        const tagsKey = findPropertyByKeyword(keysInfo, "tag");
+        const doiKey = findPropertyByKeyword(props, "doi");
+        const s2Key = findPropertyByKeyword(props, "semantic scholar") ?? findPropertyByKeyword(props, "s2");
+        const tagsKey = findPropertyByKeyword(props, "tag");
 
         const properties: NotionPageCreateProperties = {
             [titleKey]: {
