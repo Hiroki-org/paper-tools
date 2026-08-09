@@ -124,6 +124,25 @@ describe("additional coverage", () => {
         expect(info.workspaceName).toBe("Test User");
     });
 
+
+    it("getDatabaseInfo should fallback when database is not full or user lacks name", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            id: "db-1", // Partial object missing 'object: "database"'
+        });
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockResolvedValueOnce({ object: "user", id: "user-1", type: "person", person: {} }), // Missing name
+            }
+        };
+
+        const info = await getDatabaseInfo("db-1", clientWithUsers as any);
+
+        expect(info.databaseName).toBe("(untitled database)");
+        expect(info.workspaceName).toBe("Notion Workspace");
+    });
+
     it("readTitle and readRichText should handle NotionRichTextItem mapping", async () => {
         const { queryPapers } = await import("../src/notion-client.js");
         mockClient.databases.query.mockResolvedValueOnce({
