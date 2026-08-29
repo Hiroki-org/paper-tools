@@ -109,12 +109,12 @@ describe("additional coverage", () => {
     it("getDatabaseInfo should return database info correctly", async () => {
         const { getDatabaseInfo } = await import("../src/notion-client.js");
         mockClient.databases.retrieve.mockResolvedValueOnce({
-            title: [{ plain_text: "Test" }, {}, null, { plain_text: " DB" }],
+            object: "database", id: "db-1", title: [{ plain_text: "Test" }, {}, null, { plain_text: " DB" }], url: "", properties: {}
         });
         const clientWithUsers = {
             ...mockClient,
             users: {
-                me: vi.fn().mockResolvedValueOnce({ name: "Test User" }),
+                me: vi.fn().mockResolvedValueOnce({ object: "user", id: "user-1", name: "Test User", type: "person", person: {} }),
             }
         };
 
@@ -122,6 +122,49 @@ describe("additional coverage", () => {
 
         expect(info.databaseName).toBe("Test DB");
         expect(info.workspaceName).toBe("Test User");
+    });
+
+
+    it("getDatabaseInfo should fallback when database is not full or user lacks name", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            id: "db-1", // Partial object missing 'object: "database"'
+        });
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockResolvedValueOnce({ object: "user", id: "user-1", type: "person", person: {} }), // Missing name
+            }
+        };
+
+        const info = await getDatabaseInfo("db-1", clientWithUsers as any);
+
+        expect(info.databaseName).toBe("(untitled database)");
+        expect(info.workspaceName).toBe("Notion Workspace");
+    });
+
+
+    it("getDatabaseInfo should handle errors when fetching user info", async () => {
+        const { getDatabaseInfo } = await import("../src/notion-client.js");
+        mockClient.databases.retrieve.mockResolvedValueOnce({
+            object: "database", id: "db-1", title: [{ plain_text: "Test DB" }], url: "", properties: {}
+        });
+        const clientWithUsers = {
+            ...mockClient,
+            users: {
+                me: vi.fn().mockRejectedValueOnce(new Error("API Error")),
+            }
+        };
+
+        const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const info = await getDatabaseInfo("db-1", clientWithUsers as any);
+
+        expect(info.workspaceName).toBe("Notion Workspace");
+        expect(consoleSpy).toHaveBeenCalledWith(
+            "Failed to retrieve Notion workspace name, falling back to default:",
+            expect.any(Error)
+        );
+        consoleSpy.mockRestore();
     });
 
     it("readTitle and readRichText should handle NotionRichTextItem mapping", async () => {

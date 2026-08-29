@@ -1,4 +1,4 @@
-import { Client } from "@notionhq/client";
+import { Client, isFullDatabase, isFullUser } from "@notionhq/client";
 import type { S2Paper } from "@paper-tools/core";
 
 export interface NotionPaperRecord {
@@ -122,13 +122,13 @@ export async function getDatabaseInfo(
     databaseId: string,
     client: Client = createNotionClient(),
 ): Promise<NotionDatabaseInfo> {
-    const database = await client.databases.retrieve({ database_id: databaseId }) as any;
-    const databaseName = extractPlainText(database?.title) || "(untitled database)";
+    const database = await client.databases.retrieve({ database_id: databaseId });
+    const databaseName = extractPlainText(isFullDatabase(database) ? database.title : undefined) || "(untitled database)";
 
     let workspaceName = "Notion Workspace";
     try {
         const me = await client.users.me({});
-        workspaceName = (me as any)?.name?.trim() || workspaceName;
+        workspaceName = (isFullUser(me) && me.name ? me.name.trim() : workspaceName) || workspaceName;
     } catch (e) {
         console.warn("Failed to retrieve Notion workspace name, falling back to default:", e);
     }
