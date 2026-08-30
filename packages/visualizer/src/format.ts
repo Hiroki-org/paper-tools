@@ -3,31 +3,45 @@ import type { CitationGraph } from "./graph.js";
 export const SUPPORTED_FORMATS = ["json", "dot", "mermaid"] as const;
 export type Format = (typeof SUPPORTED_FORMATS)[number];
 
+export interface DotStyling {
+	graph?: Record<string, string>;
+	node?: Record<string, string>;
+	edge?: Record<string, string>;
+}
+
 /**
  * グラフを指定されたフォーマットに変換・出力する
  * @param graph - 変換対象の引用グラフ
  * @param format - 出力フォーマット
  * @param pretty - JSON 出力時に整形するかどうか (デフォルト: true)
+ * @param dotStyling - DOT 出力時のスタイリング設定
  * @returns フォーマット済みのグラフ文字列
  */
-export function formatGraph(graph: CitationGraph, format: Format, pretty = true): string {
-    switch (format) {
-        case "json":
-            return toJson(graph, pretty);
-        case "dot":
-            return toDot(graph);
-        case "mermaid":
-            return toMermaid(graph);
-        default:
-            throw new Error(`Unknown format: ${format}. Supported formats are: ${SUPPORTED_FORMATS.join(", ")}`);
-    }
+export function formatGraph(
+	graph: CitationGraph,
+	format: Format,
+	pretty = true,
+	dotStyling?: DotStyling,
+): string {
+	switch (format) {
+		case "json":
+			return toJson(graph, pretty);
+		case "dot":
+			return toDot(graph, dotStyling);
+		case "mermaid":
+			return toMermaid(graph);
+		default:
+			throw new Error(
+				`Unknown format: ${format}. Supported formats are: ${SUPPORTED_FORMATS.join(", ")}`,
+			);
+	}
 }
 
 /**
  * グラフを JSON 文字列として出力する。
  */
 function toJson(graph: CitationGraph, pretty = true): string {
-    return JSON.stringify(graph, null, pretty ? 2 : undefined);
+	return JSON.stringify(graph, null, pretty ? 2 : undefined);
 }
 
 /**
@@ -37,7 +51,7 @@ function toJson(graph: CitationGraph, pretty = true): string {
  * @returns DOT 形式用にエスケープされたテキスト
  */
 function escapeLabel(text: string): string {
-    return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+	return text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 /**
@@ -47,40 +61,62 @@ function escapeLabel(text: string): string {
  * @returns グラフノード ID として使用可能な文字列
  */
 function doiToId(doi: string): string {
-    return doi.replace(/[^a-zA-Z0-9]/g, "_");
+	return doi.replace(/[^a-zA-Z0-9]/g, "_");
+}
+
+function formatAttrs(attrs: Record<string, string>): string {
+	return Object.entries(attrs)
+		.map(([k, v]) => `${k}="${escapeLabel(v)}"`)
+		.join(", ");
 }
 
 /**
  * グラフを DOT (Graphviz) 形式で出力する。
  * DOI由来のノード ID は Graphviz パーサーの互換性のため、引用符で囲んで出力する
  */
-function toDot(graph: CitationGraph): string {
-    const lines: string[] = [];
-    lines.push("digraph citations {");
-    lines.push("    rankdir=LR;");
-    lines.push("    node [shape=box, style=rounded];");
-    lines.push("");
+function toDot(graph: CitationGraph, styling?: DotStyling): string {
+	const lines: string[] = [];
+	lines.push("digraph citations {");
+	if (styling?.graph) {
+		lines.push(`    graph [${formatAttrs(styling.graph)}];`);
+	} else {
+		lines.push('    rankdir="LR";');
+	}
 
-    for (const node of graph.nodes) {
-        const id = doiToId(node.doi);
-        const label = node.title ? escapeLabel(node.title) : escapeLabel(node.doi);
-        lines.push(`    "${id}" [label="${label}"];`);
-    }
+	if (styling?.node) {
+		lines.push(`    node [${formatAttrs(styling.node)}];`);
+	} else {
+		lines.push('    node [shape="box", style="rounded"];');
+	}
 
-    lines.push("");
+	const edgeAttrs = styling?.edge ? ` [${formatAttrs(styling.edge)}]` : "";
+	if (edgeAttrs) {
+		lines.push(`    edge${edgeAttrs};`);
+	}
+	lines.push("");
 
-    for (const edge of graph.edges) {
-        const srcId = doiToId(edge.source);
-        const tgtId = doiToId(edge.target);
-        if (edge.creationDate) {
-            lines.push(`    "${srcId}" -> "${tgtId}" [label="${escapeLabel(edge.creationDate)}"];`);
-        } else {
-            lines.push(`    "${srcId}" -> "${tgtId}";`);
-        }
-    }
+	for (const node of graph.nodes) {
+		const id = doiToId(node.doi);
+		const label = node.title ? escapeLabel(node.title) : escapeLabel(node.doi);
+		lines.push(`    "${id}" [label="${label}"];`);
+	}
 
-    lines.push("}");
-    return lines.join("\n");
+	lines.push("");
+
+	for (const edge of graph.edges) {
+		const srcId = doiToId(edge.source);
+		const tgtId = doiToId(edge.target);
+		if (edge.creationDate) {
+			lines.push(
+				`    "${srcId}" -> "${tgtId}" [label="${escapeLabel(edge.creationDate)}"];`,
+			);
+		} else {
+			lines.push(`    "${srcId}" -> "${tgtId}";`);
+		}
+	}
+
+	lines.push("}");
+	return lines.join("\n");
 }
 
 /**
@@ -91,38 +127,42 @@ function toDot(graph: CitationGraph): string {
  * @returns Mermaid 形式用にエスケープされたテキスト
  */
 function escapeMermaid(text: string): string {
-    return text
-        .replace(/"/g, "&#34;")
-        .replace(/\(/g, "&#40;")
-        .replace(/\)/g, "&#41;")
-        .replace(/\[/g, "&#91;")
-        .replace(/\]/g, "&#93;")
-        .replace(/\{/g, "&#123;")
-        .replace(/\}/g, "&#125;");
+	return text
+		.replace(/"/g, "&#34;")
+		.replace(/\(/g, "&#40;")
+		.replace(/\)/g, "&#41;")
+		.replace(/\[/g, "&#91;")
+		.replace(/\]/g, "&#93;")
+		.replace(/\{/g, "&#123;")
+		.replace(/\}/g, "&#125;");
 }
 
 /**
  * グラフを Mermaid 形式で出力する。
  */
 function toMermaid(graph: CitationGraph): string {
-    const lines: string[] = [];
-    lines.push("graph LR");
+	const lines: string[] = [];
+	lines.push("graph LR");
 
-    for (const node of graph.nodes) {
-        const id = doiToId(node.doi);
-        const label = node.title ? escapeMermaid(node.title) : escapeMermaid(node.doi);
-        lines.push(`    ${id}["${label}"]`);
-    }
+	for (const node of graph.nodes) {
+		const id = doiToId(node.doi);
+		const label = node.title
+			? escapeMermaid(node.title)
+			: escapeMermaid(node.doi);
+		lines.push(`    ${id}["${label}"]`);
+	}
 
-    for (const edge of graph.edges) {
-        const srcId = doiToId(edge.source);
-        const tgtId = doiToId(edge.target);
-        if (edge.creationDate) {
-            lines.push(`    ${srcId} -->|"${escapeMermaid(edge.creationDate)}"| ${tgtId}`);
-        } else {
-            lines.push(`    ${srcId} --> ${tgtId}`);
-        }
-    }
+	for (const edge of graph.edges) {
+		const srcId = doiToId(edge.source);
+		const tgtId = doiToId(edge.target);
+		if (edge.creationDate) {
+			lines.push(
+				`    ${srcId} -->|"${escapeMermaid(edge.creationDate)}"| ${tgtId}`,
+			);
+		} else {
+			lines.push(`    ${srcId} --> ${tgtId}`);
+		}
+	}
 
-    return lines.join("\n");
+	return lines.join("\n");
 }
