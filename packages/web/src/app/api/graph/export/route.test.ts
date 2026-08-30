@@ -58,46 +58,21 @@ describe("/api/graph/export POST", () => {
     expect(data.error).toContain("Unsupported format");
   });
 
-  it("formatがjsonのとき、toJsonの結果を返す", async () => {
-    const mockOutput = '{"mocked": "json"}';
+  it.each([
+    { format: "json", fnName: "toJson", mockOutput: '{"mocked": "json"}' },
+    { format: "dot", fnName: "toDot", mockOutput: "digraph { mock }" },
+    { format: "mermaid", fnName: "toMermaid", mockOutput: "graph TD; mock;" },
+  ])("formatが$formatのとき、$fnNameの結果を返す", async ({ format, mockOutput }) => {
     vi.mocked(visualizer.formatGraph).mockReturnValueOnce(mockOutput);
 
-    const req = createRequest({ graph: mockGraph, format: "json" });
+    const req = createRequest({ graph: mockGraph, format });
     const res = await POST(req);
     const data = await res.json();
 
     expect(res.status).toBe(200);
     expect(data.output).toBe(mockOutput);
-    expect(data.format).toBe("json");
-    expect(visualizer.formatGraph).toHaveBeenCalledWith(mockGraph, "json");
-  });
-
-  it("formatがdotのとき、toDotの結果を返す", async () => {
-    const mockOutput = "digraph { mock }";
-    vi.mocked(visualizer.formatGraph).mockReturnValueOnce(mockOutput);
-
-    const req = createRequest({ graph: mockGraph, format: "dot" });
-    const res = await POST(req);
-    const data = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(data.output).toBe(mockOutput);
-    expect(data.format).toBe("dot");
-    expect(visualizer.formatGraph).toHaveBeenCalledWith(mockGraph, "dot");
-  });
-
-  it("formatがmermaidのとき、toMermaidの結果を返す", async () => {
-    const mockOutput = "graph TD; mock;";
-    vi.mocked(visualizer.formatGraph).mockReturnValueOnce(mockOutput);
-
-    const req = createRequest({ graph: mockGraph, format: "mermaid" });
-    const res = await POST(req);
-    const data = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(data.output).toBe(mockOutput);
-    expect(data.format).toBe("mermaid");
-    expect(visualizer.formatGraph).toHaveBeenCalledWith(mockGraph, "mermaid");
+    expect(data.format).toBe(format);
+    expect(visualizer.formatGraph).toHaveBeenCalledWith(mockGraph, format);
   });
 
   it("予期せぬエラー発生時に500を返す", async () => {
