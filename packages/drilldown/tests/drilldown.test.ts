@@ -158,6 +158,42 @@ describe("drilldown", () => {
         expect(results[1].level).toBe(1);
     });
 
+    it("should break early if query is identical to a previous one to avoid redundant searches", async () => {
+        // Return paper with same keywords as seed, so the next query will be identical
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                result: {
+                    hits: {
+                        hit: [
+                            {
+                                info: {
+                                    title: "Machine Learning for Testing",
+                                    authors: { author: [{ text: "Bob" }] },
+                                    doi: "10.5678/level1",
+                                    year: "2024",
+                                },
+                            },
+                        ],
+                    },
+                },
+            }),
+        });
+
+        const seedPapers = [
+            { title: "Machine Learning for Testing", authors: [{ name: "Alice" }], doi: "10.1234/seed" },
+        ];
+
+        // Even though depth is 3, it should break after the first fetch because the second fetch would
+        // yield keywords "machine learning testing", which is the same query as the first fetch.
+        const results = await drilldown(seedPapers, 3, 10);
+        expect(results.length).toBe(2); // level 0 (seed) and level 1 (first fetch)
+
+        // Assert that mockFetch was called only once for DBLP, not 3 times.
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
     it("should deduplicate papers by DOI", async () => {
         // Return paper with same DOI as seed
         mockFetch.mockResolvedValueOnce({

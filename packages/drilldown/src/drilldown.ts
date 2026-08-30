@@ -204,6 +204,7 @@ export async function drilldown(
 	const results: DrilldownResult[] = [{ level: 0, papers: seedPapers }];
 	const seenDois = new Set<string>();
 	const seenTitles = new Set<string>();
+	const seenQueries = new Set<string>();
 
 	// seed の DOI と title を記録
 	for (const p of seedPapers) {
@@ -225,6 +226,9 @@ export async function drilldown(
 		if (keywords.length === 0) break;
 
 		const query = keywords.join(" ");
+		if (seenQueries.has(query)) break;
+		seenQueries.add(query);
+
 		let found = await searchByKeyword(query, maxPerLevel * 2);
 
 		// 既出 DOI / title を除外
