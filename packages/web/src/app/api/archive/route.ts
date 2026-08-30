@@ -107,8 +107,8 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error("[Archive API]", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
 
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error("[Archive API]", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
