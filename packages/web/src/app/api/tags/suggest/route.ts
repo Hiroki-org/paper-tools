@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
-import { type NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import {
 	getAccessToken,
 	getNotionClient,
@@ -106,9 +107,9 @@ function isPageRecord(
 	);
 }
 
-export async function GET(request: NextRequest) {
-	const accessToken = getAccessToken(request.cookies);
-	const dataSourceId = getSelectedDatabaseId(request.cookies);
+export async function GET(request: Request) {
+	const accessToken = getAccessToken(await cookies());
+	const dataSourceId = getSelectedDatabaseId(await cookies());
 	if (!accessToken) {
 		return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 	}
