@@ -1009,16 +1009,11 @@ beforeEach(() => {
 const result = await limiter.schedule(async () => {...});
 ```
 
-**"ReferenceError: describe is not defined"**
-
-```bash
-# Fix: Ensure vitest.config.ts has globals: true, environment: "node"
-```
-
 **"Cannot find module .js"**
 
 ```bash
 # Cause: TypeScript test file isn't transpiled
+# Fix: Ensure vitest.config.ts has globals: true, environment: "node"
 # Or: Use tsx loader for Node.js files
 ```
 
@@ -1124,11 +1119,22 @@ OPENALEX_MAILTO=your-email@example.com
 
 **Building one package breaks others**
 
+```json
+  {
+    "error": "Property 'getPaper' does not exist on type 'typeof import(\"@paper-tools/core\")'"
+  }
+```
+
 ```bash
 # Cause: Interdependent packages
 # Fix: Build in correct order
 pnpm --filter @paper-tools/core build
+pnpm --filter @paper-tools/author-profiler build
+pnpm --filter @paper-tools/drilldown build
+pnpm --filter @paper-tools/scraper build
 pnpm --filter @paper-tools/recommender build
+pnpm --filter @paper-tools/visualizer build
+pnpm --filter @paper-tools/bibtex build
 pnpm --filter @paper-tools/web build
 
 # Or just:
