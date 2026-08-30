@@ -1,7 +1,116 @@
 import { describe, expect, it } from "vitest";
-import { deriveBibtexKey, formatBibtex, parseBibtexEntry, splitBibtexEntries } from "../src/bibtex-formatter.js";
+import { deriveBibtexKey, formatBibtex, parseBibtexEntry, splitBibtexEntries, getValidationWarnings } from "../src/bibtex-formatter.js";
 
 describe("bibtex-formatter", () => {
+    describe("getValidationWarnings", () => {
+        it("returns empty array when all required fields are present", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {
+                    author: "Smith",
+                    title: "Title",
+                    year: "2024",
+                    journal: "Journal"
+                }
+            };
+            expect(getValidationWarnings(parsed)).toEqual([]);
+        });
+
+        it("returns warning for missing author", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {
+                    title: "Title",
+                    year: "2024",
+                    journal: "Journal"
+                }
+            };
+            expect(getValidationWarnings(parsed)).toEqual(["Missing required field: author"]);
+        });
+
+        it("returns warning for missing title", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {
+                    author: "Smith",
+                    year: "2024",
+                    journal: "Journal"
+                }
+            };
+            expect(getValidationWarnings(parsed)).toEqual(["Missing required field: title"]);
+        });
+
+        it("returns warning for missing year", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {
+                    author: "Smith",
+                    title: "Title",
+                    journal: "Journal"
+                }
+            };
+            expect(getValidationWarnings(parsed)).toEqual(["Missing required field: year"]);
+        });
+
+        it("returns warning for missing booktitle or journal", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {
+                    author: "Smith",
+                    title: "Title",
+                    year: "2024"
+                }
+            };
+            expect(getValidationWarnings(parsed)).toEqual(["Missing required field: booktitle or journal"]);
+        });
+
+        it("returns empty array when booktitle is present but journal is missing", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {
+                    author: "Smith",
+                    title: "Title",
+                    year: "2024",
+                    booktitle: "Book"
+                }
+            };
+            expect(getValidationWarnings(parsed)).toEqual([]);
+        });
+
+        it("returns empty array when journal is present but booktitle is missing", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {
+                    author: "Smith",
+                    title: "Title",
+                    year: "2024",
+                    journal: "Journal"
+                }
+            };
+            expect(getValidationWarnings(parsed)).toEqual([]);
+        });
+
+        it("returns multiple warnings if multiple fields are missing", () => {
+            const parsed = {
+                entryType: "article",
+                key: "test",
+                fields: {}
+            };
+            expect(getValidationWarnings(parsed)).toEqual([
+                "Missing required field: author",
+                "Missing required field: title",
+                "Missing required field: year",
+                "Missing required field: booktitle or journal"
+            ]);
+        });
+    });
     describe("deriveBibtexKey", () => {
         it("returns undefined if keyFormat is 'default'", () => {
             const result = deriveBibtexKey(`@article{tmp, title={Paper}, author={Alice Smith}, year={2024}, journal={J}}`, "default");
@@ -47,7 +156,9 @@ describe("bibtex-formatter", () => {
     });
 
     it("splits multiple entries", () => {
-        const entries = splitBibtexEntries(`@article{a,title={A}}\n\n@article{b,title={B}}`);
+        const entries = splitBibtexEntries(`@article{a,title={A}}
+
+@article{b,title={B}}`);
         expect(entries).toHaveLength(2);
     });
 
