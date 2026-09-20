@@ -75,6 +75,19 @@ function parseAuth(request: NextRequest) {
     return { ok: true as const, accessToken, dataSourceId };
 }
 
+function getErrorStatus(error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    const match = message.match(/API error:\s*(\d{3})\b/i);
+    const status = Number(match?.[1]);
+    return status >= 400 && status <= 599 ? status : 500;
+}
+
+function logArchiveError(error: unknown) {
+    console.error("[Archive API]", {
+        name: error instanceof Error ? error.name : "UnknownError",
+    });
+}
+
 export async function GET(request: NextRequest) {
     const auth = parseAuth(request);
     if (!auth.ok) {
@@ -107,8 +120,8 @@ export async function GET(request: NextRequest) {
             },
         });
     } catch (error) {
-        console.error("[Archive API]", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        logArchiveError(error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: getErrorStatus(error) });
     }
 }
 
@@ -182,7 +195,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error("[Archive API]", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        logArchiveError(error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: getErrorStatus(error) });
     }
 }
