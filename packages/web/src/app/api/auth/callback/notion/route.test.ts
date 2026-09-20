@@ -2,12 +2,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const token = vi.fn();
+const { token } = vi.hoisted(() => ({ token: vi.fn() }));
 
 vi.mock("@notionhq/client", () => ({
-    Client: vi.fn(() => ({
-        oauth: { token },
-    })),
+    Client: class MockNotionClient {
+        oauth = { token };
+    },
 }));
 
 vi.mock("@/lib/auth", () => ({
