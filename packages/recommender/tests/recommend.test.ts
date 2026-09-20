@@ -69,7 +69,6 @@ describe("recommendFromMultiple", () => {
     });
 
     it("positiveIdsが空の場合は空配列を返す", async () => {
-        const { recommendFromMultiple } = await import("../src/recommend.js");
         const results = await recommendFromMultiple([]);
         expect(results).toEqual([]);
         expect(core.getRecommendations).not.toHaveBeenCalled();
@@ -78,8 +77,6 @@ describe("recommendFromMultiple", () => {
     it("すべての解決に成功した場合、正しく推薦APIを呼び出す", async () => {
         // mock resolveToS2Id indirectly by mocking getPaper since it relies on it
         // and we provide simple S2 IDs which resolve directly
-        const { recommendFromMultiple } = await import("../src/recommend.js");
-
         vi.mocked(core.getRecommendations).mockResolvedValueOnce({
             recommendedPapers: [{ paperId: "rec1", title: "R1" } as any],
         });
@@ -95,8 +92,6 @@ describe("recommendFromMultiple", () => {
     });
 
     it("解決に失敗したIDはフィルタリングされる", async () => {
-        const { recommendFromMultiple } = await import("../src/recommend.js");
-
         // title search fails for "bad-title", works for "good-title"
         vi.mocked(core.searchPapers).mockImplementation(async (query) => {
             if (query === "bad-title") {
@@ -123,8 +118,6 @@ describe("recommendFromMultiple", () => {
     });
 
     it("解決後、positiveIdsが空になった場合は空配列を返す", async () => {
-        const { recommendFromMultiple } = await import("../src/recommend.js");
-
         vi.mocked(core.searchPapers).mockResolvedValue({
             total: 0,
             offset: 0,
@@ -135,5 +128,78 @@ describe("recommendFromMultiple", () => {
 
         expect(results).toEqual([]);
         expect(core.getRecommendations).not.toHaveBeenCalled();
+    });
+
+
+    it("calls recommend API only with successful IDs even if some IDs fail to resolve", async () => {
+        vi.mocked(core.getPaper).mockImplementation(async (id) => {
+            if (id === "DOI:10.1000/error") {
+                throw new Error("Failed to fetch");
+            }
+            return { paperId: `s2-${id.split("DOI:")[1]}` } as any;
+        });
+
+        vi.mocked(core.getRecommendations).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec-error-test", title: "R-Error" } as any],
+        });
+
+        const results = await recommendFromMultiple(
+            ["10.1000/success", "10.1000/error"],
+            []
+        );
+
+        expect(results).toHaveLength(1);
+        expect(core.getRecommendations).toHaveBeenCalledWith(
+            ["s2-10.1000/success"],
+            [],
+            { limit: 20 }
+        );
+    });
+
+    it("returns empty array if all IDs fail to resolve", async () => {
+        vi.mocked(core.getPaper).mockRejectedValue(new Error("Network Error"));
+
+        const results = await recommendFromMultiple(
+            ["10.1000/error1", "10.1000/error2"],
+            []
+        );
+
+        expect(results).toEqual([]);
+        expect(core.getRecommendations).not.toHaveBeenCalled();
+    });
+});
+
+
+describe("recommendFromSingle", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("gets recommendations from a single ID", async () => {
+        vi.mocked(core.getPaper).mockResolvedValueOnce({ paperId: "s2-single", title: "T" } as any);
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [{ paperId: "rec-single", title: "R-Single" } as any],
+        });
+
+        const results = await recommendFromSingle("10.1000/single");
+        expect(results).toHaveLength(1);
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith(
+            "s2-single",
+            { limit: 10, from: "recent" }
+        );
+    });
+
+    it("gets recommendations with options specified", async () => {
+        vi.mocked(core.getPaper).mockResolvedValueOnce({ paperId: "s2-single2", title: "T" } as any);
+        vi.mocked(core.getRecommendationsForPaper).mockResolvedValueOnce({
+            recommendedPapers: [],
+        });
+
+        const results = await recommendFromSingle("10.1000/single2", { limit: 50, from: "all-cs" });
+        expect(results).toEqual([]);
+        expect(core.getRecommendationsForPaper).toHaveBeenCalledWith(
+            "s2-single2",
+            { limit: 50, from: "all-cs" }
+        );
     });
 });
