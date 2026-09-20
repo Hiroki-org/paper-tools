@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
                 { status: tokenRes.status || 401 },
             );
         }
-        const nextRefreshToken = tokenResponse.refresh_token;
+        const nextRefreshToken = (tokenResponse as any).refresh_token as string | undefined;
         if (!nextRefreshToken) {
             return NextResponse.json({ error: "refresh_token missing in response" }, { status: 502 });
         }
