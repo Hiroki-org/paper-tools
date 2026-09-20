@@ -81,6 +81,38 @@ describe("fetchWithRetry", () => {
         expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
+
+    it("delays baseDelayMs * 2^attempt before retrying a 429 error", async () => {
+        vi.useFakeTimers();
+        const response429 = new Response("slow down", {
+            status: 429,
+            statusText: "Too Many Requests",
+        });
+        const responseOk = new Response("ok", {
+            status: 200,
+            statusText: "OK",
+        });
+        const fetchMock = vi.mocked(globalThis.fetch);
+        fetchMock
+            .mockResolvedValueOnce(response429)
+            .mockResolvedValueOnce(responseOk);
+
+        const promise = fetchWithRetry("https://example.com", {}, 2, 1000);
+
+        await vi.advanceTimersByTimeAsync(1);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        await vi.advanceTimersByTimeAsync(998);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        await vi.advanceTimersByTimeAsync(2);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+
+        const result = await promise;
+        expect(result).toBe(responseOk);
+        vi.useRealTimers();
+    });
+
     it("returns successful response immediately", async () => {
         const response = new Response("ok", {
             status: 200,
