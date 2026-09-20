@@ -16,7 +16,7 @@ describe("searchConferencePapers", () => {
 	it("should call searchVenuePublications with correct arguments and return its result", async () => {
 		const mockPapers = [{ title: "Test Paper", authors: [] }];
 		vi.mocked(searchVenuePublications).mockResolvedValueOnce(
-			mockPapers as unknown as ReturnType<typeof searchVenuePublications>,
+			mockPapers,
 		);
 
 		const result = await searchConferencePapers("ICSE", 2026, 50);
