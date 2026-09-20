@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
         });
 
         const owner = tokenResponse.owner;
-        const userName = owner.type === "user" ? (owner.user as any)?.name : undefined;
+        const userName = owner.type === "user" && owner.user && typeof owner.user === 'object' && 'name' in owner.user ? (owner.user.name as string | undefined) ?? undefined : undefined;
 
         const response = NextResponse.redirect(new URL("/setup", request.url));
-        const refreshToken = (tokenResponse as any).refresh_token as string | undefined;
+        const refreshToken = 'refresh_token' in tokenResponse ? (tokenResponse.refresh_token as string) : undefined;
         if (!refreshToken) {
             return NextResponse.redirect(new URL("/login?error=missing_refresh_token", request.url));
         }
