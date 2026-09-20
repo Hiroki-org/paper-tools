@@ -144,4 +144,36 @@ describe("preCachePaper", () => {
         expect(result.current.paper?.title).toBe("Updated Title");
         expect(result.current.paper?.year).toBe(2025);
     });
+
+    it("should evict oldest cache entry when exceeding MAX_CACHE_ENTRIES", async () => {
+        vi.resetModules();
+        const { preCachePaper, usePaperDetail } = await import("./usePaperDetail");
+
+        for (let i = 0; i < 101; i++) {
+            preCachePaper({ paperId: `evict-${i}`, title: `Paper ${i}` });
+        }
+
+        vi.stubGlobal('fetch', vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100))));
+
+        // The first one should be evicted
+        const { result: evictedResult } = renderHook(() => usePaperDetail("evict-0"));
+        expect(evictedResult.current.paper).toBeNull();
+
+        // The last one should still be cached
+        const { result: cachedResult } = renderHook(() => usePaperDetail("evict-100"));
+        expect(cachedResult.current.paper).not.toBeNull();
+    });
+
+    it("should patch influentialCitationCount correctly", async () => {
+        vi.resetModules();
+        const { preCachePaper, usePaperDetail } = await import("./usePaperDetail");
+
+        preCachePaper({ paperId: "patch-1", title: "Test" });
+        preCachePaper({ paperId: "patch-1", influentialCitationCount: 42 });
+
+        vi.stubGlobal('fetch', vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100))));
+
+        const { result } = renderHook(() => usePaperDetail("patch-1"));
+        expect(result.current.paper?.influentialCitationCount).toBe(42);
+    });
 });
