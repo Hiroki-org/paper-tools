@@ -76,6 +76,15 @@ function parseAuth(request: NextRequest) {
 }
 
 function getErrorStatus(error: unknown) {
+    if (typeof error === "object" && error !== null) {
+        const candidate = error as { status?: unknown; statusCode?: unknown };
+        for (const value of [candidate.status, candidate.statusCode]) {
+            if (typeof value === "number" && value >= 400 && value <= 599) {
+                return value;
+            }
+        }
+    }
+
     const message = error instanceof Error ? error.message : "";
     const match = message.match(/API error:\s*(\d{3})\b/i);
     const status = Number(match?.[1]);

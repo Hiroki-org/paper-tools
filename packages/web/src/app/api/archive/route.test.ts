@@ -143,12 +143,23 @@ describe("/api/archive", () => {
         });
 
         it("preserves an upstream API status while hiding its error details", async () => {
-            mockQuery.mockRejectedValueOnce(new Error("API error: 429 rate limit secret=must-not-log"));
+            mockQuery.mockRejectedValueOnce({
+                status: 429,
+                code: "rate_limited",
+                message: "Too many requests secret=must-not-log",
+            });
             const req = new NextRequest("http://localhost/api/archive");
             const res = await GET(req);
             expect(res.status).toBe(429);
             expect(await res.json()).toEqual({ error: "Internal Server Error" });
             expect(JSON.stringify(consoleError.mock.calls)).not.toContain("must-not-log");
+        });
+
+        it("falls back to the documented API error message format", async () => {
+            mockQuery.mockRejectedValueOnce(new Error("API error: 429 rate limit"));
+            const req = new NextRequest("http://localhost/api/archive");
+            const res = await GET(req);
+            expect(res.status).toBe(429);
         });
 
         it("returns 500 on non-Error error", async () => {
@@ -280,6 +291,17 @@ describe("/api/archive", () => {
             expect(res.status).toBe(500);
             const data = await res.json();
             expect(data.error).toBe("Internal Server Error");
+        });
+
+        it("preserves the upstream API status for POST failures", async () => {
+            mockCreate.mockRejectedValueOnce({ statusCode: 503, code: "service_unavailable" });
+            const req = new NextRequest("http://localhost/api/archive", {
+                method: "POST",
+                body: JSON.stringify({ paper: mockPaper }),
+            });
+            const res = await POST(req);
+            expect(res.status).toBe(503);
+            expect(await res.json()).toEqual({ error: "Internal Server Error" });
         });
     });
 });
