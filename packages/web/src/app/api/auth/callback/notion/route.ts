@@ -60,7 +60,9 @@ export async function GET(request: NextRequest) {
         });
         return response;
     } catch (error) {
-        console.error("Notion OAuth callback error:", error);
+        console.error("[notion-oauth] callback failed", {
+            name: error instanceof Error ? error.name : "UnknownError",
+        });
         return NextResponse.redirect(new URL("/login?error=oauth_callback_failed", request.url));
     }
 }
