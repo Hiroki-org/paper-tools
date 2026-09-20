@@ -14,7 +14,7 @@ import {
 const { POST } = await import("./route");
 
 describe("/api/auth/refresh POST", () => {
-	let mockFetch: any;
+	let mockFetch: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -142,7 +142,11 @@ describe("/api/auth/refresh POST", () => {
 	});
 
 	it("should return 401 if fetch throws an error", async () => {
-		mockFetch.mockRejectedValue(new Error("Network failure"));
+		const error = new Error("Network failure");
+		const consoleError = vi
+			.spyOn(console, "error")
+			.mockImplementation(() => undefined);
+		mockFetch.mockRejectedValue(error);
 
 		const req = new NextRequest("http://localhost/api/auth/refresh", {
 			method: "POST",
@@ -152,5 +156,9 @@ describe("/api/auth/refresh POST", () => {
 		expect(res.status).toBe(401);
 		const data = await res.json();
 		expect(data.error).toBe("Token refresh failed");
+		expect(consoleError).toHaveBeenCalledWith(
+			"[notion-refresh] token refresh failed",
+			{ name: "Error", message: "Network failure" },
+		);
 	});
 });

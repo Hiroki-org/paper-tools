@@ -67,7 +67,11 @@ export async function POST(request: NextRequest) {
 			request,
 		});
 		return response;
-	} catch {
+	} catch (error) {
+		console.error("[notion-refresh] token refresh failed", {
+			name: error instanceof Error ? error.name : "UnknownError",
+			message: error instanceof Error ? error.message : String(error),
+		});
 		return NextResponse.json(
 			{ error: "Token refresh failed" },
 			{ status: 401 },
