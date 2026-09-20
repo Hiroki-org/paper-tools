@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const resolveNotionDataSourceMock = vi.fn();
 const getAccessTokenMock = vi.fn();
@@ -7,80 +7,91 @@ const getSelectedDatabaseIdMock = vi.fn();
 const getNotionClientMock = vi.fn();
 
 vi.mock("@/lib/notion-data-source", () => ({
-    resolveNotionDataSource: resolveNotionDataSourceMock,
+	resolveNotionDataSource: resolveNotionDataSourceMock,
+}));
+
+vi.mock("next/headers", () => ({
+	cookies: vi.fn().mockReturnValue({
+		get: vi.fn(),
+	}),
 }));
 
 vi.mock("@/lib/auth", () => ({
-    getAccessToken: getAccessTokenMock,
-    getSelectedDatabaseId: getSelectedDatabaseIdMock,
-    getNotionClient: getNotionClientMock,
+	getAccessToken: getAccessTokenMock,
+	getSelectedDatabaseId: getSelectedDatabaseIdMock,
+	getNotionClient: getNotionClientMock,
 }));
 
 const { GET } = await import("./route");
 
 describe("/api/tags/suggest GET", () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        getAccessTokenMock.mockReturnValue("token");
-        getSelectedDatabaseIdMock.mockReturnValue("db-1");
-    });
+	beforeEach(() => {
+		vi.clearAllMocks();
+		getAccessTokenMock.mockReturnValue("token");
+		getSelectedDatabaseIdMock.mockReturnValue("db-1");
+	});
 
-    it("q が2文字未満なら候補は空", async () => {
-        const req = new NextRequest("http://localhost/api/tags/suggest?q=m");
-        const res = await GET(req);
-        const data = await res.json();
+	it("q が2文字未満なら候補は空", async () => {
+		const req = new NextRequest("http://localhost/api/tags/suggest?q=m");
+		const res = await GET(req);
+		const data = await res.json();
 
-        expect(res.status).toBe(200);
-        expect(data.suggestions).toEqual([]);
-    });
+		expect(res.status).toBe(200);
+		expect(data.suggestions).toEqual([]);
+	});
 
-    it("タグ候補を返す", async () => {
-        resolveNotionDataSourceMock.mockResolvedValueOnce({
-            id: "ds-1",
-            properties: {
-                Tags: { type: "multi_select" },
-            },
-        });
+	it("タグ候補を返す", async () => {
+		resolveNotionDataSourceMock.mockResolvedValueOnce({
+			id: "ds-1",
+			properties: {
+				Tags: { type: "multi_select" },
+			},
+		});
 
-        getNotionClientMock.mockReturnValue({
-            dataSources: {
-                query: vi.fn().mockResolvedValue({
-                    results: [
-                        {
-                            object: "page",
-                            properties: {
-                                Tags: {
-                                    multi_select: [{ name: "Machine Learning" }, { name: "ML" }],
-                                },
-                            },
-                        },
-                        {
-                            object: "page",
-                            properties: {
-                                Tags: {
-                                    multi_select: [{ name: "machine learning" }, { name: "Data Mining" }],
-                                },
-                            },
-                        },
-                    ],
-                    has_more: false,
-                    next_cursor: null,
-                }),
-            },
-        });
+		getNotionClientMock.mockReturnValue({
+			dataSources: {
+				query: vi.fn().mockResolvedValue({
+					results: [
+						{
+							object: "page",
+							properties: {
+								Tags: {
+									multi_select: [{ name: "Machine Learning" }, { name: "ML" }],
+								},
+							},
+						},
+						{
+							object: "page",
+							properties: {
+								Tags: {
+									multi_select: [
+										{ name: "machine learning" },
+										{ name: "Data Mining" },
+									],
+								},
+							},
+						},
+					],
+					has_more: false,
+					next_cursor: null,
+				}),
+			},
+		});
 
-        const req = new NextRequest("http://localhost/api/tags/suggest?q=ma&limit=5");
-        const res = await GET(req);
-        const data = await res.json();
+		const req = new NextRequest(
+			"http://localhost/api/tags/suggest?q=ma&limit=5",
+		);
+		const res = await GET(req);
+		const data = await res.json();
 
-        expect(res.status).toBe(200);
-        expect(data.suggestions).toEqual(["Machine Learning"]);
-    });
+		expect(res.status).toBe(200);
+		expect(data.suggestions).toEqual(["Machine Learning"]);
+	});
 
-    it("未認証は401", async () => {
-        getAccessTokenMock.mockReturnValueOnce(null);
-        const req = new NextRequest("http://localhost/api/tags/suggest?q=ml");
-        const res = await GET(req);
-        expect(res.status).toBe(401);
-    });
+	it("未認証は401", async () => {
+		getAccessTokenMock.mockReturnValueOnce(null);
+		const req = new NextRequest("http://localhost/api/tags/suggest?q=ml");
+		const res = await GET(req);
+		expect(res.status).toBe(401);
+	});
 });
