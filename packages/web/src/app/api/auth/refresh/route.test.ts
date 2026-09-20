@@ -23,6 +23,7 @@ describe("/api/auth/refresh POST", () => {
 		vi.stubEnv("COOKIE_SECRET", "test-secret");
 
 		mockFetch = vi.fn();
+		vi.spyOn(console, "error").mockImplementation(() => {});
 		vi.stubGlobal("fetch", mockFetch);
 
 		vi.spyOn(auth, "getRefreshToken").mockReturnValue("old-refresh-token");
@@ -142,11 +143,7 @@ describe("/api/auth/refresh POST", () => {
 	});
 
 	it("should return 401 if fetch throws an error", async () => {
-		const error = new Error("Network failure");
-		const consoleError = vi
-			.spyOn(console, "error")
-			.mockImplementation(() => undefined);
-		mockFetch.mockRejectedValue(error);
+		mockFetch.mockRejectedValue(new Error("Network failure"));
 
 		const req = new NextRequest("http://localhost/api/auth/refresh", {
 			method: "POST",
@@ -156,9 +153,9 @@ describe("/api/auth/refresh POST", () => {
 		expect(res.status).toBe(401);
 		const data = await res.json();
 		expect(data.error).toBe("Token refresh failed");
-		expect(consoleError).toHaveBeenCalledWith(
-			"[notion-refresh] token refresh failed",
-			{ name: "Error", message: "Network failure" },
+		expect(console.error).toHaveBeenCalledWith(
+			"[Token Refresh Error]",
+			"Network failure",
 		);
 	});
 });
