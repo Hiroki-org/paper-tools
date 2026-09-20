@@ -198,14 +198,14 @@ describe("auth", () => {
     });
 
     describe("setDatabaseCookie", () => {
-        let mockResponse;
+        let mockResponse: NextResponse;
 
         beforeEach(() => {
             mockResponse = {
                 cookies: {
                     set: vi.fn(),
                 },
-            };
+            } as unknown as NextResponse;
         });
 
         afterEach(() => {
@@ -242,12 +242,7 @@ describe("auth", () => {
         it("should set secure: true when request has x-forwarded-proto as https", () => {
             const mockRequest = {
                 url: "http://example.com/api",
-                headers: {
-                    get: vi.fn().mockImplementation((name) => {
-                        if (name === "x-forwarded-proto") return "https";
-                        return null;
-                    }),
-                },
+                headers: new Headers({ "x-forwarded-proto": "https" }),
             };
 
             setDatabaseCookie(mockResponse, "db-123", mockRequest);
@@ -264,13 +259,7 @@ describe("auth", () => {
         it("should set secure: true when request host is not localhost", () => {
             const mockRequest = {
                 url: "http://example.com/api",
-                headers: {
-                    get: vi.fn().mockImplementation((name) => {
-                        if (name === "x-forwarded-proto") return null;
-                        if (name === "host") return "example.com";
-                        return null;
-                    }),
-                },
+                headers: new Headers({ host: "example.com" }),
             };
 
             setDatabaseCookie(mockResponse, "db-123", mockRequest);
@@ -286,16 +275,9 @@ describe("auth", () => {
 
         it("should set secure: false when request host is localhost", () => {
             const mockRequest = {
-                url: "http://example.com/api",
-                headers: {
-                    get: vi.fn().mockImplementation((name) => {
-                        if (name === "x-forwarded-proto") return null;
-                        if (name === "host") return "localhost:3000";
-                        return null;
-                    }),
-                },
+                url: "http://localhost:3000/api",
+                headers: new Headers({ host: "localhost:3000" }),
             };
-            mockRequest.url = "http://localhost:3000/api";
 
             setDatabaseCookie(mockResponse, "db-123", mockRequest);
 

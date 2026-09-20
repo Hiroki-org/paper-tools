@@ -32,9 +32,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.11",
-    "@vitest/coverage-v8": "^4.1.4",
+    "@vitest/coverage-v8": "^4.1.11",
     "rimraf": "^6.1.2",
     "typescript": "^5.8.0",
-    "vitest": "^5.0.1"
+    "vitest": "^4.1.11"
   }
 }
