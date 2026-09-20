@@ -83,4 +83,19 @@ describe("profile-builder helpers", () => {
         expect(timeline[1]?.year).toBe(2023);
         expect(timeline[1]?.topics[0]).toEqual({ name: "Systems", score: 1 });
     });
+
+    it("buildTopicTimelineFromPapers ignores papers with missing year or fieldsOfStudy", () => {
+        const timeline = buildTopicTimelineFromPapers([
+            { paperId: "p1", title: "A", year: undefined, fieldsOfStudy: ["ML"] },
+            { paperId: "p2", title: "B", year: 2022, fieldsOfStudy: null },
+            { paperId: "p3", title: "C", year: null, fieldsOfStudy: ["ML"] },
+            { paperId: "p4", title: "D", year: 2022, fieldsOfStudy: ["ML"] },
+            { paperId: "p5", title: "E", year: 2023 }
+        ] as any);
+
+        expect(timeline).toHaveLength(1);
+        expect(timeline[0]?.year).toBe(2022);
+        expect(timeline[0]?.topics).toHaveLength(1);
+        expect(timeline[0]?.topics[0]).toEqual({ name: "ML", score: 1 });
+    });
 });
