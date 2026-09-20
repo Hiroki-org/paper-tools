@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
-import type { PaperDetail } from "@/types/paper";
+import type { S2Paper } from "@paper-tools/core";
 
 vi.mock("@paper-tools/core", () => ({
     RateLimiter: class {
@@ -40,7 +40,7 @@ describe("/api/paper/[paperId] GET", () => {
             fieldsOfStudy: [{ category: "Computer Science", source: "s2" }],
             publicationDate: "2024-01-01",
             journal: { name: "J", volume: "1", pages: "1-10" },
-        } as unknown as Partial<PaperDetail>);
+        } as unknown as S2Paper);
 
         const res = await GET(new NextRequest("http://localhost/api/paper/abc"), ctx("abc"));
         const data = await res.json();
