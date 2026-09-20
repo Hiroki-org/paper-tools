@@ -140,14 +140,14 @@ function extractImportantDates($: cheerio.CheerioAPI): ImportantDate[] {
     });
 
     // リスト形式もチェック
+    const datePatterns = [
+        /(.+?):\s*(\w+ \d{1,2},?\s*\d{4})/,
+        /(.+?)\s*[-–]\s*(\w+ \d{1,2},?\s*\d{4})/,
+        /(\w+ \d{1,2},?\s*\d{4})\s*[-–:]\s*(.+)/,
+    ];
     if (dates.length === 0) {
         $("li, .deadline, .important-date").each((_i, el) => {
             const text = $(el).text().trim();
-            const datePatterns = [
-                /(.+?):\s*(\w+ \d{1,2},?\s*\d{4})/,
-                /(.+?)\s*[-–]\s*(\w+ \d{1,2},?\s*\d{4})/,
-                /(\w+ \d{1,2},?\s*\d{4})\s*[-–:]\s*(.+)/,
-            ];
             for (const pattern of datePatterns) {
                 const match = text.match(pattern);
                 if (match) {
