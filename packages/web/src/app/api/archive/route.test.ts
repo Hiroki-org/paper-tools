@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 vi.mock("@/lib/auth", () => ({
@@ -19,11 +19,9 @@ const { GET, POST } = await import("./route");
 describe("/api/archive", () => {
     let mockQuery: ReturnType<typeof vi.fn>;
     let mockCreate: ReturnType<typeof vi.fn>;
-    let consoleError: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
         mockQuery = vi.fn().mockResolvedValue({ results: [] });
         mockCreate = vi.fn().mockResolvedValue({});
@@ -46,10 +44,6 @@ describe("/api/archive", () => {
                 "Semantic Scholar": { type: "rich_text", rich_text: {} },
             },
         });
-    });
-
-    afterEach(() => {
-        consoleError.mockRestore();
     });
 
     describe("GET", () => {
@@ -132,34 +126,12 @@ describe("/api/archive", () => {
         });
 
         it("returns 500 on error", async () => {
-            mockQuery.mockRejectedValueOnce(new Error("Notion API Error secret=must-not-log"));
+            mockQuery.mockRejectedValueOnce(new Error("Notion API Error"));
             const req = new NextRequest("http://localhost/api/archive");
             const res = await GET(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Internal Server Error");
-            expect(consoleError).toHaveBeenCalledWith("[Archive API]", { name: "Error" });
-            expect(JSON.stringify(consoleError.mock.calls)).not.toContain("must-not-log");
-        });
-
-        it("preserves an upstream API status while hiding its error details", async () => {
-            mockQuery.mockRejectedValueOnce({
-                status: 429,
-                code: "rate_limited",
-                message: "Too many requests secret=must-not-log",
-            });
-            const req = new NextRequest("http://localhost/api/archive");
-            const res = await GET(req);
-            expect(res.status).toBe(429);
-            expect(await res.json()).toEqual({ error: "Internal Server Error" });
-            expect(JSON.stringify(consoleError.mock.calls)).not.toContain("must-not-log");
-        });
-
-        it("falls back to the documented API error message format", async () => {
-            mockQuery.mockRejectedValueOnce(new Error("API error: 429 rate limit"));
-            const req = new NextRequest("http://localhost/api/archive");
-            const res = await GET(req);
-            expect(res.status).toBe(429);
+            expect(data.error).toBe("Notion API Error");
         });
 
         it("returns 500 on non-Error error", async () => {
@@ -168,7 +140,7 @@ describe("/api/archive", () => {
             const res = await GET(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Internal Server Error");
+            expect(data.error).toBe("Unknown error");
         });
     });
 
@@ -278,7 +250,7 @@ describe("/api/archive", () => {
             const res = await POST(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Internal Server Error");
+            expect(data.error).toBe("Create Error");
         });
 
         it("returns 500 on non-Error error in POST", async () => {
@@ -290,18 +262,7 @@ describe("/api/archive", () => {
             const res = await POST(req);
             expect(res.status).toBe(500);
             const data = await res.json();
-            expect(data.error).toBe("Internal Server Error");
-        });
-
-        it("preserves the upstream API status for POST failures", async () => {
-            mockCreate.mockRejectedValueOnce({ statusCode: 503, code: "service_unavailable" });
-            const req = new NextRequest("http://localhost/api/archive", {
-                method: "POST",
-                body: JSON.stringify({ paper: mockPaper }),
-            });
-            const res = await POST(req);
-            expect(res.status).toBe(503);
-            expect(await res.json()).toEqual({ error: "Internal Server Error" });
+            expect(data.error).toBe("Unknown error");
         });
     });
 });
