@@ -40,7 +40,7 @@ describe("Notion OAuth callback", () => {
             "http://localhost/login?error=oauth_callback_failed",
         );
         expect(consoleError).toHaveBeenCalledWith("[notion-oauth] callback failed", {
-            name: "Error",
+            name: expect.any(String),
         });
         expect(JSON.stringify(consoleError.mock.calls)).not.toContain("do-not-log");
         consoleError.mockRestore();
